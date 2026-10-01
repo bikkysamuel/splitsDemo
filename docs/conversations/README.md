@@ -2,6 +2,8 @@
 
 A chronological record of the conversations that shaped this project. The decision log is `docs/00-open-questions.md`, and ADRs and `GLOSSARY.md` hold the decisions themselves. These files record *how we got there*.
 
+**Just the conversation:** [`conversation-in-order.md`](conversation-in-order.md) lists every prompt and every question Claude asked, oldest first. It is generated from the session transcripts; run `scripts/conversation-in-order.py` to refresh it.
+
 ## Convention
 
 - One directory per **UTC date**: `YYYY-MM-DD/`.
