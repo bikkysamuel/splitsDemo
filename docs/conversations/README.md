@@ -27,3 +27,4 @@ A chronological record of the conversations that shaped this project. The decisi
 4. [Conversation log setup](2026-10-01/04-conversation-log-setup.md)
 5. [Requirements discovery, Round 5 onward](2026-10-01/05-grill-with-docs-discovery-cont.md)
 6. [Writing docs 01–10 and CLAUDE.md](2026-10-01/06-sdlc-docs-authoring.md)
+7. [Writing the v1 spec (/to-spec)](2026-10-01/07-to-spec.md)
