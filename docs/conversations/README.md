@@ -29,3 +29,4 @@ A chronological record of the conversations that shaped this project. The decisi
 6. [Writing docs 01–10 and CLAUDE.md](2026-10-01/06-sdlc-docs-authoring.md)
 7. [Writing the v1 spec (/to-spec)](2026-10-01/07-to-spec.md)
 8. [UI/UX suggestions for v1](2026-10-01/08-ui-ux-suggestions.md)
+9. [Re-running /to-spec; M0–M1 tickets (/to-tickets)](2026-10-01/09-to-spec-rerun.md)
