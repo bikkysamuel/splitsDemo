@@ -84,7 +84,6 @@ func (s *Server) Get(t testing.TB, path string) Response {
 }
 
 // CutDatabase makes the database unreachable for the rest of the test.
-func (s *Server) CutDatabase(t testing.TB) {
-	t.Helper()
+func (s *Server) CutDatabase() {
 	s.proxy.Cut()
 }

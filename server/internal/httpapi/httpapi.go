@@ -5,6 +5,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -67,7 +68,13 @@ func (s *Server) readyz(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), readinessTimeout)
 	defer cancel()
 	if err := s.deps.Readiness.Ping(ctx); err != nil {
-		s.deps.Logger.WarnContext(ctx, "readiness check failed", "error", err)
+		// Database driver errors name the host, role and database; logs carry
+		// a cause category only (doc 08).
+		cause := "unreachable"
+		if errors.Is(err, context.DeadlineExceeded) {
+			cause = "timeout"
+		}
+		s.deps.Logger.WarnContext(ctx, "readiness check failed", "cause", cause)
 		writeProblem(w, problem{
 			Type:   problemTypeBase + "not-ready",
 			Title:  "Service not ready",
@@ -88,13 +95,15 @@ type problem struct {
 }
 
 func writeProblem(w http.ResponseWriter, p problem) {
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(p.Status)
-	_ = json.NewEncoder(w).Encode(p)
+	write(w, "application/problem+json", p.Status, p)
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json")
+	write(w, "application/json", status, body)
+}
+
+func write(w http.ResponseWriter, contentType string, status int, body any) {
+	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
 }

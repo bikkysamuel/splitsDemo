@@ -70,5 +70,8 @@ jobs:
       - name: go test
         run: go test -race ./...
 
+      # doc 09's short fuzz run (~30 s per target) lands with the first fuzz
+      # targets in ledger (#8).
+
       - name: govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...

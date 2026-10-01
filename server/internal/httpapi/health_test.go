@@ -24,7 +24,7 @@ func TestReadyzReportsDatabaseReachability(t *testing.T) {
 		t.Fatalf("GET /readyz with the database up = %d; want 200", resp.StatusCode)
 	}
 
-	srv.CutDatabase(t)
+	srv.CutDatabase()
 
 	resp := srv.Get(t, "/readyz")
 	if resp.StatusCode != http.StatusServiceUnavailable {
@@ -37,7 +37,7 @@ func TestReadyzReportsDatabaseReachability(t *testing.T) {
 
 func TestHealthzStaysUpWhenTheDatabaseIsUnreachable(t *testing.T) {
 	srv := apptest.Start(t)
-	srv.CutDatabase(t)
+	srv.CutDatabase()
 
 	if resp := srv.Get(t, "/healthz"); resp.StatusCode != http.StatusOK {
 		t.Fatalf("GET /healthz with the database unreachable = %d; want 200", resp.StatusCode)

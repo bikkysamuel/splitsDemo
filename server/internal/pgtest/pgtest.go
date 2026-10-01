@@ -29,9 +29,9 @@ func NewSchema(t testing.TB) string {
 	}
 
 	name := "test_" + randomHex(t, 8)
-	exec(t, base, "CREATE SCHEMA "+pgx.Identifier{name}.Sanitize())
+	mustExec(t, base, "CREATE SCHEMA "+pgx.Identifier{name}.Sanitize())
 	t.Cleanup(func() {
-		exec(t, base, "DROP SCHEMA "+pgx.Identifier{name}.Sanitize()+" CASCADE")
+		mustExec(t, base, "DROP SCHEMA "+pgx.Identifier{name}.Sanitize()+" CASCADE")
 	})
 
 	u, err := url.Parse(base)
@@ -44,7 +44,8 @@ func NewSchema(t testing.TB) string {
 	return u.String()
 }
 
-func exec(t testing.TB, databaseURL, sql string) {
+// mustExec runs sql on a fresh connection, failing the test on error.
+func mustExec(t testing.TB, databaseURL, sql string) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

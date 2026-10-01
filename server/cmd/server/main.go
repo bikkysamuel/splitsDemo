@@ -29,6 +29,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := run(ctx, os.Getenv, os.Stdout); err != nil {
+		// Plain stderr: the slog logger may not exist yet (bad configuration).
 		fmt.Fprintln(os.Stderr, "server:", err)
 		os.Exit(1)
 	}
