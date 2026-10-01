@@ -33,3 +33,4 @@ A chronological record of the conversations that shaped this project. The decisi
 10. [Running /to-spec a third time](2026-10-01/10-to-spec-third-run.md)
 11. [Implementing #5: server skeleton (/implement)](2026-10-01/11-implement-server-skeleton.md)
 12. [Implementing #6: iOS app shell (/implement)](2026-10-01/12-implement-ios-shell.md)
+13. [Implementing #7: contract pipeline (/implement)](2026-10-01/13-implement-contract-pipeline.md)
