@@ -1,6 +1,9 @@
 # vacuum lint rules for api/openapi.yaml: the recommended set, minus
 # oas3-unused-component, because shared conventions (Money, ExchangeRate,
-# FieldError) are defined before the endpoints that use them (#7).
+# FieldError) are defined before the endpoints that use them (#7), and
+# camel-case-properties, because JSON properties are snake_case (doc 07:
+# `next_cursor`, `acknowledge_warnings`).
 extends: [[vacuum:oas, recommended]]
 rules:
   oas3-unused-component: off
+  camel-case-properties: off

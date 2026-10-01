@@ -50,3 +50,26 @@ func TestFakeClockAdvances(t *testing.T) {
 		t.Errorf("Now() = %v; want %v", got, want)
 	}
 }
+
+func TestParseIDRoundTripsTheCanonicalForm(t *testing.T) {
+	ids := platform.NewIDGenerator(platform.SystemClock{})
+	want := ids.New()
+
+	got, err := platform.ParseID(want.String())
+	if err != nil || got != want {
+		t.Fatalf("ParseID(%s) = %s, %v; want %s", want, got, err, want)
+	}
+	if upper, err := platform.ParseID("0190B6C4-0000-7000-8000-00000000000A"); err != nil ||
+		upper.String() != "0190b6c4-0000-7000-8000-00000000000a" {
+		t.Errorf("ParseID(uppercase) = %s, %v; want it accepted", upper, err)
+	}
+}
+
+func TestParseIDRefusesNonUUIDs(t *testing.T) {
+	for _, s := range []string{"", "0190b6c4", "0190b6c4-0000-7000-8000-00000000000g",
+		"0190b6c400007000800000000000000a", "{0190b6c4-0000-7000-8000-00000000000a}"} {
+		if _, err := platform.ParseID(s); err == nil {
+			t.Errorf("ParseID(%q) = nil error; want refused", s)
+		}
+	}
+}

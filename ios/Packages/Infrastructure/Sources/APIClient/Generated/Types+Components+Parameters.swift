@@ -11,5 +11,17 @@ public import struct Foundation.Date
 #endif
 extension Components {
     /// Types generated from the `#/components/parameters` section of the OpenAPI document.
-    public enum Parameters {}
+    public enum Parameters {
+        /// A client-generated UUID, required on every write by a signed-in User
+        /// (NFR-R1). Repeating a request with the same key within 24 hours
+        /// returns the original response; reusing a key for a different request
+        /// answers `idempotency-key-reused`, and repeating it while the first is
+        /// still running answers `idempotency-key-in-progress`. Responses with a
+        /// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+        /// it: their responses carry tokens, which are never stored (ADR-0011).
+        ///
+        ///
+        /// - Remark: Generated from `#/components/parameters/IdempotencyKey`.
+        public typealias IdempotencyKey = Swift.String
+    }
 }

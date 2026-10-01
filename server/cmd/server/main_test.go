@@ -86,7 +86,6 @@ func TestServerLogsBaseURLAndRoutesThenServesUntilStopped(t *testing.T) {
 	}
 
 	cancel()
-	go func() { _, _ = io.Copy(io.Discard, logR) }()
 	select {
 	case err := <-done:
 		if err != nil {
@@ -97,7 +96,8 @@ func TestServerLogsBaseURLAndRoutesThenServesUntilStopped(t *testing.T) {
 	}
 }
 
-// waitForLog reads JSON log lines until one has the given message.
+// waitForLog reads JSON log lines until one has the given message, then
+// keeps draining r so the server never blocks writing later lines.
 func waitForLog(t *testing.T, r io.Reader, msg string) map[string]any {
 	t.Helper()
 	found := make(chan map[string]any, 1)
@@ -107,6 +107,7 @@ func waitForLog(t *testing.T, r io.Reader, msg string) map[string]any {
 			var entry map[string]any
 			if json.Unmarshal(sc.Bytes(), &entry) == nil && entry["msg"] == msg {
 				found <- entry
+				_, _ = io.Copy(io.Discard, r)
 				return
 			}
 		}

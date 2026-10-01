@@ -1,7 +1,9 @@
 // Package httpapi adapts HTTP to the domain services. Routing, request
 // decoding and response encoding are generated from api/openapi.yaml into
 // apigen (ADR-0012); this package implements the generated strict-server
-// interface and maps outcomes to problem+json errors (RFC 9457).
+// interface, maps outcomes to problem+json errors (RFC 9457), and owns the
+// cross-cutting middleware: X-Request-ID, the 64 KB body limit, Bearer
+// authentication and Idempotency-Key replay.
 package httpapi
 
 import (
@@ -13,7 +15,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bikkysamuel/splitsDemo/server/internal/auth"
 	"github.com/bikkysamuel/splitsDemo/server/internal/httpapi/apigen"
+	"github.com/bikkysamuel/splitsDemo/server/internal/idempotency"
+	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
 )
 
 // problemTypeBase prefixes every problem+json type URI (doc 07).
@@ -29,9 +34,19 @@ type problemKind struct {
 }
 
 var (
-	problemNotReady       = problemKind{"not-ready", "Service not ready", http.StatusServiceUnavailable}
-	problemInvalidRequest = problemKind{"invalid-request", "Invalid request", http.StatusBadRequest}
-	problemInternal       = problemKind{"internal", "Internal error", http.StatusInternalServerError}
+	problemNotReady                 = problemKind{"not-ready", "Service not ready", http.StatusServiceUnavailable}
+	problemInvalidRequest           = problemKind{"invalid-request", "Invalid request", http.StatusBadRequest}
+	problemValidationFailed         = problemKind{"validation-failed", "Validation failed", http.StatusBadRequest}
+	problemInvalidCode              = problemKind{"invalid-code", "Invalid code", http.StatusBadRequest}
+	problemIdempotencyKeyRequired   = problemKind{"idempotency-key-required", "Idempotency key required", http.StatusBadRequest}
+	problemUnauthenticated          = problemKind{"unauthenticated", "Unauthenticated", http.StatusUnauthorized}
+	problemInvalidCredentials       = problemKind{"invalid-credentials", "Invalid credentials", http.StatusUnauthorized}
+	problemEmailNotVerified         = problemKind{"email-not-verified", "Email not verified", http.StatusForbidden}
+	problemEmailTaken               = problemKind{"email-taken", "Email taken", http.StatusConflict}
+	problemIdempotencyKeyInProgress = problemKind{"idempotency-key-in-progress", "Idempotency key in progress", http.StatusConflict}
+	problemRequestTooLarge          = problemKind{"request-too-large", "Request too large", http.StatusRequestEntityTooLarge}
+	problemIdempotencyKeyReused     = problemKind{"idempotency-key-reused", "Idempotency key reused", http.StatusUnprocessableEntity}
+	problemInternal                 = problemKind{"internal", "Internal error", http.StatusInternalServerError}
 )
 
 func (k problemKind) problem(detail string) apigen.Problem {
@@ -51,20 +66,25 @@ type Readiness interface {
 
 // Deps are the collaborators the HTTP layer calls.
 type Deps struct {
-	Logger    *slog.Logger
-	Readiness Readiness
+	Logger      *slog.Logger
+	Readiness   Readiness
+	Auth        *auth.Service
+	Idempotency *idempotency.Service
+	// IDs makes the X-Request-ID of requests that bring none.
+	IDs *platform.IDGenerator
 }
 
 // Server serves the generated API routes.
 type Server struct {
 	handler http.Handler
+	mux     *http.ServeMux
 	routes  []string
 	deps    Deps
 }
 
 var _ apigen.StrictServerInterface = (*Server)(nil)
 
-// New registers every route in the contract.
+// New registers every route in the contract behind the middleware chain.
 func New(deps Deps) *Server {
 	s := &Server{deps: deps}
 	recorder := &routeRecorder{ServeMux: http.NewServeMux()}
@@ -72,11 +92,16 @@ func New(deps Deps) *Server {
 		RequestErrorHandlerFunc:  s.requestError,
 		ResponseErrorHandlerFunc: s.responseError,
 	})
-	s.handler = apigen.HandlerWithOptions(strict, apigen.StdHTTPServerOptions{
+	routes := apigen.HandlerWithOptions(strict, apigen.StdHTTPServerOptions{
 		BaseRouter:       recorder,
 		ErrorHandlerFunc: s.requestError,
 	})
+	s.mux = recorder.ServeMux
 	s.routes = recorder.patterns
+	// Outermost first: every request gets an ID and a log line, then its
+	// body is limited, its token checked, and a signed-in write's
+	// Idempotency-Key applied before the route runs.
+	s.handler = s.withRequestID(s.logRequests(s.recoverPanics(s.limitBody(s.authenticate(s.idempotent(routes))))))
 	return s
 }
 
@@ -119,7 +144,12 @@ func (s *Server) GetReadyz(ctx context.Context, _ apigen.GetReadyzRequestObject)
 
 // requestError answers a request the generated code could not decode. The
 // decoding error stays out of the response and the logs: it may echo input.
-func (s *Server) requestError(w http.ResponseWriter, r *http.Request, _ error) {
+func (s *Server) requestError(w http.ResponseWriter, r *http.Request, err error) {
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		writeProblem(w, problemRequestTooLarge.problem(""))
+		return
+	}
 	s.deps.Logger.InfoContext(r.Context(), "invalid request", "method", r.Method, "pattern", r.Pattern)
 	writeProblem(w, problemInvalidRequest.problem(""))
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sync"
 	"testing"
@@ -21,7 +22,8 @@ import (
 // HTTP-seam response can be checked against the contract (doc 09).
 var contractRouter = sync.OnceValues(loadContractRouter)
 
-func loadContractRouter() (routers.Router, error) {
+// contractDoc is api/openapi.yaml, loaded and validated once.
+var contractDoc = sync.OnceValues(func() (*openapi3.T, error) {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
 		return nil, fmt.Errorf("locate apptest source file")
@@ -37,9 +39,17 @@ func loadContractRouter() (routers.Router, error) {
 	}
 	// Match routes by path alone: test servers listen on random ports.
 	doc.Servers = nil
+	return doc, nil
+})
+
+func loadContractRouter() (routers.Router, error) {
+	doc, err := contractDoc()
+	if err != nil {
+		return nil, err
+	}
 	router, err := legacy.NewRouter(doc)
 	if err != nil {
-		return nil, fmt.Errorf("route %s: %w", specPath, err)
+		return nil, fmt.Errorf("route api/openapi.yaml: %w", err)
 	}
 	return router, nil
 }
@@ -76,3 +86,50 @@ func checkContract(t testing.TB, req *http.Request, resp Response) {
 			req.Method, req.URL.Path, resp.StatusCode, err, resp.Body)
 	}
 }
+
+// Operation is one operation of api/openapi.yaml.
+type Operation struct {
+	Method string
+	// Path has every path parameter filled with a fixed UUID.
+	Path string
+	// BearerAuth reports whether the operation requires an access token.
+	BearerAuth bool
+	// IdempotencyKey reports whether the operation declares the
+	// Idempotency-Key header.
+	IdempotencyKey bool
+}
+
+// Operations lists every operation in api/openapi.yaml, so tests can sweep
+// rules that hold for all of them.
+func Operations(t testing.TB) []Operation {
+	t.Helper()
+	doc, err := contractDoc()
+	if err != nil {
+		t.Fatalf("contract: %v", err)
+	}
+	var ops []Operation
+	for path, item := range doc.Paths.Map() {
+		filled := pathParam.ReplaceAllString(path, "0190b6c4-0000-7000-8000-000000000001")
+		for method, op := range item.Operations() {
+			security := doc.Security
+			if op.Security != nil {
+				security = *op.Security
+			}
+			o := Operation{Method: method, Path: filled}
+			for _, req := range security {
+				if _, ok := req["bearerAuth"]; ok {
+					o.BearerAuth = true
+				}
+			}
+			for _, p := range op.Parameters {
+				if p.Value != nil && p.Value.In == openapi3.ParameterInHeader && p.Value.Name == "Idempotency-Key" {
+					o.IdempotencyKey = true
+				}
+			}
+			ops = append(ops, o)
+		}
+	}
+	return ops
+}
+
+var pathParam = regexp.MustCompile(`\{[^}]+\}`)

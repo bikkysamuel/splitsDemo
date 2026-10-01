@@ -2,6 +2,7 @@ package platform_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"strings"
@@ -41,5 +42,33 @@ func TestLoggerRedactsSensitiveAttributes(t *testing.T) {
 	}
 	if entry["msg"] != "signed in" {
 		t.Errorf("msg = %v; want %q", entry["msg"], "signed in")
+	}
+}
+
+// Every log line written with a request's context carries its X-Request-ID,
+// so one request's lines can be found together (doc 08: IDs only).
+func TestLoggerAddsTheRequestIDFromTheContext(t *testing.T) {
+	var buf bytes.Buffer
+	logger := platform.NewLogger(&buf)
+	ctx := platform.WithRequestID(context.Background(), "req-123")
+
+	logger.InfoContext(ctx, "handled")
+	logger.Info("no context")
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("got %d log lines; want 2:\n%s", len(lines), buf.String())
+	}
+	var first, second map[string]any
+	_ = json.Unmarshal([]byte(lines[0]), &first)
+	_ = json.Unmarshal([]byte(lines[1]), &second)
+	if first["request_id"] != "req-123" {
+		t.Errorf("request_id = %v; want req-123", first["request_id"])
+	}
+	if _, ok := second["request_id"]; ok {
+		t.Errorf("a line without a request context has request_id %v", second["request_id"])
+	}
+	if got := platform.RequestID(ctx); got != "req-123" {
+		t.Errorf("RequestID(ctx) = %q; want req-123", got)
 	}
 }

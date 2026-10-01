@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 )
 
 // ID is a server-generated UUIDv7 (RFC 9562, doc 06): time-ordered, so new
@@ -47,4 +48,17 @@ func (g *IDGenerator) New() ID {
 	id[6] = id[6]&0x0f | 0x70 // version 7
 	id[8] = id[8]&0x3f | 0x80 // variant 10
 	return id
+}
+
+// ParseID reads a UUID in the canonical 8-4-4-4-12 hex form, either case.
+func ParseID(s string) (ID, error) {
+	var id ID
+	if len(s) != 36 || s[8] != '-' || s[13] != '-' || s[18] != '-' || s[23] != '-' {
+		return ID{}, fmt.Errorf("platform: %q is not a UUID", s)
+	}
+	compact := s[0:8] + s[9:13] + s[14:18] + s[19:23] + s[24:]
+	if _, err := hex.Decode(id[:], []byte(compact)); err != nil {
+		return ID{}, fmt.Errorf("platform: %q is not a UUID", s)
+	}
+	return id, nil
 }
