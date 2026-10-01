@@ -13,16 +13,31 @@ set -euo pipefail
 GOLANGCI_LINT=github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 GOVULNCHECK=golang.org/x/vuln/cmd/govulncheck@v1.8.0
 VACUUM=github.com/daveshanley/vacuum@v0.30.6
-GITLEAKS_IMAGE=ghcr.io/gitleaks/gitleaks:v8.30.1
+# v8.30.1, pinned by digest (doc 08: pins are immutable)
+GITLEAKS_IMAGE=ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 
+# Paths regenerated from api/openapi.yaml, plus the generator pins.
+GENERATED=(
+  server/internal/httpapi/apigen
+  ios/Packages/Infrastructure/Sources/APIClient/Generated
+  ios/Tools/APIGenerator/Package.resolved
+)
+
+# generated_state fingerprints GENERATED's working-tree state.
+generated_state() {
+  git status --porcelain -- "${GENERATED[@]}"
+  git diff -- "${GENERATED[@]}" | git hash-object --stdin
+}
+
 check_server() {
   if [ -z "${TEST_DATABASE_URL:-}" ] && [ -f .env ]; then
-    TEST_DATABASE_URL="$(sed -n 's/^TEST_DATABASE_URL=//p' .env)"
+    # Last assignment wins; surrounding quotes are stripped.
+    TEST_DATABASE_URL="$(sed -n 's/^TEST_DATABASE_URL=//p' .env | tail -n 1 | sed -e 's/^["'"'"']//' -e 's/["'"'"']$//')"
     export TEST_DATABASE_URL
   fi
   (
@@ -48,14 +63,12 @@ check_api() {
   go run "$VACUUM" lint -r api/vacuum-ruleset.yaml --fail-severity warn -d api/openapi.yaml
 
   step "api: regenerate Go and Swift code, fail on drift"
-  local generated=(server/internal/httpapi/apigen ios/Packages/Infrastructure/Sources/APIClient/Generated)
-  local before after
-  before="$(git status --porcelain -- "${generated[@]}"; git diff -- "${generated[@]}" | git hash-object --stdin)"
+  local before
+  before="$(generated_state)"
   scripts/generate-api.sh
-  after="$(git status --porcelain -- "${generated[@]}"; git diff -- "${generated[@]}" | git hash-object --stdin)"
-  if [ "$before" != "$after" ]; then
+  if [ "$before" != "$(generated_state)" ]; then
     echo "Generated code was out of date with api/openapi.yaml; regenerated it. Review and commit:"
-    git status --porcelain -- "${generated[@]}"
+    git status --porcelain -- "${GENERATED[@]}"
     exit 1
   fi
 }
@@ -66,7 +79,7 @@ check_ios() {
     step "ios: swift-format lint"
     scripts/lint.sh
     step "ios: every package test target is in the Splits scheme"
-    scripts/check-scheme-tests.sh
+    scripts/check-scheme-tests.py
     step "ios: xcodebuild test (iOS 27.0 Simulator)"
     local udid
     udid="$(xcrun simctl list devices available 'iOS 27.0' | grep -m1 -E 'iPhone' | grep -oE '[0-9A-F-]{36}' || true)"

@@ -45,7 +45,7 @@ An expense-sharing app: a SwiftUI iPhone app (iOS 26+, Xcode 27) and a Go 1.26 R
 
 - Work test-first with `/tdd`. Every bug fix starts with a failing regression test.
 - Integration tests use real Postgres (Docker), never a mocked database. Fakes only at architectural seams.
-- `scripts/check.sh [server|api|ios|secrets]` runs every CI check locally, with pinned tool versions.
+- `scripts/check.sh` runs every CI check locally (usage in its header).
 - Definition of done and CI jobs: `docs/09-testing-strategy.md`.
 
 ## Dependency rules

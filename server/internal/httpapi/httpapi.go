@@ -19,8 +19,9 @@ import (
 // problemTypeBase prefixes every problem+json type URI (doc 07).
 const problemTypeBase = "https://splits.dev/problems/"
 
-// problemKind is one problem+json type the server sends. Every slug here is
-// listed in the Problem schema of api/openapi.yaml.
+// problemKind is one problem+json type the server sends. Every slug must be
+// listed in the Problem schema of api/openapi.yaml; problems_test.go finds
+// each problemKind literal in this package and checks it.
 type problemKind struct {
 	slug   string
 	title  string
@@ -32,10 +33,6 @@ var (
 	problemInvalidRequest = problemKind{"invalid-request", "Invalid request", http.StatusBadRequest}
 	problemInternal       = problemKind{"internal", "Internal error", http.StatusInternalServerError}
 )
-
-// problemKinds lists every kind above; TestEveryProblemKindIsDocumentedInTheContract
-// checks each against api/openapi.yaml.
-var problemKinds = []problemKind{problemNotReady, problemInvalidRequest, problemInternal}
 
 func (k problemKind) problem(detail string) apigen.Problem {
 	p := apigen.Problem{Type: problemTypeBase + k.slug, Title: k.title, Status: k.status}

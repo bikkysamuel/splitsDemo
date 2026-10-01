@@ -26,7 +26,7 @@ Start the server first (`docker compose up` from the repository root), then open
 scripts/check.sh ios                   # from the repository root: swift-format, scheme check, xcodebuild test
 ```
 
-`xcodebuild test -scheme Splits` runs only the test targets the shared scheme lists. When you add a package test target, add it to `Splits.xcodeproj/xcshareddata/xcschemes/Splits.xcscheme`; `scripts/check-scheme-tests.sh` fails until you do.
+`xcodebuild test -scheme Splits` runs only the test targets the shared scheme lists. When you add a package test target, add it to `Splits.xcodeproj/xcshareddata/xcschemes/Splits.xcscheme`; `scripts/check-scheme-tests.py` fails until you do.
 
 Each package also runs on the Mac with `swift test` from its directory, which is faster while iterating.
 
