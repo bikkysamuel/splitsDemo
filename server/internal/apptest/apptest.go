@@ -1,5 +1,6 @@
 // Package apptest starts the fully wired server against real Postgres for
-// HTTP-seam tests (doc 09). Each server gets its own schema.
+// HTTP-seam tests (doc 09). Each server gets its own schema, and every
+// response is validated against api/openapi.yaml.
 package apptest
 
 import (
@@ -62,7 +63,8 @@ type Response struct {
 	Body       []byte
 }
 
-// Get requests path on the server.
+// Get requests path on the server and checks the response against
+// api/openapi.yaml.
 func (s *Server) Get(t testing.TB, path string) Response {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -80,7 +82,9 @@ func (s *Server) Get(t testing.TB, path string) Response {
 	if err != nil {
 		t.Fatalf("read GET %s body: %v", path, err)
 	}
-	return Response{StatusCode: resp.StatusCode, Header: resp.Header, Body: body}
+	r := Response{StatusCode: resp.StatusCode, Header: resp.Header, Body: body}
+	checkContract(t, req, r)
+	return r
 }
 
 // CutDatabase makes the database unreachable for the rest of the test.

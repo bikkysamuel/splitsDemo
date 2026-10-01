@@ -34,6 +34,14 @@ linters:
               desc: only store talks to Postgres (ADR-0014, ADR-0015)
             - pkg: net/http
               desc: only httpapi speaks HTTP (ADR-0015)
+        # Q85: kin-openapi validates responses in tests only.
+        contract-tests-only:
+          files:
+            - "$all"
+            - "!**/internal/apptest/**"
+          deny:
+            - pkg: github.com/getkin/kin-openapi
+              desc: kin-openapi is approved for apptest only (Q85)
     sloglint:
       kv-only: true
       context: scope

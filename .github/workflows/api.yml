@@ -1,0 +1,62 @@
+# Contract CI (doc 09, ADR-0012): lint api/openapi.yaml with vacuum, then
+# regenerate the Go server and Swift client code and fail on any drift from
+# what is committed.
+name: api
+
+on:
+  pull_request:
+    paths:
+      - "api/**"
+      - "scripts/generate-api.sh"
+      - "server/internal/httpapi/apigen/**"
+      - "ios/Tools/APIGenerator/**"
+      - "ios/Packages/Infrastructure/Sources/APIClient/Generated/**"
+      - ".github/workflows/api.yml"
+  push:
+    branches: [master]
+    paths:
+      - "api/**"
+      - "scripts/generate-api.sh"
+      - "server/internal/httpapi/apigen/**"
+      - "ios/Tools/APIGenerator/**"
+      - "ios/Packages/Infrastructure/Sources/APIClient/Generated/**"
+      - ".github/workflows/api.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: OpenAPI lint (vacuum)
+        run: go run github.com/daveshanley/vacuum@v0.30.6 lint -r api/vacuum-ruleset.yaml --fail-severity warn -d api/openapi.yaml
+
+      - name: Cache the Swift generator build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ios/Tools/APIGenerator/.build
+          key: swift-openapi-generator-${{ runner.os }}-${{ hashFiles('ios/Tools/APIGenerator/Package.resolved') }}
+
+      - name: Regenerate Go and Swift code
+        run: |
+          swift --version
+          scripts/generate-api.sh
+
+      - name: Fail on drift
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Generated code differs from api/openapi.yaml. Run scripts/generate-api.sh and commit:"
+            git status --porcelain
+            git diff
+            exit 1
+          fi

@@ -1,0 +1,184 @@
+# The Splits API contract (ADR-0012). Change this file first, then run
+# `scripts/generate-api.sh` and commit the regenerated Go and Swift code.
+# Conventions are explained in docs/07-api-contract.md; if the two disagree,
+# this file wins.
+openapi: 3.1.0
+info:
+  title: Splits API
+  version: 0.1.0
+  description: |
+    REST API for Splits, an expense-sharing app. Health checks live at the
+    root; every other endpoint is under `/v1`.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: http://localhost:8080
+    description: Local development (Docker Compose)
+tags:
+  - name: health
+    description: Liveness and readiness checks
+security: []
+
+paths:
+  /healthz:
+    get:
+      operationId: getHealthz
+      summary: Liveness
+      description: Answers while the process is up and serving HTTP. Does not touch the database.
+      tags: [health]
+      responses:
+        "200":
+          description: The server is alive.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+              example:
+                status: ok
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /readyz:
+    get:
+      operationId: getReadyz
+      summary: Readiness
+      description: Answers 200 when the database is reachable, 503 otherwise.
+      tags: [health]
+      responses:
+        "200":
+          description: The server can serve requests.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessStatus"
+              example:
+                status: ready
+        "503":
+          $ref: "#/components/responses/NotReady"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  schemas:
+    HealthStatus:
+      description: Liveness answer.
+      type: object
+      required: [status]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          const: ok
+
+    ReadinessStatus:
+      description: Readiness answer.
+      type: object
+      required: [status]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          const: ready
+
+    Problem:
+      description: |
+        RFC 9457 problem details. `type` is a stable URI,
+        `https://splits.dev/problems/<slug>`, that clients map to a localized
+        message. Clients must treat an unknown `type` as a generic error.
+        Slugs in use:
+        - `not-ready`: the server cannot reach its database (503).
+        - `invalid-request`: the request could not be decoded (400).
+        - `internal`: an unexpected server failure (500).
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          pattern: "^https://splits\\.dev/problems/[a-z0-9-]+$"
+          examples: ["https://splits.dev/problems/not-ready"]
+        title:
+          type: string
+          description: Short, human-readable summary; not localized, not for display.
+          examples: ["Service not ready"]
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+          examples: [503]
+        detail:
+          type: string
+          description: Explanation of this occurrence; not for display.
+          examples: ["The database is unreachable."]
+        errors:
+          description: Field validation failures, one per invalid field.
+          type: array
+          examples: [[{field: /amount/minor, code: required}]]
+          items:
+            $ref: "#/components/schemas/FieldError"
+
+    FieldError:
+      description: One invalid field in a request body.
+      type: object
+      required: [field, code]
+      additionalProperties: false
+      properties:
+        field:
+          type: string
+          description: JSON Pointer (RFC 6901) to the invalid field in the request body.
+          examples: ["/amount/minor"]
+        code:
+          type: string
+          description: Stable machine-readable reason, such as `required` or `too_long`.
+
+    Money:
+      description: |
+        An amount in integer minor units of an ISO 4217 currency (ADR-0002).
+        Never a floating-point number.
+      type: object
+      required: [minor, currency]
+      additionalProperties: false
+      properties:
+        minor:
+          type: integer
+          format: int64
+          examples: [12345]
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+
+    CurrencyCode:
+      description: ISO 4217 alphabetic currency code.
+      type: string
+      pattern: "^[A-Z]{3}$"
+      examples: ["INR"]
+
+    ExchangeRate:
+      description: |
+        An exact decimal held in a string (ADR-0007), never a JSON number:
+        units of the Group currency per one unit of the Expense currency.
+      type: string
+      pattern: "^[0-9]+(\\.[0-9]+)?$"
+      examples: ["0.4021"]
+
+  responses:
+    NotReady:
+      description: The database is unreachable.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/not-ready
+            title: Service not ready
+            status: 503
+            detail: The database is unreachable.
+    InternalError:
+      description: An unexpected server failure.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/internal
+            title: Internal error
+            status: 500

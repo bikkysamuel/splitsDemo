@@ -9,8 +9,18 @@ let package = Package(
   products: [
     .library(name: "APIClient", targets: ["APIClient"])
   ],
+  dependencies: [
+    .package(url: "https://github.com/apple/swift-openapi-runtime", exact: "1.12.2"),
+    .package(url: "https://github.com/apple/swift-openapi-urlsession", exact: "1.3.2"),
+  ],
   targets: [
-    .target(name: "APIClient"),
+    .target(
+      name: "APIClient",
+      dependencies: [
+        .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+        .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
+      ]
+    ),
     .testTarget(name: "APIClientTests", dependencies: ["APIClient"]),
   ],
   swiftLanguageModes: [.v6]

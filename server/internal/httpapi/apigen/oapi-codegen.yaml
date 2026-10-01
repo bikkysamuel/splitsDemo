@@ -1,0 +1,14 @@
+# oapi-codegen config: types plus the strict net/http server (ADR-0012).
+# No embedded spec, so production code does not import kin-openapi.
+package: apigen
+output: api.gen.go
+generate:
+  models: true
+  std-http-server: true
+  strict-server: true
+output-options:
+  skip-prune: true
+compatibility:
+  # Enum constants carry their type name (HealthStatusStatusOk), so values
+  # from different schemas never collide as the contract grows.
+  always-prefix-enum-values: true

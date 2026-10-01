@@ -50,7 +50,7 @@ An expense-sharing app: a SwiftUI iPhone app (iOS 26+, Xcode 27) and a Go 1.26 R
 ## Dependency rules
 
 Standard library first. Allowed now:
-- Go: pgx, goose, `golang.org/x/crypto`, `golang.org/x/oauth2`, oapi-codegen runtime; sqlc and golangci-lint as tools.
+- Go: pgx, goose, `golang.org/x/crypto`, `golang.org/x/oauth2`, oapi-codegen runtime; kin-openapi in tests only (Q85); sqlc, golangci-lint, oapi-codegen and vacuum as tools.
 - iOS (SPM only): swift-openapi-generator/runtime/urlsession, Firebase Messaging + Crashlytics.
 
 Any other dependency needs the user's approval, a one-line justification in the PR, and an ADR if it would be hard to replace.

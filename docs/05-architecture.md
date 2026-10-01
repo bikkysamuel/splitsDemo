@@ -46,6 +46,7 @@ server/
     jobs/                Auto-acceptance, reminders, Closing → Closed (idempotent)
     store/               sqlc-generated queries + transaction helper; implements the domain repository interfaces
     httpapi/             oapi-codegen strict-server adapters: HTTP ⇄ domain, auth middleware, problem+json, idempotency
+      apigen/            generated from api/openapi.yaml (scripts/generate-api.sh); never edited by hand
     platform/            config (env vars), logging (slog), clock, ID generation
     app/                 composition root: opens the database, migrates, wires services into httpapi (used by cmd/server and HTTP tests)
     pgtest/, apptest/    test harness: isolated schema per test on real Postgres; fully wired server over httptest
@@ -72,7 +73,7 @@ ios/
     Domain/                      entities (Group, Member, Expense, Share, Settlement, Balance, Money…), repository protocols, use cases
     Data/                        repository implementations; mappers generated-type ⇄ entity; Keychain token store
     Infrastructure/
-      APIClient/                 swift-openapi-generator client + auth middleware (token attach/refresh)
+      APIClient/                 swift-openapi-generator client (Generated/, from api/openapi.yaml) + auth middleware (token attach/refresh)
       PushNotifications/         Firebase Messaging, notification categories and actions (FCM wiring later)
     Presentation/
       DesignSystem/              shared components, colours, typography

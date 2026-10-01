@@ -1,0 +1,6 @@
+# vacuum lint rules for api/openapi.yaml: the recommended set, minus
+# oas3-unused-component, because shared conventions (Money, ExchangeRate,
+# FieldError) are defined before the endpoints that use them (#7).
+extends: [[vacuum:oas, recommended]]
+rules:
+  oas3-unused-component: off
