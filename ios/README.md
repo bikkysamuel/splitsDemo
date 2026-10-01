@@ -24,7 +24,7 @@ Start the server first (`docker compose up` from the repository root), then open
 
 ```sh
 xcodebuild test -project Splits.xcodeproj -scheme Splits -destination 'platform=iOS Simulator,name=iPhone 17,OS=27.0'
-xcrun swift-format lint --strict --recursive SplitsApp Packages
+xcrun swift-format lint --strict --recursive SplitsApp Packages/*/Package.swift Packages/*/Sources Packages/*/Tests
 ```
 
 Each package also runs on the Mac with `swift test` from its directory, which is faster while iterating.

@@ -16,8 +16,3 @@ public struct ServerHealthAPIRepository: ServerHealthRepository {
     }
   }
 }
-
-/// Why the health check failed.
-public enum ServerHealthError: Error, Equatable {
-  case unexpectedStatus(Int)
-}

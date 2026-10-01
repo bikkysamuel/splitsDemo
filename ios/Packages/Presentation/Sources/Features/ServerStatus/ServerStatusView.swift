@@ -25,7 +25,9 @@ public struct ServerStatusView: View {
         Task { await viewModel.refresh() }
       } label: {
         Text(LocalizedStringKey(Self.retryKey), bundle: .module)
+          .frame(minHeight: 44)  // NFR-A2: at least 44×44 pt
       }
+      .buttonStyle(.bordered)
       .disabled(viewModel.status == .checking)
     }
     .task { await viewModel.refresh() }

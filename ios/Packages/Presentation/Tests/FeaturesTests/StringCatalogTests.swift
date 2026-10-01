@@ -12,14 +12,17 @@ struct StringCatalogTests {
   func everyServerStatusTitleIsInTheCatalog(status: ServerStatusViewModel.Status) {
     let key = ServerStatusAppearance(status).titleKey
 
-    #expect(Bundle.module.localizedString(forKey: key, value: missing, table: nil) != missing)
+    #expect(isInCatalog(key))
   }
 
   @Test func theRetryButtonTitleIsInTheCatalog() {
     let key = ServerStatusView.retryKey
 
-    #expect(Bundle.module.localizedString(forKey: key, value: missing, table: nil) != missing)
+    #expect(isInCatalog(key))
   }
 
-  private let missing = "\u{0}missing"
+  private func isInCatalog(_ key: String) -> Bool {
+    let missing = "\u{0}missing"
+    return Bundle.module.localizedString(forKey: key, value: missing, table: nil) != missing
+  }
 }

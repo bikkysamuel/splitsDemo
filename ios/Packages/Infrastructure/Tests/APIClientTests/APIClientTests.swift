@@ -16,7 +16,7 @@ struct URLSessionFactoryTests {
 struct APIConfigurationTests {
   @Test func readsTheBaseURLFromTheInfoDictionary() throws {
     let configuration = try APIConfiguration(
-      infoDictionary: ["SplitsAPIBaseURL": "http://localhost:8080"], requiresHTTPS: false)
+      infoDictionary: [APIConfiguration.baseURLKey: "http://localhost:8080"], requiresHTTPS: false)
 
     #expect(configuration.baseURL == URL(string: "http://localhost:8080"))
   }
@@ -25,13 +25,13 @@ struct APIConfigurationTests {
   @Test func rejectsPlainHTTPWhenHTTPSIsRequired() {
     #expect(throws: APIConfigurationError.insecureBaseURL("http://localhost:8080")) {
       try APIConfiguration(
-        infoDictionary: ["SplitsAPIBaseURL": "http://localhost:8080"], requiresHTTPS: true)
+        infoDictionary: [APIConfiguration.baseURLKey: "http://localhost:8080"], requiresHTTPS: true)
     }
   }
 
   @Test func acceptsHTTPSWhenHTTPSIsRequired() throws {
     let configuration = try APIConfiguration(
-      infoDictionary: ["SplitsAPIBaseURL": "https://api.example.com"], requiresHTTPS: true)
+      infoDictionary: [APIConfiguration.baseURLKey: "https://api.example.com"], requiresHTTPS: true)
 
     #expect(configuration.baseURL == URL(string: "https://api.example.com"))
   }
@@ -45,7 +45,7 @@ struct APIConfigurationTests {
   @Test(arguments: ["", "localhost:8080", "not a url"])
   func rejectsABaseURLWithoutSchemeAndHost(value: String) {
     #expect(throws: APIConfigurationError.invalidBaseURL(value)) {
-      try APIConfiguration(infoDictionary: ["SplitsAPIBaseURL": value], requiresHTTPS: false)
+      try APIConfiguration(infoDictionary: [APIConfiguration.baseURLKey: value], requiresHTTPS: false)
     }
   }
 }
