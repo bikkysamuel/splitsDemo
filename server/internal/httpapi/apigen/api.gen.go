@@ -50,8 +50,9 @@ type CurrencyCode = string
 
 // ExchangeRate An exact decimal held in a string (ADR-0007), never a JSON number:
 // units of the Group currency per one unit of the Expense currency.
+// Positive, with at most 2 decimal places (FR-E5).
 //
-// Examples: 0.4021
+// Examples: 83.25
 type ExchangeRate = string
 
 // FieldError One invalid field in a request body.

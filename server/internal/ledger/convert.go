@@ -8,13 +8,14 @@ import (
 	"strings"
 )
 
-// maxRateDecimals is the most decimal places an Exchange Rate may have (FR-E5).
-const maxRateDecimals = 10
+// maxRateDecimals is the most decimal places an Exchange Rate may have
+// (FR-E5, Q87).
+const maxRateDecimals = 2
 
 var rateFormat = regexp.MustCompile(fmt.Sprintf(`^[0-9]+(\.[0-9]{1,%d})?$`, maxRateDecimals))
 
 var (
-	ErrInvalidRate         = errors.New("exchange rate must be a positive decimal with at most 10 decimal places")
+	ErrInvalidRate         = fmt.Errorf("exchange rate must be a positive decimal with at most %d decimal places", maxRateDecimals)
 	ErrMissingRate         = errors.New("an exchange rate is required between different currencies")
 	ErrRateForSameCurrency = errors.New("no exchange rate is allowed when the currencies are the same")
 	ErrAmountNotPositive   = errors.New("original amount must be positive")
@@ -28,8 +29,8 @@ type ExchangeRate struct {
 	decimals int
 }
 
-// ParseExchangeRate parses a decimal string such as "0.4021": digits, an
-// optional point and 1–10 decimal places, greater than zero. The value is
+// ParseExchangeRate parses a decimal string such as "83.25": digits, an
+// optional point and 1–2 decimal places, greater than zero. The value is
 // kept exactly; it never passes through a float.
 func ParseExchangeRate(s string) (ExchangeRate, error) {
 	if !rateFormat.MatchString(s) {
@@ -49,7 +50,7 @@ func ParseExchangeRate(s string) (ExchangeRate, error) {
 // IsZero reports whether r is the zero value (no rate).
 func (r ExchangeRate) IsZero() bool { return r.rat == nil }
 
-// String returns the rate as entered, e.g. "0.4021", for storage in a
+// String returns the rate as entered, e.g. "83.25", for storage in a
 // NUMERIC column and the API.
 func (r ExchangeRate) String() string {
 	if r.rat == nil {

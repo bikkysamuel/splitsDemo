@@ -8,7 +8,7 @@ Status: Draft · Last updated: 2026-10-01 · Depends on: ADR-0006, 0011, 0012, 0
 
 - **Base**: `/v1`. Development base URL: `http://localhost:8080/v1`. The server prints all routes at startup (NFR-O3).
 - **Auth**: `Authorization: Bearer <access token>` on everything except `auth/*` sign-up, sign-in, verify, refresh and reset endpoints, and the health checks.
-- **Money** in JSON: `{ "minor": 12345, "currency": "INR" }`. `minor` is an integer. Exchange Rates are **strings** holding exact decimals (`"0.4021"`), never JSON numbers.
+- **Money** in JSON: `{ "minor": 12345, "currency": "INR" }`. `minor` is an integer. Exchange Rates are **strings** holding exact decimals (`"83.25"`), never JSON numbers.
 - **IDs**: UUID strings. **Timestamps**: RFC 3339 UTC. **Dates**: `YYYY-MM-DD`.
 - **Writes**: `Idempotency-Key: <uuid>` is required on every POST/PATCH/DELETE (NFR-R1). Updates send `version` and get `409` if it is stale (NFR-R4).
 - **Lists**: `?cursor=&limit=` (default 50, max 200), with a `{ "items": [...], "next_cursor": "..." | null }` response.

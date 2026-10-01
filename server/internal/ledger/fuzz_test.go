@@ -70,11 +70,11 @@ func FuzzSharesInvariants(f *testing.F) {
 // Conversion invariant: the result is the exact product rounded half-up
 // once, so result − exact lies in (−½, ½].
 func FuzzConvertRoundsHalfUpOnce(f *testing.F) {
-	f.Add(int64(1050), uint64(8325), uint8(2), uint8(3), uint8(0))      // USD → INR at 83.25
-	f.Add(int64(101), uint64(5), uint8(1), uint8(3), uint8(4))          // exact half
-	f.Add(int64(1000), uint64(55), uint8(2), uint8(1), uint8(0))        // JPY → INR
-	f.Add(int64(1234), uint64(2705), uint8(1), uint8(2), uint8(0))      // KWD → INR
-	f.Add(int64(77), uint64(1234567891), uint8(10), uint8(0), uint8(5)) // ten decimals
+	f.Add(int64(1050), uint64(8325), uint8(2), uint8(3), uint8(0))     // USD → INR at 83.25
+	f.Add(int64(101), uint64(5), uint8(1), uint8(3), uint8(4))         // exact half
+	f.Add(int64(1000), uint64(55), uint8(2), uint8(1), uint8(0))       // JPY → INR
+	f.Add(int64(1234), uint64(2705), uint8(1), uint8(2), uint8(0))     // KWD → INR
+	f.Add(int64(77), uint64(1234567891), uint8(2), uint8(0), uint8(5)) // large rate, two decimals
 	currencies := []string{"INR", "JPY", "KWD", "USD", "EUR", "CLF"}
 	f.Fuzz(func(t *testing.T, original int64, rateDigits uint64, decimals uint8, fromPick, toPick uint8) {
 		original = 1 + abs64(original)%1_000_000_000_000
@@ -82,7 +82,7 @@ func FuzzConvertRoundsHalfUpOnce(f *testing.F) {
 		if from == to {
 			to = currencies[(int(toPick)+1)%len(currencies)]
 		}
-		rateText := decimalString(1+rateDigits%10_000_000_000_000, int(decimals)%11)
+		rateText := decimalString(1+rateDigits%10_000_000_000_000, int(decimals)%3)
 		rate, err := ledger.ParseExchangeRate(rateText)
 		if err != nil {
 			t.Fatalf("ParseExchangeRate(%q): %v", rateText, err)

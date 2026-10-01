@@ -93,7 +93,7 @@ Every product or technical decision goes through this list. Docs 01–10 point a
 | Q84 | Reminder setting | One toggle turns the day-5 reminder push on or off; the in-app reminder and 7-day Auto-acceptance are unchanged (Q37) | 03 FR-N6 |
 | Q85 | Contract test tooling (2026-10-01, #7) | **kin-openapi** (`openapi3filter`) validates every HTTP-seam response against `api/openapi.yaml`, in test code only (the generated server embeds no spec). **vacuum** lints the contract in the `api` CI job (recommended rules, warnings fail; `oas3-unused-component` off because shared schemas precede their endpoints) | 09, CLAUDE.md |
 | Q86 | One check entry point (2026-10-01, M0 retro) | `scripts/check.sh [server\|api\|ios\|secrets\|all]` runs every CI check with pinned versions, and every workflow calls it. gitleaks runs from a digest-pinned image instead of the third-party action. The conversation log has no hand-kept index (file names sort chronologically). Refines Q59 | 09, CLAUDE.md |
-| Q87 | `ledger` Split and conversion details (2026-10-01, #8; review) | Every Split Input must be > 0: exact amounts (whole Group Currency minor units, summing to the converted total), percentages (≤ 2 dp, summing to exactly 100) and ratio weights (integers). A Share can still be 0 when the total has fewer minor units than Members. "Up to 10 significant decimals" for Exchange Rates means at most 10 digits after the point. Minor units follow ISO 4217: 0 (JPY, KRW, …), 3 (KWD, BHD, …), 4 (CLF, UYW), otherwise 2; which codes a Group may use is decided with Groups (#14). Invalid Splits carry a stable `Reason` that doubles as the problem+json field-error `code` | 03 FR-E2, FR-E5 |
+| Q87 | `ledger` Split and conversion details (2026-10-01, #8; confirmed by the user) | Every Split Input must be > 0: exact amounts (whole Group Currency minor units, summing to the converted total), percentages (≤ 2 dp, summing to exactly 100) and ratio weights (integers). A Share can still be 0 when the total has fewer minor units than Members. **Exchange Rates have at most 2 decimal places** (the user's choice, replacing D4's 10), so a rate below 0.01 can't be entered: pick the larger-unit currency as the Group Currency when rates are small. Minor units follow ISO 4217: 0 (JPY, KRW, …), 3 (KWD, BHD, …), 4 (CLF, UYW), otherwise 2; which codes a Group may use is decided with Groups (#14). Invalid Splits carry a stable `Reason` that doubles as the problem+json field-error `code` | 03 FR-E2, FR-E5 |
 
 ## Open
 
@@ -108,7 +108,7 @@ Every product or technical decision goes through this list. Docs 01–10 point a
 | D1 | Note, Dispute reason and reply: max 500 characters | 03 FR-E1, FR-P3 |
 | D2 | Display names unique within a Group | 03 FR-M4 |
 | D3 | Group Currency can't change once any Expense exists | 03 FR-G1 |
-| D4 | Percentages up to 2 decimal places, summing to exactly 100; Exchange Rates up to 10 significant decimals | 03 FR-E2, FR-E5 |
+| D4 | Percentages up to 2 decimal places, summing to exactly 100; Exchange Rates at most 2 decimal places (changed from 10 by Q87) | 03 FR-E2, FR-E5 |
 | D5 | An Expense with no Approvers (for example, only the creator and Placeholders) is accepted immediately | 03 FR-P1 |
 | D6 | The 50-Member limit counts Placeholders and Former Members | 03 FR-G2 |
 | D7 | Fixed Category list: food & drink, groceries, transport, accommodation, rent, utilities, entertainment, shopping, health, travel, other | 06 |

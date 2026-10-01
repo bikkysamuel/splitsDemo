@@ -19,13 +19,13 @@ func TestConvert(t *testing.T) {
 		want     int64
 	}{
 		{"same currency needs no rate", 12345, "INR", "INR", "", 12345},
-		{"USD → INR, two decimals each side", 1050, "USD", "INR", "83.25", 87413},   // 10.50 × 83.25 = 874.125 → 874.13
-		{"exact half rounds up", 101, "USD", "EUR", "0.5", 51},                      // 1.01 × 0.5 = 0.505 → 0.51
-		{"zero-decimal source: ¥1,000 → ₹", 1000, "JPY", "INR", "0.55", 55000},      // 1000 × 0.55 = 550.00
-		{"zero-decimal target: ₹100.00 → ¥", 10000, "INR", "JPY", "1.8", 180},       // 100 × 1.8 = 180
-		{"three-decimal source: KWD 1.234 → ₹", 1234, "KWD", "INR", "270.5", 33380}, // 1.234 × 270.5 = 333.797 → 333.80
-		{"three-decimal target: ₹10.00 → KWD", 1000, "INR", "KWD", "0.0037", 37},    // 10 × 0.0037 = 0.037
-		{"ten decimal places", 100, "USD", "INR", "83.1234567891", 8312},            // 1 × 83.1234567891 → 83.12
+		{"USD → INR, two decimals each side", 1050, "USD", "INR", "83.25", 87413},      // 10.50 × 83.25 = 874.125 → 874.13
+		{"exact half rounds up", 101, "USD", "EUR", "0.5", 51},                         // 1.01 × 0.5 = 0.505 → 0.51
+		{"zero-decimal source: ¥1,000 → ₹", 1000, "JPY", "INR", "0.55", 55000},         // 1000 × 0.55 = 550.00
+		{"zero-decimal target: ₹100.00 → ¥", 10000, "INR", "JPY", "1.8", 180},          // 100 × 1.8 = 180
+		{"three-decimal source: KWD 1.234 → ₹", 1234, "KWD", "INR", "270.5", 33380},    // 1.234 × 270.5 = 333.797 → 333.80
+		{"three-decimal target: ₹1,000.00 → KWD", 100000, "INR", "KWD", "0.01", 10000}, // 1000 × 0.01 = 10.000
+		{"two decimal places, the most allowed", 199, "USD", "INR", "83.27", 16571},    // 1.99 × 83.27 = 165.7073 → 165.71
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestConvertRejects(t *testing.T) {
 		rate     ledger.ExchangeRate
 		want     error
 	}{
-		{"a result that rounds to zero", 1, "USD", "EUR", rate("0.4999999999"), ledger.ErrConvertedToZero},
+		{"a result that rounds to zero", 1, "USD", "EUR", rate("0.49"), ledger.ErrConvertedToZero},
 		{"a missing rate between currencies", 100, "USD", "INR", ledger.ExchangeRate{}, ledger.ErrMissingRate},
 		{"a rate between equal currencies", 100, "INR", "INR", rate("1"), ledger.ErrRateForSameCurrency},
 		{"a non-positive Original Amount", 0, "USD", "INR", rate("83"), ledger.ErrAmountNotPositive},
@@ -79,12 +79,12 @@ func TestConvertRejects(t *testing.T) {
 }
 
 func TestParseExchangeRate(t *testing.T) {
-	for _, ok := range []string{"1", "0.4021", "83.25", "0.0000000001", "1234567.1234567891"} {
+	for _, ok := range []string{"1", "0.4", "0.01", "83.25", "1234567.12"} {
 		if _, err := ledger.ParseExchangeRate(ok); err != nil {
 			t.Errorf("ParseExchangeRate(%q) = %v; want ok", ok, err)
 		}
 	}
-	for _, bad := range []string{"", "0", "0.0", "-1", "1.12345678901", "1e3", "1/3", ".5", "5.", " 1", "1,5", "abc"} {
+	for _, bad := range []string{"", "0", "0.0", "0.00", "-1", "1.123", "0.4021", "0.001", "1e3", "1/3", ".5", "5.", " 1", "1,5", "abc"} {
 		if _, err := ledger.ParseExchangeRate(bad); !errors.Is(err, ledger.ErrInvalidRate) {
 			t.Errorf("ParseExchangeRate(%q) error = %v; want ErrInvalidRate", bad, err)
 		}
@@ -92,12 +92,12 @@ func TestParseExchangeRate(t *testing.T) {
 }
 
 func TestParseExchangeRateKeepsTheExactDecimal(t *testing.T) {
-	r, err := ledger.ParseExchangeRate("0.4021")
+	r, err := ledger.ParseExchangeRate("0.40")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := r.String(); got != "0.4021" {
-		t.Errorf("String() = %q; want %q", got, "0.4021")
+	if got := r.String(); got != "0.40" {
+		t.Errorf("String() = %q; want %q", got, "0.40")
 	}
 }
 
