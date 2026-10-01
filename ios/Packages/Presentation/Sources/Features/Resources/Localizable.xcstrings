@@ -1,0 +1,54 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Check again": {
+      "comment": "Button that re-checks whether the server is reachable",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check again"
+          }
+        }
+      }
+    },
+    "Checking the server…": {
+      "comment": "Status while the app checks whether the server is reachable",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking the server…"
+          }
+        }
+      }
+    },
+    "Server reachable": {
+      "comment": "Status when the server answered",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server reachable"
+          }
+        }
+      }
+    },
+    "Server unreachable": {
+      "comment": "Status when the server did not answer",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server unreachable"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -1,0 +1,48 @@
+# iOS CI (doc 09): swift-format lint, build, unit tests on an iOS 27.0
+# Simulator. Runs on the xcode-27 preview runner pinned to Xcode 27.0 (Q69).
+name: ios
+
+on:
+  pull_request:
+    paths:
+      - "ios/**"
+      - "api/**"
+      - ".github/workflows/ios.yml"
+  push:
+    branches: [master]
+    paths:
+      - "ios/**"
+      - "api/**"
+      - ".github/workflows/ios.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: xcode-27
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 27.0
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.0.app
+          xcodebuild -version
+
+      - name: swift-format lint
+        run: xcrun swift-format lint --strict --recursive --parallel SplitsApp Packages
+
+      - name: Build and test
+        run: |
+          udid="$(xcrun simctl list devices available 'iOS 27.0' | grep -m1 -E 'iPhone' | grep -oE '[0-9A-F-]{36}')"
+          if [ -z "$udid" ]; then echo "No iOS 27.0 iPhone Simulator"; xcrun simctl list runtimes; exit 1; fi
+          xcodebuild test \
+            -project Splits.xcodeproj \
+            -scheme Splits \
+            -destination "id=$udid" \
+            CODE_SIGNING_ALLOWED=NO
