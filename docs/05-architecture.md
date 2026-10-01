@@ -47,6 +47,8 @@ server/
     store/               sqlc-generated queries + transaction helper; implements the domain repository interfaces
     httpapi/             oapi-codegen strict-server adapters: HTTP ⇄ domain, auth middleware, problem+json, idempotency
     platform/            config (env vars), logging (slog), clock, ID generation
+    app/                 composition root: opens the database, migrates, wires services into httpapi (used by cmd/server and HTTP tests)
+    pgtest/, apptest/    test harness: isolated schema per test on real Postgres; fully wired server over httptest
   migrations/            goose SQL, embedded, forward-only
 ```
 

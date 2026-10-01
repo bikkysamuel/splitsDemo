@@ -1,0 +1,53 @@
+# golangci-lint v2. Run from server/: golangci-lint run ./...
+version: "2"
+
+linters:
+  enable:
+    - bodyclose
+    - depguard
+    - errorlint
+    - gosec
+    - misspell
+    - noctx
+    - sloglint
+  settings:
+    depguard:
+      rules:
+        # ADR-0015: domain packages never import store, httpapi, pgx or net/http.
+        domain:
+          files:
+            - "**/internal/platform/**"
+            - "**/internal/ledger/**"
+            - "**/internal/auth/**"
+            - "**/internal/groups/**"
+            - "**/internal/expenses/**"
+            - "**/internal/settlements/**"
+            - "**/internal/activity/**"
+            - "**/internal/notify/**"
+            - "**/internal/jobs/**"
+          deny:
+            - pkg: github.com/bikkysamuel/splitsDemo/server/internal/store
+              desc: domain packages depend on repository interfaces, not store (ADR-0015)
+            - pkg: github.com/bikkysamuel/splitsDemo/server/internal/httpapi
+              desc: domain packages never import the HTTP adapter (ADR-0015)
+            - pkg: github.com/jackc/pgx
+              desc: only store talks to Postgres (ADR-0014, ADR-0015)
+            - pkg: net/http
+              desc: only httpapi speaks HTTP (ADR-0015)
+    sloglint:
+      kv-only: true
+      context: scope
+  exclusions:
+    rules:
+      # Test helpers deliberately build requests and connections by hand.
+      - path: _test\.go|internal/(pgtest|apptest)/
+        linters: [noctx, gosec]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/bikkysamuel/splitsDemo
