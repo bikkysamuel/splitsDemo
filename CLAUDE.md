@@ -84,4 +84,4 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 
 ## Conversation log
 
-Record every conversation in `docs/conversations/` following `docs/conversations/README.md`: one directory per UTC date, one numbered file per task (new file on a date or task change; `-cont` when a task resumes), with a table of UTC time | Who | What happened | Decided | Details. Update it as the conversation goes, and bring it up to date before each `/code-review`.
+Record every conversation in `docs/conversations/` following `docs/conversations/README.md`: one directory per UTC date, one numbered file per task (new file on a date or task change; `-cont` when a task resumes), with a table of UTC time | Who | What happened | Decided | Prompt (the user's exact words on User rows). Update it as the conversation goes, and bring it up to date before each `/code-review`.

@@ -15,8 +15,8 @@ A chronological record of the conversations that shaped this project. The decisi
 | Who | `User` or `Claude` |
 | What happened | One line |
 | Decided | A short summary of what was decided, or `—` |
-| Details | The fuller substance of the exchange |
+| Prompt | On User rows, the user's exact words (newlines as `<br>`, answers to Claude's questions as `Answered: …`); `—` on Claude rows |
 
 ## Reading in order
 
-File names sort chronologically: list `docs/conversations/*/` and read top to bottom. There is no hand-kept index, so parallel branches never conflict over one.
+File names sort chronologically: list `docs/conversations/*/` and read top to bottom. `00-` is the first session, logged afterwards from its transcript. There is no hand-kept index, so parallel branches never conflict over one.
