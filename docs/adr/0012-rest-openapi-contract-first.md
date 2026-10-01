@@ -1,0 +1,3 @@
+# The API is REST + JSON, defined contract-first in OpenAPI
+
+`api/openapi.yaml` (OpenAPI 3.1) is the single definition of the API. Go server interfaces are generated with oapi-codegen and the Swift client with swift-openapi-generator, and CI fails if the generated code is out of date. Errors use RFC 9457 `application/problem+json`, paths are prefixed `/v1`, lists use cursor pagination, and every write carries an `Idempotency-Key` header. We rejected gRPC (friction on iOS, no benefit at this scale) and code-first (the contract would trail the server instead of letting the app and server be built against it in parallel).

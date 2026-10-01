@@ -1,0 +1,3 @@
+# Deleting an account turns the User's Members into Placeholder Members
+
+When a User deletes their account, we erase the User (email, password hash, sessions, device tokens), but each of their Members becomes a Placeholder Member with the same display name. Their Expenses, Shares, Settlements and Activity History stay intact, and Admins act for them from then on. Deletion is never blocked, only preceded by a warning if any Balance is non-zero. We chose this over deleting their records because other Members' Balances depend on them, and over blocking deletion because Apple requires accounts to be deletable in the app.

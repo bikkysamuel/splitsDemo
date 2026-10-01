@@ -1,0 +1,3 @@
+# The server performs every money calculation; the app only displays results
+
+Split amounts, rounding, currency conversion, Balances and Settle-up Suggestions are computed only by the Go server. The iOS app never does arithmetic on money; it validates form input (for example, that a percentage is a number) and shows the values the server returns. For live feedback while entering an Expense, the app calls a split-preview endpoint, which runs the same code as the real save. One tested implementation cannot drift from a second one, and rounding mistakes in money apps are both common and trust-destroying.

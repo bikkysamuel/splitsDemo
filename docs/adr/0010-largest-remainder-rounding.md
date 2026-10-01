@@ -1,0 +1,3 @@
+# Leftover minor units go to Members by largest remainder, ties by join order
+
+When a Split, percentage, ratio or currency conversion doesn't divide into whole minor units, the server floors every Share and then hands out the leftover minor units one at a time, in order of largest fractional remainder, breaking ties by the Members' join order. Currency conversion rounds half-up, once. We chose this over "the payer absorbs it" or "the largest Share takes it" because the result is deterministic, never off by more than one minor unit per Member, and always sums exactly to the Expense amount. Changing it later would alter the Shares of every historical Expense, so it is fixed now.
