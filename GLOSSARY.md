@@ -94,7 +94,7 @@ A record that one Member paid another Member back, outside the app.
 _Avoid_: Payment, repayment, transfer
 
 **Settle-up Suggestion**:
-A server-proposed payment from one Member to another that, together with the other suggestions, brings every Balance to zero in as few payments as possible.
+A server-proposed payment from a Member who owes money to a Member who is owed money. The Member who owes the most pays the Member owed the most, and this repeats until every Balance is zero, so a Group never needs more than Members − 1 payments.
 _Avoid_: Simplified debt, optimisation
 
 ## Agreement
