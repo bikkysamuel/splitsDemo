@@ -84,9 +84,11 @@ Status: Draft · Last updated: 2026-10-01 · Depends on: ADR-0006, 0011, 0012, 0
 |---|---|---|---|
 | GET | `/v1/groups/{id}/activity` | Group Activity History | M1 |
 | GET | `/v1/me/activity` | My activity across Groups | M1 |
+| GET | `/v1/me/summary` | Net Balance per currency + my Balance in each Group (FR-B3) | M1 |
 | GET | `/v1/me/notifications` | List (`?unread=true`) | M2 |
 | POST | `/v1/me/notifications/{id}/read` | Mark read | M2 |
 | PUT / DELETE | `/v1/groups/{id}/mute` | Mute / unmute informational Notifications | M2 |
+| GET / PUT | `/v1/me/notification-preferences` | Push toggles per kind, including reminders (FR-N5, FR-N6) | M2 |
 
 ## Authorization rules (enforced in services, not handlers)
 

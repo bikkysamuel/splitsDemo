@@ -43,7 +43,7 @@ Every product or technical decision goes through this list. Docs 01–10 point a
 | Q21 | Roles | Admin and Member. Any Member adds Members, Expenses, Settlements, Sub-Groups. Admins rename, remove Members, grant Admin, act for Placeholders. Groups are never deleted, only Closed | GLOSSARY |
 | Q24 | Partial Settlements | Any positive amount; warn (don't block) on overpayment | 03 |
 | Q50 | Acting for Placeholder Members | Any Admin, recorded in Activity History as on-behalf | ADR-0009 |
-| Q51 | Notification preferences | Action-required Notifications always in the in-app list; informational ones mutable per Group | 03 |
+| Q51 | Notification preferences | Action-required Notifications always in the in-app list; informational ones mutable per Group. Push delivery per kind refined by Q83 | 03 |
 | Q53 | Activity History | Per-Group append-only history, edits shown as diffs, Group Members only (Sub-Group history not visible in parent) + a cross-Group "My activity" feed | GLOSSARY |
 | Q54 | Discussing disputes | One reason + one creator reply, then edit or withdraw. Threads later | 03 |
 | Q55 | Term: ratio vs shares | "Split by ratio"; Share means only the amount one Member owes | GLOSSARY |
@@ -83,6 +83,14 @@ Every product or technical decision goes through this list. Docs 01–10 point a
 | Q75 | Reaching the local server | Simulator only, `http://localhost:8080`; Debug allows local HTTP (`NSAllowsLocalNetworking`), Release requires HTTPS; base URL from build settings; `docker compose up` starts everything; **server prints every API route and the base URL at startup** | 05 |
 | Q73 | Invites without a domain | **Build Invite Links now** (create, share, expire, revoke, join API + screen); they only open the app once a domain exists for Universal Links | ADR-0017 |
 | Q76 | How Users get into Groups | Any Member (Admin or not) adds a person by email: an existing User joins at once with an in-app Notification; otherwise a Placeholder carrying that email is created and is Claimed automatically when that email is verified at sign-up. Unregistered people remain Placeholders | ADR-0017 |
+| Q77 | App launch and session expiry | Splash → saved tokens checked with `GET /v1/me` → Home; no or invalid session → sign-in/sign-up; unverified → verification. A `401` triggers one silent refresh; only when that fails does the app show a "session expired" alert and sign out | 03 FR-U1–U2, 05 |
+| Q78 | No connection and server errors | Blocking overlay ("No connection" / "Server unavailable") that retries with backoff + Retry button, keeping in-memory screen state underneath. Debug builds show HTTP status, problem `type`/`detail`, `X-Request-ID` and `URLError` code; Release builds don't contain it | 03 FR-U3, 05 |
+| Q79 | Navigation and visual principle | Tab bar: Home, Report, Settings. Home holds the summary, the Groups list, a Notification bell with badge and My activity. Simple screens: one primary action each, details one tap away | 03 FR-U4, 05 |
+| Q80 | Home summary across currencies | Server returns the User's net Balance **per currency** across their Groups, or "all settled", plus their Balance in each Group (`GET /v1/me/summary`). No conversion between currencies | 03 FR-B3, 07 |
+| Q81 | Report tab | Group picker (last used remembered). Summary: that Group's Balances (M1) + Category bar chart (M3); detail: full balance report + per-Member breakdown. Keeps Q43; cross-Group chart stays Later | 03 FR-R3 |
+| Q82 | Settings contents | Theme (System/Light/Dark, extendable), default currency for new Groups, push toggles per Notification kind, reminder toggle, change password, sign out, delete account, app version. Theme and default currency in `UserDefaults` | 03 FR-U5 |
+| Q83 | Push preferences per kind | Toggles control **push delivery only**; every Notification still lands in the in-app list, action-required ones can't be hidden there, per-Group mute stays. Stored on the server. Refines Q51 | 03 FR-N5, 06, 07 |
+| Q84 | Reminder setting | One toggle turns the day-5 reminder push on or off; the in-app reminder and 7-day Auto-acceptance are unchanged (Q37) | 03 FR-N6 |
 
 ## Open
 

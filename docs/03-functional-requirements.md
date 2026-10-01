@@ -56,6 +56,7 @@ The rules the server enforces. Each FR is testable. "The server" computes and va
 
 - **FR-B1** Balance = Σ(amounts paid in accepted Expenses) − Σ(Shares owed in accepted Expenses) + Σ(confirmed Settlements paid) − Σ(confirmed Settlements received), in the Group Currency. The Balances in a Group always sum to zero.
 - **FR-B2** Settle-up Suggestions: a list of payments that brings every Balance to zero, minimising the number of payments (a greedy approach is acceptable; at most Members − 1 payments).
+- **FR-B3** My summary (Q80): for each currency, the sum of the User's Balances across the Groups and Sub-Groups where they are an active Member, plus the User's Balance in each of those Groups. Currencies whose sum is zero are omitted; if every Balance is zero the summary says "all settled". Computed by `ledger`, never converted between currencies.
 
 ## S · Settlements
 
@@ -74,8 +75,19 @@ The rules the server enforces. Each FR is testable. "The server" computes and va
 - **FR-N2** Informational Notifications can be muted per Group.
 - **FR-N3** Push actions: Approve and Confirm require device authentication; Dispute opens the app (ADR-0008). Push delivery is blocked until the paid Apple Developer Program is bought (Q74). It is tested with `xcrun simctl push`.
 - **FR-N4** Every Notification carries a deep link to its screen (Expense, Settlement, Group, Balance report).
+- **FR-N5** Push preferences per Notification kind (Q83), for example Expense added, Dispute raised, Change Request, Settlement recorded or confirmed, Member added, Group Closing. They control push delivery only: every Notification is still created in the in-app list, and action-required items can't be hidden there (Q51). The per-Group mute (FR-N2) still applies to informational kinds. Default: all on.
+- **FR-N6** Reminder push toggle (Q84, default on) for the day-5 reminder (FR-P5). When off, no reminder push is sent; the reminder still appears in the in-app list.
 
 ## R · Reports
 
 - **FR-R1** Group chart: per-Member totals by Category over accepted Expenses, switchable between Share and Paid, in the Group Currency (Q43).
 - **FR-R2** Balance report: each Member's Balance plus the Settle-up Suggestions, with a Settle action (Q44).
+- **FR-R3** Report tab (Q81): the User picks a Group (the last used one is remembered). The summary screen shows that Group's Balances (M1) and the Category bar chart (FR-R1, M3). The detail screen shows the balance report (FR-R2) and each Member's Share and Paid totals by Category.
+
+## U · App shell and navigation (iOS)
+
+- **FR-U1** Launch (Q77): a splash screen shows while saved Keychain tokens are checked with `GET /v1/me`, refreshing once if the access token has expired. Success → Home. No tokens, or the refresh fails → sign-in/sign-up. Unverified → verification screen. No connection or server unavailable → the FR-U3 screen, never the sign-in screen, so a valid session isn't thrown away.
+- **FR-U2** Session expiry (Q77): on a `401` from an authenticated endpoint, the app refreshes once and retries the request. If the refresh fails (expired, revoked or reused token), it shows one "session expired" alert, deletes the Keychain tokens and returns to sign-in. Simultaneous `401`s share one refresh and one alert. `401`s from sign-in, verification and reset are shown as form errors instead.
+- **FR-U3** Connectivity and server errors (Q78): no network, timeouts, `5xx` and `429` show a blocking overlay ("No connection" or "Server unavailable") over the current screen. It retries automatically with backoff, honouring `Retry-After`, offers a Retry button, and lifts when a request succeeds. In-memory screen state underneath, such as a half-filled Expense form, is kept; nothing is written to disk (ADR-0005). Debug builds add a details panel with the HTTP status, problem+json `type`, `title` and `detail`, the `X-Request-ID` and the `URLError` code; Release builds don't contain it. Other errors (validation, `404`, `409`, warnings) are shown in place on the screen.
+- **FR-U4** Navigation (Q79): a tab bar with **Home**, **Report** and **Settings**. Home shows the summary (FR-B3), the Groups list with the User's Balance in each, a Notification bell with an unread badge, an entry to My activity, and Create Group. A Group screen holds its Expenses, Balances, Settlements, Members and Activity History, with Add Expense as its primary action. Design principle: one primary action per screen, secondary details one tap away, no crowded screens.
+- **FR-U5** Settings (Q82): Appearance (System, Light, Dark; more themes may be added), default currency for new Groups, Notifications (FR-N5, FR-N6; M2), Account (change password, sign out, delete account), About (app version and build number). Theme, default currency and the last-used Report Group are non-financial UI preferences stored in `UserDefaults` (ADR-0005).
