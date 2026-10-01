@@ -33,6 +33,10 @@ var (
 	problemInternal       = problemKind{"internal", "Internal error", http.StatusInternalServerError}
 )
 
+// problemKinds lists every kind above; TestEveryProblemKindIsDocumentedInTheContract
+// checks each against api/openapi.yaml.
+var problemKinds = []problemKind{problemNotReady, problemInvalidRequest, problemInternal}
+
 func (k problemKind) problem(detail string) apigen.Problem {
 	p := apigen.Problem{Type: problemTypeBase + k.slug, Title: k.title, Status: k.status}
 	if detail != "" {

@@ -45,6 +45,7 @@ An expense-sharing app: a SwiftUI iPhone app (iOS 26+, Xcode 27) and a Go 1.26 R
 
 - Work test-first with `/tdd`. Every bug fix starts with a failing regression test.
 - Integration tests use real Postgres (Docker), never a mocked database. Fakes only at architectural seams.
+- `scripts/check.sh [server|api|ios|secrets]` runs every CI check locally, with pinned tool versions.
 - Definition of done and CI jobs: `docs/09-testing-strategy.md`.
 
 ## Dependency rules
@@ -83,4 +84,4 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 
 ## Conversation log
 
-Record every conversation in `docs/conversations/` following `docs/conversations/README.md`: one directory per UTC date, one numbered file per task (new file on a date or task change; `-cont` when a task resumes), with a table of UTC time | Who | What happened | Decided | Details. Update it as the conversation goes and keep the README index current.
+Record every conversation in `docs/conversations/` following `docs/conversations/README.md`: one directory per UTC date, one numbered file per task (new file on a date or task change; `-cont` when a task resumes), with a table of UTC time | Who | What happened | Decided | Details. Update it as the conversation goes, and bring it up to date before each `/code-review`.

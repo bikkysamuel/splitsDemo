@@ -23,9 +23,10 @@ Start the server first (`docker compose up` from the repository root), then open
 ## Test and lint
 
 ```sh
-xcodebuild test -project Splits.xcodeproj -scheme Splits -destination 'platform=iOS Simulator,name=iPhone 17,OS=27.0'
-scripts/lint.sh                        # swift-format, skipping generated code
+scripts/check.sh ios                   # from the repository root: swift-format, scheme check, xcodebuild test
 ```
+
+`xcodebuild test -scheme Splits` runs only the test targets the shared scheme lists. When you add a package test target, add it to `Splits.xcodeproj/xcshareddata/xcschemes/Splits.xcscheme`; `scripts/check-scheme-tests.sh` fails until you do.
 
 Each package also runs on the Mac with `swift test` from its directory, which is faster while iterating.
 
