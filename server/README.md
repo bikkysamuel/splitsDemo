@@ -1,0 +1,41 @@
+# Splits API server
+
+Go 1.26 REST API on Postgres 18. Design: `docs/05-architecture.md`; testing rules: `docs/09-testing-strategy.md`.
+
+## Run it
+
+From the repository root:
+
+```sh
+cp .env.example .env      # once; keep the placeholders or change them locally
+docker compose up --build
+```
+
+The server applies its embedded migrations, then logs its base URL (`http://localhost:8080`) and every route. `GET /healthz` reports liveness and `GET /readyz` reports whether the database answers.
+
+Configuration is environment variables only:
+
+| Variable | Meaning |
+|---|---|
+| `APP_ENV` | `development` locally. Required. |
+| `DATABASE_URL` | Postgres connection URL. Required. |
+| `HTTP_ADDR` | Listen address, default `:8080`. |
+| `OTP_MODE` | `fixed` (code `123456`, development only: the server refuses to start otherwise, ADR-0016) or `email`. |
+
+## Test it
+
+Tests run against a real Postgres (never a mock). Each test gets its own schema, dropped afterwards.
+
+```sh
+docker compose up -d postgres          # from the repository root
+cd server
+set -a; . ../.env; set +a              # exports TEST_DATABASE_URL
+go test -race ./...
+golangci-lint run ./...                # v2; depguard enforces ADR-0015
+```
+
+HTTP-seam tests start the fully wired server with `apptest.Start(t)`; `pgtest.NewSchema(t)` gives a bare schema.
+
+## Migrations
+
+goose SQL files in `migrations/`, embedded in the binary and applied on startup. Forward-only (ADR-0014): add a new numbered file, never edit an applied one, and write no `+goose Down` section.
