@@ -36,6 +36,8 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
               example:
                 status: ok
+        "500":
+          $ref: "#/components/responses/InternalError"
   /readyz:
     get:
       operationId: getReadyz
@@ -53,6 +55,8 @@ paths:
                 status: ready
         "503":
           $ref: "#/components/responses/NotReady"
+        "500":
+          $ref: "#/components/responses/InternalError"
 
 components:
   schemas:
@@ -80,8 +84,11 @@ components:
       description: |
         RFC 9457 problem details. `type` is a stable URI,
         `https://splits.dev/problems/<slug>`, that clients map to a localized
-        message. Slugs in use: `not-ready`. Clients must treat an unknown
-        `type` as a generic error.
+        message. Clients must treat an unknown `type` as a generic error.
+        Slugs in use:
+        - `not-ready`: the server cannot reach its database (503).
+        - `invalid-request`: the request could not be decoded (400).
+        - `internal`: an unexpected server failure (500).
       type: object
       required: [type, title, status]
       properties:
@@ -165,3 +172,13 @@ components:
             title: Service not ready
             status: 503
             detail: The database is unreachable.
+    InternalError:
+      description: An unexpected server failure.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/internal
+            title: Internal error
+            status: 500

@@ -17,10 +17,11 @@ import (
 	"github.com/getkin/kin-openapi/routers/legacy"
 )
 
-// The contract every HTTP-seam response is checked against (doc 09).
-var contract = sync.OnceValues(loadContract)
+// contractRouter matches requests to api/openapi.yaml operations so every
+// HTTP-seam response can be checked against the contract (doc 09).
+var contractRouter = sync.OnceValues(loadContractRouter)
 
-func loadContract() (routers.Router, error) {
+func loadContractRouter() (routers.Router, error) {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
 		return nil, fmt.Errorf("locate apptest source file")
@@ -47,7 +48,7 @@ func loadContract() (routers.Router, error) {
 // status, headers or body are not what api/openapi.yaml describes.
 func checkContract(t testing.TB, req *http.Request, resp Response) {
 	t.Helper()
-	router, err := contract()
+	router, err := contractRouter()
 	if err != nil {
 		t.Fatalf("contract: %v", err)
 	}

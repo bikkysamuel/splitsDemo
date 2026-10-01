@@ -40,5 +40,33 @@ extension Components {
                 self.body = body
             }
         }
+        public struct InternalError: Sendable, Hashable {
+            /// - Remark: Generated from `#/components/responses/InternalError/content`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/components/responses/InternalError/content/application\/problem+json`.
+                case applicationProblemJson(Components.Schemas.Problem)
+                /// The associated value of the enum case if `self` is `.applicationProblemJson`.
+                ///
+                /// - Throws: An error if `self` is not `.applicationProblemJson`.
+                /// - SeeAlso: `.applicationProblemJson`.
+                public var applicationProblemJson: Components.Schemas.Problem {
+                    get throws {
+                        switch self {
+                        case let .applicationProblemJson(body):
+                            return body
+                        }
+                    }
+                }
+            }
+            /// Received HTTP response body
+            public var body: Components.Responses.InternalError.Body
+            /// Creates a new `InternalError`.
+            ///
+            /// - Parameters:
+            ///   - body: Received HTTP response body
+            public init(body: Components.Responses.InternalError.Body) {
+                self.body = body
+            }
+        }
     }
 }

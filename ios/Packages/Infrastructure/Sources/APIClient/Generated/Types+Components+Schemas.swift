@@ -76,8 +76,11 @@ extension Components {
         }
         /// RFC 9457 problem details. `type` is a stable URI,
         /// `https://splits.dev/problems/<slug>`, that clients map to a localized
-        /// message. Slugs in use: `not-ready`. Clients must treat an unknown
-        /// `type` as a generic error.
+        /// message. Clients must treat an unknown `type` as a generic error.
+        /// Slugs in use:
+        /// - `not-ready`: the server cannot reach its database (503).
+        /// - `invalid-request`: the request could not be decoded (400).
+        /// - `internal`: an unexpected server failure (500).
         ///
         ///
         /// - Remark: Generated from `#/components/schemas/Problem`.

@@ -87,8 +87,11 @@ type Money struct {
 
 // Problem RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
-// message. Slugs in use: `not-ready`. Clients must treat an unknown
-// `type` as a generic error.
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `internal`: an unexpected server failure (500).
 type Problem struct {
 	// Detail Explanation of this occurrence; not for display.
 	//
@@ -120,10 +123,22 @@ type ReadinessStatus struct {
 // ReadinessStatusStatus defines model for ReadinessStatus.Status.
 type ReadinessStatusStatus string
 
+// InternalError RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `internal`: an unexpected server failure (500).
+type InternalError = Problem
+
 // NotReady RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
-// message. Slugs in use: `not-ready`. Clients must treat an unknown
-// `type` as a generic error.
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `internal`: an unexpected server failure (500).
 type NotReady = Problem
 
 // ServerInterface represents all server handlers.
@@ -299,6 +314,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	return m
 }
 
+type InternalErrorApplicationProblemPlusJSONResponse Problem
+
 type NotReadyApplicationProblemPlusJSONResponse Problem
 
 type GetHealthzRequestObject struct {
@@ -322,6 +339,22 @@ func (response GetHealthz200JSONResponse) VisitGetHealthzResponse(w http.Respons
 	return err
 }
 
+type GetHealthz500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response GetHealthz500ApplicationProblemPlusJSONResponse) VisitGetHealthzResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetReadyzRequestObject struct {
 }
 
@@ -339,6 +372,22 @@ func (response GetReadyz200JSONResponse) VisitGetReadyzResponse(w http.ResponseW
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReadyz500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response GetReadyz500ApplicationProblemPlusJSONResponse) VisitGetReadyzResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
 	_, err := buf.WriteTo(w)
 	return err
 }
