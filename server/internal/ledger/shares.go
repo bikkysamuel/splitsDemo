@@ -1,5 +1,5 @@
 // Package ledger holds all money arithmetic (ADR-0006): Shares for every
-// Split method, currency conversion, and (later) Balances and Settle-up
+// Split method, currency conversion, Balances and Settle-up
 // Suggestions. It is pure: no I/O, no clock, and no floating-point types.
 // Amounts are integer minor units; rates and inputs are exact big.Rat values.
 package ledger
