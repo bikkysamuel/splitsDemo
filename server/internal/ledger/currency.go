@@ -25,16 +25,23 @@ var minorUnitExceptions = map[string]int{
 // MinorUnits returns how many decimal places the currency's minor unit has:
 // 2 for INR (paise), 0 for JPY, 3 for KWD (fils).
 func MinorUnits(code string) (int, error) {
-	if len(code) != 3 {
+	if !isCurrencyCode(code) {
 		return 0, fmt.Errorf("%w: %q", ErrInvalidCurrency, code)
-	}
-	for _, c := range code {
-		if c < 'A' || c > 'Z' {
-			return 0, fmt.Errorf("%w: %q", ErrInvalidCurrency, code)
-		}
 	}
 	if n, ok := minorUnitExceptions[code]; ok {
 		return n, nil
 	}
 	return 2, nil
+}
+
+func isCurrencyCode(code string) bool {
+	if len(code) != 3 {
+		return false
+	}
+	for _, c := range code {
+		if c < 'A' || c > 'Z' {
+			return false
+		}
+	}
+	return true
 }

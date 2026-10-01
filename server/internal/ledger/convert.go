@@ -62,6 +62,14 @@ func (r ExchangeRate) String() string {
 // units: original × rate, rounded half-up once (ADR-0007, ADR-0010). With
 // equal currencies the amount is returned unchanged and no rate is allowed.
 func Convert(original int64, from, to string, rate ExchangeRate) (int64, error) {
+	converted, err := convert(original, from, to, rate)
+	if err != nil {
+		return 0, fmt.Errorf("convert %d %s to %s at %q: %w", original, from, to, rate, err)
+	}
+	return converted, nil
+}
+
+func convert(original int64, from, to string, rate ExchangeRate) (int64, error) {
 	fromUnits, err := MinorUnits(from)
 	if err != nil {
 		return 0, err

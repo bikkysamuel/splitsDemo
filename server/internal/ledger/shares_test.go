@@ -39,7 +39,7 @@ func TestShares(t *testing.T) {
 	tests := []struct {
 		name    string
 		total   int64
-		method  ledger.Method
+		method  ledger.SplitMethod
 		members func(t *testing.T) []ledger.SplitMember
 		want    []int64
 	}{
@@ -131,7 +131,7 @@ func TestSharesRejectsInvalidSplits(t *testing.T) {
 	tests := []struct {
 		name       string
 		total      int64
-		method     ledger.Method
+		method     ledger.SplitMethod
 		members    func(t *testing.T) []ledger.SplitMember
 		wantReason ledger.Reason
 		wantMember int
@@ -174,7 +174,7 @@ func TestSharesRejectsInvalidSplits(t *testing.T) {
 				ms[1].Input = nil
 				return ms
 			}, ledger.ReasonMissingInput, 1},
-		{"unknown method", 1000, ledger.Method(99),
+		{"unknown method", 1000, ledger.SplitMethod(99),
 			func(t *testing.T) []ledger.SplitMember { return members(t, []int{1}) }, ledger.ReasonUnknownMethod, -1},
 	}
 	for _, tt := range tests {
@@ -185,9 +185,9 @@ func TestSharesRejectsInvalidSplits(t *testing.T) {
 			if !errors.As(err, &invalid) {
 				t.Fatalf("Shares error = %v; want *InvalidSplitError", err)
 			}
-			if invalid.Reason != tt.wantReason || invalid.Member != tt.wantMember {
+			if invalid.Reason != tt.wantReason || invalid.MemberIndex != tt.wantMember {
 				t.Errorf("got reason %q member %d; want %q member %d",
-					invalid.Reason, invalid.Member, tt.wantReason, tt.wantMember)
+					invalid.Reason, invalid.MemberIndex, tt.wantReason, tt.wantMember)
 			}
 		})
 	}

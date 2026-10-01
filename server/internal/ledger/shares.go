@@ -10,12 +10,13 @@ import (
 	"sort"
 )
 
-// Method is how an Expense is divided among the Members of its Split.
-type Method int
+// SplitMethod is how an Expense is divided among the Members of its Split
+// (doc 06 split_method).
+type SplitMethod int
 
 const (
 	// Equal divides the total equally; Members carry no Input.
-	Equal Method = iota + 1
+	Equal SplitMethod = iota + 1
 	// Exact takes each Member's Input as their Share in minor units; the
 	// Inputs must sum to the total.
 	Exact
@@ -40,30 +41,30 @@ type SplitMember struct {
 // order of members. The Shares always sum exactly to total: every exact Share
 // is floored and the leftover minor units go one at a time by largest
 // remainder, ties to the lowest JoinSeq (ADR-0010).
-func Shares(total int64, method Method, members []SplitMember) ([]int64, error) {
-	weights, err := validate(total, method, members)
+func Shares(total int64, method SplitMethod, members []SplitMember) ([]int64, error) {
+	weights, sum, err := validate(total, method, members)
 	if err != nil {
 		return nil, err
 	}
-	return allocate(total, weights, members), nil
+	return allocate(total, weights, sum, members), nil
 }
 
-// validate checks the Split and returns each Member's integer weight: the
-// Share is total × weight / Σ weights.
-func validate(total int64, method Method, members []SplitMember) ([]*big.Int, error) {
+// validate checks the Split and returns each Member's integer weight and
+// their sum: the Share is total × weight / sum.
+func validate(total int64, method SplitMethod, members []SplitMember) ([]*big.Int, *big.Int, error) {
 	if method < Equal || method > Ratio {
-		return nil, invalid(ReasonUnknownMethod, -1)
+		return nil, nil, invalid(ReasonUnknownMethod, -1)
 	}
 	if len(members) == 0 {
-		return nil, invalid(ReasonNoMembers, -1)
+		return nil, nil, invalid(ReasonNoMembers, -1)
 	}
 	if total <= 0 {
-		return nil, invalid(ReasonTotalNotPositive, -1)
+		return nil, nil, invalid(ReasonTotalNotPositive, -1)
 	}
 	seen := make(map[int]bool, len(members))
 	for i, m := range members {
 		if seen[m.JoinSeq] {
-			return nil, invalid(ReasonDuplicateMember, i)
+			return nil, nil, invalid(ReasonDuplicateMember, i)
 		}
 		seen[m.JoinSeq] = true
 	}
@@ -73,7 +74,7 @@ func validate(total int64, method Method, members []SplitMember) ([]*big.Int, er
 	for i, m := range members {
 		w, err := weight(method, m.Input, i)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		weights[i] = w
 		sum.Add(sum, w)
@@ -82,20 +83,20 @@ func validate(total int64, method Method, members []SplitMember) ([]*big.Int, er
 	switch method {
 	case Exact:
 		if sum.Cmp(big.NewInt(total)) != 0 {
-			return nil, invalid(ReasonExactSumMismatch, -1)
+			return nil, nil, invalid(ReasonExactSumMismatch, -1)
 		}
 	case Percentage:
 		if sum.Cmp(hundredPercent) != 0 {
-			return nil, invalid(ReasonPercentagesNot100, -1)
+			return nil, nil, invalid(ReasonPercentagesNot100, -1)
 		}
 	}
-	return weights, nil
+	return weights, sum, nil
 }
 
 // hundredPercent is 100% in hundredths of a percent, the Percentage weight unit.
 var hundredPercent = big.NewInt(100_00)
 
-func weight(method Method, input *big.Rat, member int) (*big.Int, error) {
+func weight(method SplitMethod, input *big.Rat, member int) (*big.Int, error) {
 	if method == Equal {
 		if input != nil {
 			return nil, invalid(ReasonUnexpectedInput, member)
@@ -108,33 +109,24 @@ func weight(method Method, input *big.Rat, member int) (*big.Int, error) {
 	if input.Sign() <= 0 {
 		return nil, invalid(ReasonInputNotPositive, member)
 	}
+	// The weight must be an integer: minor units (Exact), hundredths of a
+	// percent (Percentage) or the ratio part itself (Ratio).
+	scaled, notInteger := input, ReasonNotWholeMinorUnits
 	switch method {
-	case Exact:
-		if !input.IsInt() {
-			return nil, invalid(ReasonNotWholeMinorUnits, member)
-		}
-		return new(big.Int).Set(input.Num()), nil
 	case Percentage:
-		hundredths := new(big.Rat).Mul(input, big.NewRat(100, 1))
-		if !hundredths.IsInt() {
-			return nil, invalid(ReasonTooManyDecimals, member)
-		}
-		return new(big.Int).Set(hundredths.Num()), nil
-	default: // Ratio
-		if !input.IsInt() {
-			return nil, invalid(ReasonRatioNotInteger, member)
-		}
-		return new(big.Int).Set(input.Num()), nil
+		scaled, notInteger = new(big.Rat).Mul(input, big.NewRat(100, 1)), ReasonTooManyDecimals
+	case Ratio:
+		notInteger = ReasonRatioNotInteger
 	}
+	if !scaled.IsInt() {
+		return nil, invalid(notInteger, member)
+	}
+	return new(big.Int).Set(scaled.Num()), nil
 }
 
 // allocate divides total in proportion to weights by floor, then largest
 // remainder, ties to the lowest JoinSeq.
-func allocate(total int64, weights []*big.Int, members []SplitMember) []int64 {
-	sum := new(big.Int)
-	for _, w := range weights {
-		sum.Add(sum, w)
-	}
+func allocate(total int64, weights []*big.Int, sum *big.Int, members []SplitMember) []int64 {
 	shares := make([]int64, len(weights))
 	remainders := make([]*big.Int, len(weights))
 	leftover := total
@@ -184,18 +176,18 @@ const (
 // InvalidSplitError reports an invalid Split.
 type InvalidSplitError struct {
 	Reason Reason
-	// Member is the index of the offending Member, or -1 when the Split as a
-	// whole is at fault.
-	Member int
+	// MemberIndex is the offending Member's index in the members slice, or
+	// -1 when the Split as a whole is at fault.
+	MemberIndex int
 }
 
 func (e *InvalidSplitError) Error() string {
-	if e.Member < 0 {
+	if e.MemberIndex < 0 {
 		return fmt.Sprintf("invalid split: %s", e.Reason)
 	}
-	return fmt.Sprintf("invalid split: member %d: %s", e.Member, e.Reason)
+	return fmt.Sprintf("invalid split: member %d: %s", e.MemberIndex, e.Reason)
 }
 
 func invalid(reason Reason, member int) error {
-	return &InvalidSplitError{Reason: reason, Member: member}
+	return &InvalidSplitError{Reason: reason, MemberIndex: member}
 }

@@ -21,7 +21,7 @@ func FuzzSharesInvariants(f *testing.F) {
 	f.Fuzz(func(t *testing.T, total int64, n uint8, methodPick uint8, seed uint64) {
 		total = 1 + abs64(total)%1_000_000_000_000_000
 		count := 1 + int(n)%50
-		method := []ledger.Method{ledger.Equal, ledger.Exact, ledger.Percentage, ledger.Ratio}[methodPick%4]
+		method := []ledger.SplitMethod{ledger.Equal, ledger.Exact, ledger.Percentage, ledger.Ratio}[methodPick%4]
 		rng := &splitmix{seed}
 		ms := randomSplit(rng, total, count, method)
 		if ms == nil {
@@ -34,19 +34,18 @@ func FuzzSharesInvariants(f *testing.F) {
 		}
 
 		var sum int64
-		weights, weightSum := splitWeights(method, ms)
+		exact := exactShares(total, method, ms)
 		for i, s := range shares {
 			sum += s
 			if s < 0 {
 				t.Fatalf("Share %d = %d is negative", i, s)
 			}
-			// |s − total×w/W| < 1
-			exact := new(big.Rat).SetFrac(new(big.Int).Mul(big.NewInt(total), weights[i]), weightSum)
-			diff := new(big.Rat).Sub(new(big.Rat).SetInt64(s), exact)
+			diff := new(big.Rat).Sub(new(big.Rat).SetInt64(s), exact[i])
 			if diff.Abs(diff).Cmp(big.NewRat(1, 1)) >= 0 {
-				t.Fatalf("Share %d = %d is a minor unit or more from exact %s", i, s, exact.FloatString(4))
+				t.Fatalf("Share %d = %d is a minor unit or more from exact %s", i, s, exact[i].FloatString(4))
 			}
 		}
+		checkLeftoverOrder(t, shares, exact, ms)
 		if sum != total {
 			t.Fatalf("Σ Shares = %d; want %d", sum, total)
 		}
@@ -139,7 +138,7 @@ func exactConversion(t *testing.T, original int64, from, to, rateText string) *b
 // randomSplit builds a valid Split of total among count Members with distinct
 // shuffled join_seq values, or nil when total can't give every Member a
 // positive exact amount.
-func randomSplit(rng *splitmix, total int64, count int, method ledger.Method) []ledger.SplitMember {
+func randomSplit(rng *splitmix, total int64, count int, method ledger.SplitMethod) []ledger.SplitMember {
 	ms := make([]ledger.SplitMember, count)
 	seqs := rng.perm(count)
 	for i := range ms {
@@ -168,21 +167,56 @@ func randomSplit(rng *splitmix, total int64, count int, method ledger.Method) []
 	return ms
 }
 
-func splitWeights(method ledger.Method, ms []ledger.SplitMember) ([]*big.Int, *big.Int) {
-	weights := make([]*big.Int, len(ms))
-	sum := new(big.Int)
+// exactShares is the oracle: each Member's exact Share straight from the
+// Split method's definition (FR-E2), independent of ledger's integer weights.
+func exactShares(total int64, method ledger.SplitMethod, ms []ledger.SplitMember) []*big.Rat {
+	exact := make([]*big.Rat, len(ms))
+	t := new(big.Rat).SetInt64(total)
+	ratioSum := new(big.Rat)
+	for _, m := range ms {
+		if method == ledger.Ratio {
+			ratioSum.Add(ratioSum, m.Input)
+		}
+	}
 	for i, m := range ms {
 		switch method {
 		case ledger.Equal:
-			weights[i] = big.NewInt(1)
+			exact[i] = new(big.Rat).Quo(t, big.NewRat(int64(len(ms)), 1))
+		case ledger.Exact:
+			exact[i] = new(big.Rat).Set(m.Input)
 		case ledger.Percentage:
-			weights[i] = new(big.Int).Set(new(big.Rat).Mul(m.Input, big.NewRat(100, 1)).Num())
-		default:
-			weights[i] = new(big.Int).Set(m.Input.Num())
+			exact[i] = new(big.Rat).Quo(new(big.Rat).Mul(t, m.Input), big.NewRat(100, 1))
+		case ledger.Ratio:
+			exact[i] = new(big.Rat).Quo(new(big.Rat).Mul(t, m.Input), ratioSum)
 		}
-		sum.Add(sum, weights[i])
 	}
-	return weights, sum
+	return exact
+}
+
+// checkLeftoverOrder checks ADR-0010's rule directly: whenever one Member got
+// a leftover minor unit and another didn't, the first has the larger
+// fractional remainder, or an equal remainder and the lower join_seq.
+func checkLeftoverOrder(t *testing.T, shares []int64, exact []*big.Rat, ms []ledger.SplitMember) {
+	t.Helper()
+	got := make([]bool, len(shares))
+	frac := make([]*big.Rat, len(shares))
+	for i := range shares {
+		floor := new(big.Int).Quo(exact[i].Num(), exact[i].Denom()) // exact ≥ 0
+		got[i] = shares[i] > floor.Int64()
+		frac[i] = new(big.Rat).Sub(exact[i], new(big.Rat).SetInt(floor))
+	}
+	for i := range shares {
+		for j := range shares {
+			if !got[i] || got[j] {
+				continue
+			}
+			c := frac[i].Cmp(frac[j])
+			if c < 0 || (c == 0 && ms[i].JoinSeq > ms[j].JoinSeq) {
+				t.Fatalf("join_seq %d (remainder %s) got a leftover unit but join_seq %d (remainder %s) didn't",
+					ms[i].JoinSeq, frac[i].FloatString(6), ms[j].JoinSeq, frac[j].FloatString(6))
+			}
+		}
+	}
 }
 
 func decimalString(digits uint64, decimals int) string {
