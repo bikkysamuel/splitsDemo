@@ -56,7 +56,7 @@ The format is "As a … I want … so that …". The detailed rules behind each 
 | ID | Story | M | FR |
 |---|---|---|---|
 | US-40 | As a Member, I want to see every Member's Balance in the Group Currency. | M1 | FR-B1 |
-| US-41 | As a Member, I want Settle-up Suggestions showing the fewest payments to clear all debts. | M1 | FR-B2 |
+| US-41 | As a Member, I want Settle-up Suggestions showing who pays whom, in at most Members − 1 payments, so every Balance reaches zero. | M1 | FR-B2 |
 | US-42 | As a Member, I want to record a Settlement (full or partial). | M1 | FR-S1–S2 |
 | US-43 | As the receiving Member, I want to confirm or Dispute a Settlement. | M2 | FR-S3 |
 | US-44 | As a Member, I want a balance report screen with a Settle button next to each suggestion. | M3 | FR-R2 |

@@ -115,6 +115,17 @@ func TestBalances(t *testing.T) {
 			want: []int64{-10, 0, 10},
 		},
 		{
+			name:    "four Members pay 100, 70, 10 and 20, split equally: 50 each",
+			members: []int{1, 2, 3, 4},
+			expenses: []ledger.Expense{
+				expense(ledger.Accepted, 1, 10000, 1, 2500, 2, 2500, 3, 2500, 4, 2500),
+				expense(ledger.Accepted, 2, 7000, 1, 1750, 2, 1750, 3, 1750, 4, 1750),
+				expense(ledger.Accepted, 3, 1000, 1, 250, 2, 250, 3, 250, 4, 250),
+				expense(ledger.Accepted, 4, 2000, 1, 500, 2, 500, 3, 500, 4, 500),
+			},
+			want: []int64{5000, 2000, -4000, -3000},
+		},
+		{
 			name:    "a payer outside the Split is owed the whole amount",
 			members: []int{1, 2, 3},
 			expenses: []ledger.Expense{
@@ -274,6 +285,11 @@ func TestSettleUpSuggestions(t *testing.T) {
 			name:     "ties go to the lowest join_seq, whatever the input order",
 			balances: balances(5, -50, 2, 50, 3, -50, 1, 50),
 			want:     []ledger.SettleUpSuggestion{s(3, 1, 50), s(5, 2, 50)},
+		},
+		{
+			name:     "Balances 50, 20, −40, −30 settle in three payments",
+			balances: balances(1, 5000, 2, 2000, 3, -4000, 4, -3000),
+			want:     []ledger.SettleUpSuggestion{s(3, 1, 4000), s(4, 2, 2000), s(4, 1, 1000)},
 		},
 		{
 			name:     "a partial payment leaves the remainder for the next match",
