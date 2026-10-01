@@ -52,6 +52,3 @@ jobs:
 
       - name: Checks (scripts/check.sh server)
         run: scripts/check.sh server
-
-      # doc 09's short fuzz run (~30 s per target) lands with the first fuzz
-      # targets in ledger (#8).

@@ -5,7 +5,8 @@
 #   scripts/check.sh [server|api|ios|secrets|all]   (default: all)
 #
 # server: needs Postgres (`docker compose up -d postgres`); TEST_DATABASE_URL
-#         comes from the environment or, if unset, from .env.
+#         comes from the environment or, if unset, from .env. FUZZTIME (default
+#         30s) is the fuzz time per target, e.g. FUZZTIME=5s for a quick run.
 # ios:    needs Xcode 27 and an iOS 27.0 iPhone Simulator.
 # secrets: needs Docker.
 set -euo pipefail
@@ -53,6 +54,14 @@ check_server() {
     go run "$GOLANGCI_LINT" run ./...
     step "server: go test -race (real Postgres)"
     go test -race ./...
+    step "server: fuzz, ${FUZZTIME:-30s} per target (doc 09)"
+    # `go test -list` prints each package's Fuzz targets, then "ok <package>".
+    go test -list '^Fuzz' ./... | awk '/^Fuzz/ {names = names " " $1} /^ok/ {if (names != "") print $2 names; names = ""}' |
+      while read -r pkg targets; do
+        for target in $targets; do
+          go test -run '^$' -fuzz "^${target}\$" -fuzztime "${FUZZTIME:-30s}" "$pkg"
+        done
+      done
     step "server: govulncheck"
     go run "$GOVULNCHECK" ./...
   )

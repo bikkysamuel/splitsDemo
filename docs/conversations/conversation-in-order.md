@@ -420,3 +420,9 @@ Every prompt you sent and every question Claude asked you, oldest first, across 
 
 **14:15 · You:**
 > create a new MD file to add my prompts and what claude asked me in a simple format - i need to see what converstation happened in order
+
+**14:20 · You:**
+> merge #35 and #36
+> and 
+> 1. Exchange Rate precision: "Up to 2 significant decimals" read as at most 2 digits after the decimal point.
+> 2. Zero Inputs: every exact amount, percentage or ratio in a Split must be greater than zero.

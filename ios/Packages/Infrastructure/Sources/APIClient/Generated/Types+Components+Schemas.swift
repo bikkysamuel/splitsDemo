@@ -222,6 +222,7 @@ extension Components {
         public typealias CurrencyCode = Swift.String
         /// An exact decimal held in a string (ADR-0007), never a JSON number:
         /// units of the Group currency per one unit of the Expense currency.
+        /// Positive, with at most 2 decimal places (FR-E5).
         ///
         ///
         /// - Remark: Generated from `#/components/schemas/ExchangeRate`.
