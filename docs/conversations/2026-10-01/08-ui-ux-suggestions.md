@@ -1,0 +1,11 @@
+# UI/UX suggestions for v1
+
+Follows [07](07-to-spec.md). PR #3 (conversation log for the spec) was squash-merged at 2026-10-01 10:35:54Z as `c797d13`, and `docs/spec` was deleted.
+
+| UTC | Who | What happened | Decided | Details |
+|---|---|---|---|---|
+| 2026-10-01 10:35:00Z | User | Asked to merge PR #3, then said they had UI/UX suggestions | Merge PR #3 | — |
+| 2026-10-01 10:37:00Z | User | Gave UI/UX suggestions | — | Launch flow: splash → stored session checked with the server → dashboard, else sign-in/sign-up. Any auth error → "session timed out" alert + sign out. No internet / server trouble → blocking screens until the connection works, with raw error details in development. Simple, uncluttered UI. Dashboard: overall summary (owed / owe / all settled). Report: summary charts, detail screen with more data. Settings: theme, default currency, push toggles per alert kind, reminders, delete account, sign out, app version. Tab bar: Home, Report, Settings. |
+| 2026-10-01 10:38:00Z | Claude | Checked the suggestions against the spec and ADRs. Proposed two adjustments and asked four questions | — | Adjustments: a `401` refreshes silently first (ADR-0011's 15-minute access token would otherwise sign Users out every 15 minutes); with only three tabs, Groups, the Notification bell and My activity live on Home. Conflicts raised: a cross-Group total vs per-Group currencies (ADR-0006/0007); a top-level Report vs per-Group chart (Q43); push toggles vs unmutable action-required items (Q51); a reminders setting vs the fixed day-5 reminder (Q37). |
+| 2026-10-01 10:40:00Z | User | Chose every recommended option, with no objection to the two adjustments | Q77–Q84 | Home summary per currency via `GET /v1/me/summary`; Report tab with a Group picker (Q43 kept); per-kind toggles affect push only (refines Q51); one on/off toggle for the day-5 reminder push. |
+| 2026-10-01 10:59:02Z | Claude | Recorded Q77–Q84 in docs 00, 02, 03, 05, 06 and 07 on branch `docs/ui-ux`; updated spec #2 (stories 125–142, new implementation section) and commented on it; opened a PR | — | New FR-B3, FR-N5, FR-N6, FR-R3, FR-U1–U5; US-60–US-70; table `notification_preferences`; endpoints `/v1/me/summary` (M1) and `/v1/me/notification-preferences` (M2). The Report tab exists from M1, so the tab bar never changes shape. |

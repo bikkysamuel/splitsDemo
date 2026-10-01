@@ -85,6 +85,9 @@ ios/
 - **Use cases** exist only where they combine more than one repository call or have several entry points (for example, Approve from both a screen and a notification action). Otherwise ViewModels call repository protocols directly (ADR-0015).
 - **Money**: `Money { minorUnits: Int64, currency: CurrencyCode }` can format itself for display. It has no arithmetic (ADR-0006). Live split previews call the server.
 - **Errors**: `problem+json` `type` URIs map to typed Domain errors, which map to localized messages.
+- **Launch and session**: an app-level session state (`launching`, `signedOut`, `needsVerification`, `signedIn`) drives the root view. The APIClient auth middleware refreshes once on `401` (single-flight) and, if the refresh fails, reports session expiry to the composition root, which shows the alert and clears the Keychain (FR-U1, FR-U2).
+- **Connectivity**: `NWPathMonitor` plus classification of API failures feed one app-level connectivity state that shows the blocking overlay (FR-U3). The Debug-only error details panel is compiled under `#if DEBUG`.
+- **Navigation**: a `TabView` with Home, Report and Settings, each with its own `NavigationStack`. The deep-link router picks the tab and pushes the screen (FR-U4).
 - **Networking**: the base URL comes from the build configuration (`Debug` → `http://localhost:8080`). Debug's Info.plist sets `NSAllowsLocalNetworking`; Release requires HTTPS (Q75).
 - **Deep links**: one `DeepLink` enum (`expense(id)`, `settlement(id)`, `group(id)`, `balances(groupID)`, `join(inviteToken)`) handled by the router in `SplitsApp`. Notification taps and (later) Universal Links feed it.
 

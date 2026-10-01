@@ -67,6 +67,7 @@ users ─1───*─ sessions
 | `activity_events` | `id bigint identity`, `group_id`, `actor_member_id`, `on_behalf_of_member_id null`, `type`, `subject_type`, `subject_id`, `payload jsonb`, `occurred_at` | **Append-only**: a trigger rejects UPDATE and DELETE. `payload` holds field diffs for edits. |
 | `notifications` | `id`, `user_id`, `group_id`, `kind`, `action_required bool`, `subject_type`, `subject_id`, `read_at null`, `resolved_at null` | Action-required items resolve when the underlying action happens. |
 | `notification_mutes` | `user_id`, `group_id` | Mutes informational kinds only (FR-N2). |
+| `notification_preferences` | `user_id`, `kind`, `push_enabled bool` | Push delivery only (FR-N5); a missing row means enabled. The reminder toggle is kind `reminder` (FR-N6). |
 | `idempotency_keys` | `user_id`, `key`, `request_hash`, `status`, `response jsonb`, `created_at` | PK `(user_id, key)`, kept 24 h (NFR-R1). |
 
 Balances are derived from accepted `expense_shares`, `expenses.payer_id` and confirmed `settlements`. Whether to also keep a `group_balances` table, updated in the same transaction, is decided when performance tests run (NFR-P2), and an ADR is written if it is added.

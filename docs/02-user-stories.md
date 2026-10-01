@@ -74,3 +74,19 @@ The format is "As a … I want … so that …". The detailed rules behind each 
 | US-55 | As a User, I want to mute informational notifications for a Group. | M2 | FR-N2 |
 | US-56 | As a Member, I want a settled Group to close automatically after everyone is notified, with a chance to keep it open. | M3 | FR-G6 |
 | US-57 | As a Member, I want to reopen a Closed Group. | M3 | FR-G6 |
+
+## App shell, Home and Settings
+
+| ID | Story | M | FR |
+|---|---|---|---|
+| US-60 | As a User, I want the app to check my saved session with the server at launch, so that I land on Home when signed in and on sign-in/sign-up otherwise. | M1 | FR-U1 |
+| US-61 | As a User, I want a clear "session expired" alert, then sign-out, when my session can't be renewed. | M1 | FR-U2 |
+| US-62 | As a User, I want a clear screen when there's no internet or the server is unavailable, which retries by itself and keeps what I was typing. | M1 | FR-U3 |
+| US-63 | As a developer, I want Debug builds to show the HTTP status, problem type and detail, request ID and network error code. | M1 | FR-U3 |
+| US-64 | As a User, I want Home to show at a glance whether I'm owed, owe or am all settled, per currency, with my Groups below. | M1 | FR-B3, FR-U4 |
+| US-65 | As a User, I want a Report tab where I pick a Group, see a summary, and open a detail screen with more data. | M1/M3 | FR-R3 |
+| US-66 | As a User, I want to choose System, Light or Dark theme. | M1 | FR-U5 |
+| US-67 | As a User, I want my default currency pre-filled when I create a Group. | M1 | FR-U5 |
+| US-68 | As a User, I want to choose which kinds of push notification I get, without losing anything from the in-app list. | M2 | FR-N5 |
+| US-69 | As a User, I want to turn reminder pushes for pending actions on or off. | M2 | FR-N6 |
+| US-70 | As a User, I want Settings to hold change password, sign out, delete account and the app version. | M1 | FR-U5 |
