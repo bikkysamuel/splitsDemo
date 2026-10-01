@@ -32,3 +32,4 @@ A chronological record of the conversations that shaped this project. The decisi
 9. [Re-running /to-spec; M0–M1 tickets (/to-tickets)](2026-10-01/09-to-spec-rerun.md)
 10. [Running /to-spec a third time](2026-10-01/10-to-spec-third-run.md)
 11. [Implementing #5: server skeleton (/implement)](2026-10-01/11-implement-server-skeleton.md)
+12. [Implementing #6: iOS app shell (/implement)](2026-10-01/12-implement-ios-shell.md)

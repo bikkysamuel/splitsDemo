@@ -1,3 +1,9 @@
 .idea/
 .env
 .DS_Store
+# Xcode / SwiftPM
+xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+*.xcworkspace/xcuserdata/
