@@ -28,11 +28,10 @@ Tests run against a real Postgres (never a mock). Each test gets its own schema,
 
 ```sh
 docker compose up -d postgres          # from the repository root
-cd server
-set -a; . ../.env; set +a              # exports TEST_DATABASE_URL
-go test -race ./...
-golangci-lint run ./...                # v2; depguard enforces ADR-0015
+scripts/check.sh server                # gofmt, vet, golangci-lint (depguard: ADR-0015), go test -race, govulncheck
 ```
+
+For a quick single-package run: `cd server && TEST_DATABASE_URL=… go test ./internal/httpapi/` (the URL is in `.env`).
 
 HTTP-seam tests start the fully wired server with `apptest.Start(t)`; `pgtest.NewSchema(t)` gives a bare schema.
 

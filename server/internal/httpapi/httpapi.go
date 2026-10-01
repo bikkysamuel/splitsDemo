@@ -19,8 +19,9 @@ import (
 // problemTypeBase prefixes every problem+json type URI (doc 07).
 const problemTypeBase = "https://splits.dev/problems/"
 
-// problemKind is one problem+json type the server sends. Every slug here is
-// listed in the Problem schema of api/openapi.yaml.
+// problemKind is one problem+json type the server sends. Every slug must be
+// listed in the Problem schema of api/openapi.yaml; problems_test.go finds
+// each problemKind literal in this package and checks it.
 type problemKind struct {
 	slug   string
 	title  string

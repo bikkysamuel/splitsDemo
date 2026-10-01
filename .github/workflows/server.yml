@@ -1,5 +1,5 @@
 # Server CI (doc 09): format, vet, lint (incl. depguard, ADR-0015), tests
-# against a real Postgres 18, govulncheck.
+# against a real Postgres 18, govulncheck. The steps live in scripts/check.sh.
 name: server
 
 on:
@@ -8,12 +8,14 @@ on:
       - "server/**"
       - "api/**"
       - ".github/workflows/server.yml"
+      - "scripts/check.sh"
   push:
     branches: [master]
     paths:
       - "server/**"
       - "api/**"
       - ".github/workflows/server.yml"
+      - "scripts/check.sh"
 
 permissions:
   contents: read
@@ -21,9 +23,6 @@ permissions:
 jobs:
   server:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: server
     services:
       postgres:
         image: postgres:18
@@ -51,27 +50,8 @@ jobs:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
 
-      - name: gofmt
-        run: |
-          unformatted="$(gofmt -l .)"
-          if [ -n "$unformatted" ]; then
-            echo "Run gofmt on:"; echo "$unformatted"; exit 1
-          fi
-
-      - name: go vet
-        run: go vet ./...
-
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
-        with:
-          version: v2.14.0
-          working-directory: server
-
-      - name: go test
-        run: go test -race ./...
+      - name: Checks (scripts/check.sh server)
+        run: scripts/check.sh server
 
       # doc 09's short fuzz run (~30 s per target) lands with the first fuzz
       # targets in ledger (#8).
-
-      - name: govulncheck
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...

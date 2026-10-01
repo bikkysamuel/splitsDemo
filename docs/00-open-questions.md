@@ -92,6 +92,7 @@ Every product or technical decision goes through this list. Docs 01–10 point a
 | Q83 | Push preferences per kind | Toggles control **push delivery only**; every Notification still lands in the in-app list, action-required ones can't be hidden there, per-Group mute stays. Stored on the server. Refines Q51 | 03 FR-N5, 06, 07 |
 | Q84 | Reminder setting | One toggle turns the day-5 reminder push on or off; the in-app reminder and 7-day Auto-acceptance are unchanged (Q37) | 03 FR-N6 |
 | Q85 | Contract test tooling (2026-10-01, #7) | **kin-openapi** (`openapi3filter`) validates every HTTP-seam response against `api/openapi.yaml`, in test code only (the generated server embeds no spec). **vacuum** lints the contract in the `api` CI job (recommended rules, warnings fail; `oas3-unused-component` off because shared schemas precede their endpoints) | 09, CLAUDE.md |
+| Q86 | One check entry point (2026-10-01, M0 retro) | `scripts/check.sh [server\|api\|ios\|secrets\|all]` runs every CI check with pinned versions, and every workflow calls it. gitleaks runs from a digest-pinned image instead of the third-party action. The conversation log has no hand-kept index (file names sort chronologically). Refines Q59 | 09, CLAUDE.md |
 
 ## Open
 

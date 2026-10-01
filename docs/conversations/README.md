@@ -17,20 +17,6 @@ A chronological record of the conversations that shaped this project. The decisi
 | Decided | A short summary of what was decided, or `—` |
 | Details | The fuller substance of the exchange |
 
-## Index
+## Reading in order
 
-### 2026-10-01
-
-1. [Workflow routing (/ask-matt)](2026-10-01/01-ask-matt-workflow-routing.md)
-2. [Wayfinder charting, abandoned (/wayfinder)](2026-10-01/02-wayfinder-charting.md)
-3. [Requirements discovery, Rounds 1–4 (/grill-with-docs)](2026-10-01/03-grill-with-docs-discovery.md)
-4. [Conversation log setup](2026-10-01/04-conversation-log-setup.md)
-5. [Requirements discovery, Round 5 onward](2026-10-01/05-grill-with-docs-discovery-cont.md)
-6. [Writing docs 01–10 and CLAUDE.md](2026-10-01/06-sdlc-docs-authoring.md)
-7. [Writing the v1 spec (/to-spec)](2026-10-01/07-to-spec.md)
-8. [UI/UX suggestions for v1](2026-10-01/08-ui-ux-suggestions.md)
-9. [Re-running /to-spec; M0–M1 tickets (/to-tickets)](2026-10-01/09-to-spec-rerun.md)
-10. [Running /to-spec a third time](2026-10-01/10-to-spec-third-run.md)
-11. [Implementing #5: server skeleton (/implement)](2026-10-01/11-implement-server-skeleton.md)
-12. [Implementing #6: iOS app shell (/implement)](2026-10-01/12-implement-ios-shell.md)
-13. [Implementing #7: contract pipeline (/implement)](2026-10-01/13-implement-contract-pipeline.md)
+File names sort chronologically: list `docs/conversations/*/` and read top to bottom. There is no hand-kept index, so parallel branches never conflict over one.

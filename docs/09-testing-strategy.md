@@ -42,10 +42,12 @@ Status: Draft · Last updated: 2026-10-01 · Depends on: Q58, Q59, Q62, Q69; ADR
 | Job | Triggers on changes to | Steps | Runner |
 |---|---|---|---|
 | `server` | `server/**`, `api/**` | gofmt check, `go vet`, golangci-lint (incl. depguard), `go test -race ./...` with a Postgres 18 service, a short fuzz run (≈30 s per target), govulncheck | `ubuntu-latest` |
-| `ios` | `ios/**`, `api/**` | swift-format lint, build, `xcodebuild test` (unit tests) on an iOS 27.0 Simulator | **`xcode-27`** pinned to Xcode 27.0 (Q69) |
-| `api` | `api/**`, generator config and generated code | vacuum lint, `scripts/generate-api.sh`, fail on any diff | `ubuntu-latest` |
-| `secrets` | every PR | gitleaks | `ubuntu-latest` |
+| `ios` | `ios/**`, `api/**` | swift-format lint, every package test target in the `Splits` scheme, build, `xcodebuild test` (unit tests) on an iOS 27.0 Simulator | **`xcode-27`** pinned to Xcode 27.0 (Q69) |
+| `api` | `api/**`, generator config and generated code | vacuum lint, `scripts/generate-api.sh`, fail if the generated code or generator pins change | `ubuntu-latest` |
+| `secrets` | every PR | gitleaks over the git history (image pinned by digest) | `ubuntu-latest` |
 | `nightly` | schedule | longer fuzz runs, XCUITest smoke + accessibility audit against Docker Compose | `xcode-27` |
+
+Every job runs its steps through `scripts/check.sh <job>` (Q86), so local runs and CI run the same checks at the same pinned versions.
 
 **Merge gate**: `master` is protected; a PR needs every triggered job to pass. If the `xcode-27` preview runner proves unreliable, the `ios` check can be made non-required in repo settings without code changes. Switch to `macos-27` when GitHub ships it.
 
