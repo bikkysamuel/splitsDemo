@@ -92,32 +92,24 @@ func Balances(members []int, expenses []Expense, settlements []Settlement) ([]Ba
 		}
 	}
 
-	// Every Balance is bounded by the total money that counts, so if that
-	// total fits in int64 no Balance can overflow.
-	var counted int64
-	var ok bool
-	for _, e := range expenses {
-		if e.State.CountsTowardBalances() {
-			if counted, ok = addChecked(counted, e.Amount); !ok {
-				return nil, inconsistent("counted amounts overflow int64")
-			}
-		}
-	}
-	for _, s := range settlements {
-		if s.State.CountsTowardBalances() {
-			if counted, ok = addChecked(counted, s.Amount); !ok {
-				return nil, inconsistent("counted amounts overflow int64")
-			}
-		}
-	}
-
+	// Every Balance is bounded by the total money that counts, so while
+	// that running total fits in int64 no Balance can overflow.
 	result := make([]Balance, len(members))
 	for i, seq := range members {
 		result[i].JoinSeq = seq
 	}
+	var counted int64
+	count := func(amount int64) bool {
+		var ok bool
+		counted, ok = addChecked(counted, amount)
+		return ok
+	}
 	for _, e := range expenses {
 		if !e.State.CountsTowardBalances() {
 			continue
+		}
+		if !count(e.Amount) {
+			return nil, inconsistent("counted amounts overflow int64")
 		}
 		result[index[e.Payer]].Amount += e.Amount
 		for _, sh := range e.Shares {
@@ -127,6 +119,9 @@ func Balances(members []int, expenses []Expense, settlements []Settlement) ([]Ba
 	for _, s := range settlements {
 		if !s.State.CountsTowardBalances() {
 			continue
+		}
+		if !count(s.Amount) {
+			return nil, inconsistent("counted amounts overflow int64")
 		}
 		result[index[s.From]].Amount += s.Amount
 		result[index[s.To]].Amount -= s.Amount
@@ -231,10 +226,10 @@ func SettleUpSuggestions(balances []Balance) ([]SettleUpSuggestion, error) {
 	for {
 		creditor, debtor := -1, -1
 		for i, b := range rest {
-			if b.Amount > 0 && (creditor < 0 || before(b, rest[creditor], b.Amount, rest[creditor].Amount)) {
+			if b.Amount > 0 && (creditor < 0 || pickedFirst(b, b.Amount, rest[creditor], rest[creditor].Amount)) {
 				creditor = i
 			}
-			if b.Amount < 0 && (debtor < 0 || before(b, rest[debtor], -b.Amount, -rest[debtor].Amount)) {
+			if b.Amount < 0 && (debtor < 0 || pickedFirst(b, -b.Amount, rest[debtor], -rest[debtor].Amount)) {
 				debtor = i
 			}
 		}
@@ -250,11 +245,12 @@ func SettleUpSuggestions(balances []Balance) ([]SettleUpSuggestion, error) {
 	}
 }
 
-// before reports whether a, owing or owed size, is picked ahead of b, owing
-// or owed bSize: the larger amount first, ties to the lower join_seq.
-func before(a, b Balance, size, bSize int64) bool {
-	if size != bSize {
-		return size > bSize
+// pickedFirst reports whether Member a, owing or owed aSize, is matched ahead
+// of Member b, owing or owed bSize: the larger amount first, ties to the
+// lower join_seq.
+func pickedFirst(a Balance, aSize int64, b Balance, bSize int64) bool {
+	if aSize != bSize {
+		return aSize > bSize
 	}
 	return a.JoinSeq < b.JoinSeq
 }

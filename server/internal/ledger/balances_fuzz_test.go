@@ -10,7 +10,7 @@ import (
 // Invariants 2 and 4 (doc 06): Balances sum to zero, and each one equals
 // FR-B1 worked out independently over the Accepted and WithdrawalPending
 // items only.
-func FuzzBalancesSumToZero(f *testing.F) {
+func FuzzBalancesFollowFRB1(f *testing.F) {
 	f.Add(uint64(1), uint8(3), uint8(4))    // a small Group
 	f.Add(uint64(7), uint8(1), uint8(9))    // one Member: no Settlements
 	f.Add(uint64(42), uint8(49), uint8(99)) // the largest Group, many items
@@ -243,11 +243,13 @@ func randomBalances(rng *splitmix, count int) []ledger.Balance {
 }
 
 func flipCounted(rng *splitmix, s ledger.ItemState) ledger.ItemState {
-	if s.CountsTowardBalances() && rng.next()%2 == 0 {
-		if s == ledger.Accepted {
+	if rng.next()%2 == 0 {
+		switch s {
+		case ledger.Accepted:
 			return ledger.WithdrawalPending
+		case ledger.WithdrawalPending:
+			return ledger.Accepted
 		}
-		return ledger.Accepted
 	}
 	return s
 }
