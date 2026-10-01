@@ -1,18 +1,21 @@
 import APIClient
 import Domain
 
-/// Checks the server's liveness endpoint, `GET /healthz`.
+/// Checks the server's liveness endpoint, `GET /healthz`, through the
+/// generated client.
 public struct ServerHealthAPIRepository: ServerHealthRepository {
-  private let client: HTTPClient
+  private let client: Client
 
-  public init(client: HTTPClient) {
+  public init(client: Client) {
     self.client = client
   }
 
   public func checkHealth() async throws {
-    let status = try await client.getStatusCode("healthz")
-    guard status == 200 else {
-      throw ServerHealthError.unexpectedStatus(status)
+    switch try await client.getHealthz() {
+    case .ok:
+      return
+    case .undocumented(let statusCode, _):
+      throw ServerHealthError.unexpectedStatus(statusCode)
     }
   }
 }

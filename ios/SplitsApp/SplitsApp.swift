@@ -12,7 +12,7 @@ struct SplitsApp: App {
   @State private var serverStatus: ServerStatusViewModel
 
   init() {
-    let client = HTTPClient(configuration: Self.apiConfiguration())
+    let client = APIClientFactory.makeClient(configuration: Self.apiConfiguration())
     _serverStatus = State(initialValue: ServerStatusViewModel(repository: ServerHealthAPIRepository(client: client)))
   }
 

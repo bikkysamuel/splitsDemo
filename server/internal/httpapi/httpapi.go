@@ -1,5 +1,7 @@
-// Package httpapi adapts HTTP to the domain services: routing, request
-// decoding, problem+json errors (RFC 9457) and, later, auth and idempotency.
+// Package httpapi adapts HTTP to the domain services. Routing, request
+// decoding and response encoding are generated from api/openapi.yaml into
+// apigen (ADR-0012); this package implements the generated strict-server
+// interface and maps outcomes to problem+json errors (RFC 9457).
 package httpapi
 
 import (
@@ -9,6 +11,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/bikkysamuel/splitsDemo/server/internal/httpapi/apigen"
 )
 
 // problemTypeBase prefixes every problem+json type URI (doc 07).
@@ -27,24 +31,34 @@ type Deps struct {
 	Readiness Readiness
 }
 
-// Server routes HTTP requests to the domain services.
+// Server serves the generated API routes.
 type Server struct {
-	mux    *http.ServeMux
-	routes []string
-	deps   Deps
+	handler http.Handler
+	routes  []string
+	deps    Deps
 }
 
-// New registers every route.
+var _ apigen.StrictServerInterface = (*Server)(nil)
+
+// New registers every route in the contract.
 func New(deps Deps) *Server {
-	s := &Server{mux: http.NewServeMux(), deps: deps}
-	s.handle("GET /healthz", s.healthz)
-	s.handle("GET /readyz", s.readyz)
+	s := &Server{deps: deps}
+	mux := &routeRecorder{ServeMux: http.NewServeMux()}
+	strict := apigen.NewStrictHandlerWithOptions(s, nil, apigen.StrictHTTPServerOptions{
+		RequestErrorHandlerFunc:  s.requestError,
+		ResponseErrorHandlerFunc: s.responseError,
+	})
+	s.handler = apigen.HandlerWithOptions(strict, apigen.StdHTTPServerOptions{
+		BaseRouter:       mux,
+		ErrorHandlerFunc: s.requestError,
+	})
+	s.routes = mux.patterns
 	return s
 }
 
 // ServeHTTP implements http.Handler.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
+	s.handler.ServeHTTP(w, r)
 }
 
 // Routes lists every registered route as "METHOD /path", in registration
@@ -53,19 +67,14 @@ func (s *Server) Routes() []string {
 	return append([]string(nil), s.routes...)
 }
 
-func (s *Server) handle(pattern string, h http.HandlerFunc) {
-	s.mux.HandleFunc(pattern, h)
-	s.routes = append(s.routes, pattern)
+// GetHealthz reports liveness: the process is up and serving HTTP.
+func (s *Server) GetHealthz(context.Context, apigen.GetHealthzRequestObject) (apigen.GetHealthzResponseObject, error) {
+	return apigen.GetHealthz200JSONResponse{Status: apigen.HealthStatusStatusOk}, nil
 }
 
-// healthz reports liveness: the process is up and serving HTTP.
-func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
-// readyz reports readiness: the database answers.
-func (s *Server) readyz(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), readinessTimeout)
+// GetReadyz reports readiness: the database answers.
+func (s *Server) GetReadyz(ctx context.Context, _ apigen.GetReadyzRequestObject) (apigen.GetReadyzResponseObject, error) {
+	ctx, cancel := context.WithTimeout(ctx, readinessTimeout)
 	defer cancel()
 	if err := s.deps.Readiness.Ping(ctx); err != nil {
 		// Database driver errors name the host, role and database; logs carry
@@ -75,35 +84,50 @@ func (s *Server) readyz(w http.ResponseWriter, r *http.Request) {
 			cause = "timeout"
 		}
 		s.deps.Logger.WarnContext(ctx, "readiness check failed", "cause", cause)
-		writeProblem(w, problem{
-			Type:   problemTypeBase + "not-ready",
-			Title:  "Service not ready",
-			Status: http.StatusServiceUnavailable,
-			Detail: "The database is unreachable.",
-		})
-		return
+		return apigen.GetReadyz503ApplicationProblemPlusJSONResponse{
+			NotReadyApplicationProblemPlusJSONResponse: apigen.NotReadyApplicationProblemPlusJSONResponse(
+				newProblem("not-ready", "Service not ready", http.StatusServiceUnavailable, "The database is unreachable."),
+			),
+		}, nil
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
+	return apigen.GetReadyz200JSONResponse{Status: apigen.ReadinessStatusStatusReady}, nil
 }
 
-// problem is an RFC 9457 problem details object.
-type problem struct {
-	Type   string `json:"type"`
-	Title  string `json:"title"`
-	Status int    `json:"status"`
-	Detail string `json:"detail,omitempty"`
+// requestError answers a request the generated code could not decode. The
+// decoding error stays out of the response and the logs: it may echo input.
+func (s *Server) requestError(w http.ResponseWriter, r *http.Request, _ error) {
+	s.deps.Logger.InfoContext(r.Context(), "invalid request", "method", r.Method, "pattern", r.Pattern)
+	writeProblem(w, newProblem("invalid-request", "Invalid request", http.StatusBadRequest, ""))
 }
 
-func writeProblem(w http.ResponseWriter, p problem) {
-	write(w, "application/problem+json", p.Status, p)
+// responseError answers when a handler fails unexpectedly.
+func (s *Server) responseError(w http.ResponseWriter, r *http.Request, err error) {
+	s.deps.Logger.ErrorContext(r.Context(), "handler failed", "method", r.Method, "pattern", r.Pattern, "error", err)
+	writeProblem(w, newProblem("internal", "Internal error", http.StatusInternalServerError, ""))
 }
 
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	write(w, "application/json", status, body)
+func newProblem(slug, title string, status int, detail string) apigen.Problem {
+	p := apigen.Problem{Type: problemTypeBase + slug, Title: title, Status: status}
+	if detail != "" {
+		p.Detail = &detail
+	}
+	return p
 }
 
-func write(w http.ResponseWriter, contentType string, status int, body any) {
-	w.Header().Set("Content-Type", contentType)
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
+func writeProblem(w http.ResponseWriter, p apigen.Problem) {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(p.Status)
+	_ = json.NewEncoder(w).Encode(p)
+}
+
+// routeRecorder is the ServeMux the generated code registers routes on; it
+// remembers each pattern for Routes.
+type routeRecorder struct {
+	*http.ServeMux
+	patterns []string
+}
+
+func (m *routeRecorder) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	m.ServeMux.HandleFunc(pattern, handler)
+	m.patterns = append(m.patterns, pattern)
 }

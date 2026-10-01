@@ -1,0 +1,8 @@
+# swift-openapi-generator config for the iOS API client (ADR-0012).
+# Output goes to Infrastructure/APIClient/Generated; generated types never
+# leave Data (ADR-0015).
+generate:
+  - types
+  - client
+accessModifier: public
+namingStrategy: idiomatic

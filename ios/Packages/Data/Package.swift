@@ -13,6 +13,8 @@ let package = Package(
   dependencies: [
     .package(path: "../Domain"),
     .package(path: "../Infrastructure"),
+    .package(url: "https://github.com/apple/swift-openapi-runtime", exact: "1.12.2"),
+    .package(url: "https://github.com/apple/swift-http-types", exact: "1.8.0"),
   ],
   targets: [
     .target(
@@ -21,7 +23,17 @@ let package = Package(
         "Domain",
         .product(name: "APIClient", package: "Infrastructure"),
       ]
-    )
+    ),
+    .testTarget(
+      name: "DataTests",
+      dependencies: [
+        "Data",
+        "Domain",
+        .product(name: "APIClient", package: "Infrastructure"),
+        .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+        .product(name: "HTTPTypes", package: "swift-http-types"),
+      ]
+    ),
   ],
   swiftLanguageModes: [.v6]
 )

@@ -35,7 +35,7 @@ jobs:
           xcodebuild -version
 
       - name: swift-format lint
-        run: xcrun swift-format lint --strict --recursive --parallel SplitsApp Packages/*/Package.swift Packages/*/Sources Packages/*/Tests
+        run: scripts/lint.sh
 
       - name: Build and test
         run: |
