@@ -1,0 +1,9 @@
+{
+  "balances": [
+    {"balance": {"currency": "INR", "minor": 66667}, "member_id": "01a0faca-9e5d-7fa8-8b88-5ff7b2916763"},
+    {"balance": {"currency": "INR", "minor": -66667}, "member_id": "01a0faca-9f91-73ea-8b78-6946f276b876"}
+  ],
+  "suggestions": [
+    {"amount": {"currency": "INR", "minor": 66667}, "from_member_id": "01a0faca-9f91-73ea-8b78-6946f276b876", "to_member_id": "01a0faca-9e5d-7fa8-8b88-5ff7b2916763"}
+  ]
+}

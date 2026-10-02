@@ -34,6 +34,11 @@ struct StringCatalogTests {
     #expect(isInCatalog(key))
   }
 
+  @Test(arguments: BalancesSection.allKeys + ReportView.allKeys)
+  func everyBalancesStringIsInTheCatalog(key: String) {
+    #expect(isInCatalog(key))
+  }
+
   @Test(arguments: MainTabView.allKeys)
   func everyTabStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))

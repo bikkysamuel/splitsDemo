@@ -190,6 +190,19 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/groups/{groupId}/expenses`.
     /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/post(createExpense)`.
     func createExpense(_ input: Operations.CreateExpense.Input) async throws -> Operations.CreateExpense.Output
+    /// Balances and Settle-up Suggestions
+    ///
+    /// Every Member's Balance in the Group Currency, Former Members
+    /// included, computed on read by `ledger` from accepted Expenses (and
+    /// confirmed Settlements) only (FR-B1, ADR-0009). Positive means the
+    /// Member is owed money; they always sum to zero. The Settle-up
+    /// Suggestions bring every Balance to zero in at most Members − 1
+    /// payments (FR-B2).
+    ///
+    ///
+    /// - Remark: HTTP `GET /v1/groups/{groupId}/balances`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/balances/get(getBalances)`.
+    func getBalances(_ input: Operations.GetBalances.Input) async throws -> Operations.GetBalances.Output
     /// An Expense
     ///
     /// The Expense with its Shares. `404` unless the User is an active Member of its Group.
@@ -515,6 +528,27 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// Balances and Settle-up Suggestions
+    ///
+    /// Every Member's Balance in the Group Currency, Former Members
+    /// included, computed on read by `ledger` from accepted Expenses (and
+    /// confirmed Settlements) only (FR-B1, ADR-0009). Positive means the
+    /// Member is owed money; they always sum to zero. The Settle-up
+    /// Suggestions bring every Balance to zero in at most Members − 1
+    /// payments (FR-B2).
+    ///
+    ///
+    /// - Remark: HTTP `GET /v1/groups/{groupId}/balances`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/balances/get(getBalances)`.
+    public func getBalances(
+        path: Operations.GetBalances.Input.Path,
+        headers: Operations.GetBalances.Input.Headers = .init()
+    ) async throws -> Operations.GetBalances.Output {
+        try await getBalances(Operations.GetBalances.Input(
+            path: path,
+            headers: headers
         ))
     }
     /// An Expense

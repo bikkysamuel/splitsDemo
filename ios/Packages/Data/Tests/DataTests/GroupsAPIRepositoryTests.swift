@@ -204,6 +204,18 @@ struct UserDefaultsPreferencesTests {
     #expect(UserDefaultsPreferences(defaults: defaults, locale: Locale(identifier: "ja_JP")).defaultCurrency() == "JPY")
   }
 
+  @Test func theLastReportGroupIsRemembered() throws {
+    let suite = "dev.splits.tests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let preferences = UserDefaultsPreferences(defaults: defaults)
+    let id = UUID()
+
+    #expect(preferences.lastReportGroupID() == nil)
+    preferences.setLastReportGroupID(id)
+    #expect(preferences.lastReportGroupID() == id)
+  }
+
   @Test func aLocaleWithoutACurrencyFallsBackToUSD() throws {
     let suite = "dev.splits.tests.\(UUID().uuidString)"
     let defaults = try #require(UserDefaults(suiteName: suite))

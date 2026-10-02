@@ -25,4 +25,14 @@ public struct UserDefaultsPreferences: PreferencesRepository, @unchecked Sendabl
   public func setDefaultCurrency(_ code: String) {
     defaults.set(code, forKey: Self.defaultCurrencyKey)
   }
+
+  static let lastReportGroupKey = "lastReportGroupID"
+
+  public func lastReportGroupID() -> UUID? {
+    defaults.string(forKey: Self.lastReportGroupKey).flatMap(UUID.init(uuidString:))
+  }
+
+  public func setLastReportGroupID(_ id: UUID) {
+    defaults.set(id.uuidString, forKey: Self.lastReportGroupKey)
+  }
 }

@@ -61,9 +61,15 @@ actor FakeGroupsRepository: GroupsRepository {
 
 final class FakePreferences: PreferencesRepository, @unchecked Sendable {
   var currency: String
-  init(currency: String = "INR") { self.currency = currency }
+  var reportGroupID: UUID?
+  init(currency: String = "INR", reportGroupID: UUID? = nil) {
+    self.currency = currency
+    self.reportGroupID = reportGroupID
+  }
   func defaultCurrency() -> String { currency }
   func setDefaultCurrency(_ code: String) { currency = code }
+  func lastReportGroupID() -> UUID? { reportGroupID }
+  func setLastReportGroupID(_ id: UUID) { reportGroupID = id }
 }
 
 extension Member {

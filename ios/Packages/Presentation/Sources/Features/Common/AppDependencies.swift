@@ -5,13 +5,16 @@ import Domain
 public struct AppDependencies: Sendable {
   public let groups: any GroupsRepository
   public let expenses: any ExpensesRepository
+  public let balances: any BalancesRepository
   public let preferences: any PreferencesRepository
 
   public init(
-    groups: any GroupsRepository, expenses: any ExpensesRepository, preferences: any PreferencesRepository
+    groups: any GroupsRepository, expenses: any ExpensesRepository, balances: any BalancesRepository,
+    preferences: any PreferencesRepository
   ) {
     self.groups = groups
     self.expenses = expenses
+    self.balances = balances
     self.preferences = preferences
   }
 }

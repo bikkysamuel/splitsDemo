@@ -1,6 +1,54 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%1$@ is owed %2$@": {
+      "comment": "A Member's positive Balance: name, amount",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ is owed %2$@"
+          }
+        }
+      }
+    },
+    "%1$@ owes %2$@": {
+      "comment": "A Member's negative Balance: name, amount",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ owes %2$@"
+          }
+        }
+      }
+    },
+    "%1$@ pays %2$@ %3$@": {
+      "comment": "A Settle-up Suggestion: payer, receiver, amount",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ pays %2$@ %3$@"
+          }
+        }
+      }
+    },
+    "%@ is settled up": {
+      "comment": "A Member whose Balance is zero",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is settled up"
+          }
+        }
+      }
+    },
     "%@ paid · %@": {
       "comment": "Expense row subtitle: the payer's name and the date",
       "extractionState": "manual",
@@ -141,6 +189,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "At least 10 characters."
+          }
+        }
+      }
+    },
+    "Balances": {
+      "comment": "Section header of the Members' Balances",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Balances"
           }
         }
       }
@@ -433,6 +493,18 @@
         }
       }
     },
+    "Everyone is settled up.": {
+      "comment": "Shown when every Balance is zero",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everyone is settled up."
+          }
+        }
+      }
+    },
     "Expense": {
       "comment": "Title of the Expense detail screen",
       "extractionState": "manual",
@@ -489,6 +561,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Groceries"
+          }
+        }
+      }
+    },
+    "Group": {
+      "comment": "Label of the Report tab's Group picker",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group"
           }
         }
       }
@@ -909,6 +993,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Settings"
+          }
+        }
+      }
+    },
+    "Settle up": {
+      "comment": "Section header of the Settle-up Suggestions",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settle up"
           }
         }
       }

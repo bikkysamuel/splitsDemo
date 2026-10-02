@@ -271,3 +271,31 @@ func apiMember(m groups.Member) apigen.Member {
 		Version:     int32(m.Version), //nolint:gosec // a version
 	}
 }
+
+// GetBalances returns a Group's Balances and Settle-up Suggestions.
+func (s *Server) GetBalances(ctx context.Context, req apigen.GetBalancesRequestObject) (apigen.GetBalancesResponseObject, error) {
+	p, err := mustPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r, err := s.deps.Balances.Group(ctx, p.UserID, platform.ID(req.GroupId))
+	if errors.Is(err, groups.ErrNotFound) {
+		return apigen.GetBalances404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: apigen.NotFoundApplicationProblemPlusJSONResponse(problemNotFound.problem(""))}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	resp := apigen.GetBalances200JSONResponse{
+		Balances:    make([]apigen.MemberBalance, len(r.Balances)),
+		Suggestions: make([]apigen.SettleUpSuggestion, len(r.Suggestions)),
+	}
+	for i, b := range r.Balances {
+		resp.Balances[i] = apigen.MemberBalance{MemberId: openapi_types.UUID(b.MemberID), Balance: money(b.Amount, r.Currency)}
+	}
+	for i, sg := range r.Suggestions {
+		resp.Suggestions[i] = apigen.SettleUpSuggestion{
+			FromMemberId: openapi_types.UUID(sg.From), ToMemberId: openapi_types.UUID(sg.To), Amount: money(sg.Amount, r.Currency),
+		}
+	}
+	return resp, nil
+}

@@ -13,9 +13,12 @@ public struct Money: Equatable, Hashable, Sendable {
   }
 
   /// The amount as the User's locale writes it, such as "₹1,000.01".
-  public func formatted(locale: Locale = .current) -> String {
+  /// `signed: false` leaves out a minus sign, for text that already says
+  /// which way the money goes ("owes ₹50").
+  public func formatted(locale: Locale = .current, signed: Bool = true) -> String {
     decimalValue.formatted(
-      .currency(code: currency).locale(locale).precision(.fractionLength(Currency.minorUnitDigits(currency))))
+      .currency(code: currency).locale(locale).precision(.fractionLength(Currency.minorUnitDigits(currency)))
+        .sign(strategy: signed ? .automatic : .never))
   }
 
   /// The amount in major units, for display only.

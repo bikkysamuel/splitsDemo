@@ -123,7 +123,9 @@ struct GroupExpensesTests {
     await expenses.set(pages: [
       nil: ExpensePage(items: [a], nextCursor: "c1"), "c1": ExpensePage(items: [b], nextCursor: nil),
     ])
-    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: FakeGroupsRepository(), expenses: expenses)
+    let viewModel = GroupViewModel(
+      groupID: Group.trip.id, repository: FakeGroupsRepository(), expenses: expenses, balances: FakeBalancesRepository()
+    )
 
     await viewModel.load()
     #expect(viewModel.expenses == [a])

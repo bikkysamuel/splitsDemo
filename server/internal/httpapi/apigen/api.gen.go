@@ -487,6 +487,19 @@ type Group struct {
 	Version int32 `json:"version"`
 }
 
+// GroupBalances A Group's Balances and Settle-up Suggestions (FR-B1, FR-B2).
+type GroupBalances struct {
+	// Balances Every Member, Former Members included, in joining order.
+	//
+	// Examples: [{"balance":{"currency":"INR","minor":0},"member_id":"0190b6c4-0000-7000-8000-0000000000d1"}]
+	Balances []MemberBalance `json:"balances"`
+
+	// Suggestions In the order chosen; empty when everyone is settled.
+	//
+	// Examples: []
+	Suggestions []SettleUpSuggestion `json:"suggestions"`
+}
+
 // GroupName 1–100 characters after trimming. Field error codes: `required`, `too_long`.
 //
 // Examples: Goa trip
@@ -567,6 +580,16 @@ type Member struct {
 	//
 	// Examples: 1
 	Version int32 `json:"version"`
+}
+
+// MemberBalance One Member's Balance; positive means they are owed money.
+type MemberBalance struct {
+	// Balance An amount in integer minor units of an ISO 4217 currency (ADR-0002).
+	// Never a floating-point number.
+	Balance Money `json:"balance"`
+
+	// MemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	MemberId openapi_types.UUID `json:"member_id"`
 }
 
 // MemberRole An Admin or an ordinary Member (FR-G3).
@@ -690,6 +713,19 @@ type ResendVerificationCodeRequest struct {
 	//
 	// Examples: alice@example.com
 	Email Email `json:"email"`
+}
+
+// SettleUpSuggestion A payment that helps settle the Group (GLOSSARY).
+type SettleUpSuggestion struct {
+	// Amount An amount in integer minor units of an ISO 4217 currency (ADR-0002).
+	// Never a floating-point number.
+	Amount Money `json:"amount"`
+
+	// FromMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d2
+	FromMemberId openapi_types.UUID `json:"from_member_id"`
+
+	// ToMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	ToMemberId openapi_types.UUID `json:"to_member_id"`
 }
 
 // ShareLine One Member's Share.
@@ -1444,6 +1480,9 @@ type ServerInterface interface {
 	// RenameGroup Rename a Group
 	// (PATCH /v1/groups/{groupId})
 	RenameGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params RenameGroupParams)
+	// GetBalances Balances and Settle-up Suggestions
+	// (GET /v1/groups/{groupId}/balances)
+	GetBalances(w http.ResponseWriter, r *http.Request, groupId GroupId)
 	// ListExpenses A Group's Expenses
 	// (GET /v1/groups/{groupId}/expenses)
 	ListExpenses(w http.ResponseWriter, r *http.Request, groupId GroupId, params ListExpensesParams)
@@ -1804,6 +1843,32 @@ func (siw *ServerInterfaceWrapper) RenameGroup(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RenameGroup(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBalances operation middleware
+func (siw *ServerInterfaceWrapper) GetBalances(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBalances(w, r, groupId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2216,6 +2281,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/groups/{groupId}/expenses/preview", wrapper.PreviewExpense)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/groups/{groupId}/expenses", wrapper.ListExpenses)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/groups/{groupId}/expenses", wrapper.CreateExpense)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/groups/{groupId}/balances", wrapper.GetBalances)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/expenses/{expenseId}", wrapper.GetExpense)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
 
@@ -3445,6 +3511,108 @@ func (response RenameGroup500ApplicationProblemPlusJSONResponse) VisitRenameGrou
 	return err
 }
 
+type GetBalancesRequestObject struct {
+	GroupId GroupId `json:"groupId"`
+}
+
+type GetBalancesResponseObject interface {
+	VisitGetBalancesResponse(w http.ResponseWriter) error
+}
+
+type GetBalances200JSONResponse GroupBalances
+
+func (response GetBalances200JSONResponse) VisitGetBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBalances400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetBalances400ApplicationProblemPlusJSONResponse) VisitGetBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBalances401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response GetBalances401ApplicationProblemPlusJSONResponse) VisitGetBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBalances403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetBalances403ApplicationProblemPlusJSONResponse) VisitGetBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBalances404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetBalances404ApplicationProblemPlusJSONResponse) VisitGetBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetBalances500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response GetBalances500ApplicationProblemPlusJSONResponse) VisitGetBalancesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListExpensesRequestObject struct {
 	GroupId GroupId `json:"groupId"`
 	Params  ListExpensesParams
@@ -4234,6 +4402,9 @@ type StrictServerInterface interface {
 	// RenameGroup Rename a Group
 	// (PATCH /v1/groups/{groupId})
 	RenameGroup(ctx context.Context, request RenameGroupRequestObject) (RenameGroupResponseObject, error)
+	// GetBalances Balances and Settle-up Suggestions
+	// (GET /v1/groups/{groupId}/balances)
+	GetBalances(ctx context.Context, request GetBalancesRequestObject) (GetBalancesResponseObject, error)
 	// ListExpenses A Group's Expenses
 	// (GET /v1/groups/{groupId}/expenses)
 	ListExpenses(ctx context.Context, request ListExpensesRequestObject) (ListExpensesResponseObject, error)
@@ -4660,6 +4831,32 @@ func (sh *strictHandler) RenameGroup(w http.ResponseWriter, r *http.Request, gro
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RenameGroupResponseObject); ok {
 		if err := validResponse.VisitRenameGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetBalances operation middleware
+func (sh *strictHandler) GetBalances(w http.ResponseWriter, r *http.Request, groupId GroupId) {
+	var request GetBalancesRequestObject
+
+	request.GroupId = groupId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetBalances(ctx, request.(GetBalancesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetBalances")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetBalancesResponseObject); ok {
+		if err := validResponse.VisitGetBalancesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

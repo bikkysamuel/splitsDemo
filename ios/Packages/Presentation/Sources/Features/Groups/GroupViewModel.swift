@@ -13,19 +13,26 @@ public final class GroupViewModel {
   private(set) var expenses: [ExpenseSummary] = []
   private var nextCursor: String?
   private(set) var expensesError: String?
+  private(set) var balances: GroupBalances?
+  private(set) var balancesError: String?
   /// A failed change's message key (rename, grant Admin).
   private(set) var changeError: String?
   public private(set) var isRenaming = false
 
   let repository: any GroupsRepository
   let expensesRepository: any ExpensesRepository
+  let balancesRepository: any BalancesRepository
   private var renameKeys = WriteKeys<[String]>()
   private var adminKeys = WriteKeys<[String]>()
 
-  public init(groupID: UUID, repository: any GroupsRepository, expenses: any ExpensesRepository) {
+  public init(
+    groupID: UUID, repository: any GroupsRepository, expenses: any ExpensesRepository,
+    balances: any BalancesRepository
+  ) {
     self.groupID = groupID
     self.repository = repository
     self.expensesRepository = expenses
+    self.balancesRepository = balances
   }
 
   /// Loads the Group and the first page of its Expenses.
@@ -38,6 +45,17 @@ public final class GroupViewModel {
       return
     }
     await loadExpenses(after: nil)
+    await loadBalances()
+  }
+
+  /// Balances are derived on read; reload them after anything changes.
+  func loadBalances() async {
+    do {
+      balances = try await balancesRepository.balances(groupID: groupID)
+      balancesError = nil
+    } catch {
+      balancesError = ServiceErrorMessage.key(for: error)
+    }
   }
 
   var hasMoreExpenses: Bool { nextCursor != nil }
@@ -62,6 +80,7 @@ public final class GroupViewModel {
   /// Reloads after an Expense was recorded.
   func expenseAdded() async {
     await loadExpenses(after: nil)
+    await loadBalances()
   }
 
   var canRename: Bool { state.value?.isAdmin == true }

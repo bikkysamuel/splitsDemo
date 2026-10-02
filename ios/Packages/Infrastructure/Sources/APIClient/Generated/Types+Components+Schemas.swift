@@ -1621,6 +1621,141 @@ extension Components {
                 ])
             }
         }
+        /// One Member's Balance; positive means they are owed money.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MemberBalance`.
+        public struct MemberBalance: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/MemberBalance/member_id`.
+            public var memberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/MemberBalance/balance`.
+            public var balance: Components.Schemas.Money
+            /// Creates a new `MemberBalance`.
+            ///
+            /// - Parameters:
+            ///   - memberId:
+            ///   - balance:
+            public init(
+                memberId: Swift.String,
+                balance: Components.Schemas.Money
+            ) {
+                self.memberId = memberId
+                self.balance = balance
+            }
+            public enum CodingKeys: String, CodingKey {
+                case memberId = "member_id"
+                case balance
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.memberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .memberId
+                )
+                self.balance = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .balance
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "member_id",
+                    "balance"
+                ])
+            }
+        }
+        /// A payment that helps settle the Group (GLOSSARY).
+        ///
+        /// - Remark: Generated from `#/components/schemas/SettleUpSuggestion`.
+        public struct SettleUpSuggestion: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/SettleUpSuggestion/from_member_id`.
+            public var fromMemberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/SettleUpSuggestion/to_member_id`.
+            public var toMemberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/SettleUpSuggestion/amount`.
+            public var amount: Components.Schemas.Money
+            /// Creates a new `SettleUpSuggestion`.
+            ///
+            /// - Parameters:
+            ///   - fromMemberId:
+            ///   - toMemberId:
+            ///   - amount:
+            public init(
+                fromMemberId: Swift.String,
+                toMemberId: Swift.String,
+                amount: Components.Schemas.Money
+            ) {
+                self.fromMemberId = fromMemberId
+                self.toMemberId = toMemberId
+                self.amount = amount
+            }
+            public enum CodingKeys: String, CodingKey {
+                case fromMemberId = "from_member_id"
+                case toMemberId = "to_member_id"
+                case amount
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.fromMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .fromMemberId
+                )
+                self.toMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .toMemberId
+                )
+                self.amount = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .amount
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "from_member_id",
+                    "to_member_id",
+                    "amount"
+                ])
+            }
+        }
+        /// A Group's Balances and Settle-up Suggestions (FR-B1, FR-B2).
+        ///
+        /// - Remark: Generated from `#/components/schemas/GroupBalances`.
+        public struct GroupBalances: Codable, Hashable, Sendable {
+            /// Every Member, Former Members included, in joining order.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupBalances/balances`.
+            public var balances: [Components.Schemas.MemberBalance]
+            /// In the order chosen; empty when everyone is settled.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupBalances/suggestions`.
+            public var suggestions: [Components.Schemas.SettleUpSuggestion]
+            /// Creates a new `GroupBalances`.
+            ///
+            /// - Parameters:
+            ///   - balances: Every Member, Former Members included, in joining order.
+            ///   - suggestions: In the order chosen; empty when everyone is settled.
+            public init(
+                balances: [Components.Schemas.MemberBalance],
+                suggestions: [Components.Schemas.SettleUpSuggestion]
+            ) {
+                self.balances = balances
+                self.suggestions = suggestions
+            }
+            public enum CodingKeys: String, CodingKey {
+                case balances
+                case suggestions
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.balances = try container.decode(
+                    [Components.Schemas.MemberBalance].self,
+                    forKey: .balances
+                )
+                self.suggestions = try container.decode(
+                    [Components.Schemas.SettleUpSuggestion].self,
+                    forKey: .suggestions
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "balances",
+                    "suggestions"
+                ])
+            }
+        }
         /// An amount in integer minor units of an ISO 4217 currency (ADR-0002).
         /// Never a floating-point number.
         ///

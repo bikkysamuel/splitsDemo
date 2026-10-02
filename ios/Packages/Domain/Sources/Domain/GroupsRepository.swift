@@ -33,4 +33,7 @@ public protocol PreferencesRepository: Sendable {
   /// The Group Currency that pre-fills Create Group.
   func defaultCurrency() -> String
   func setDefaultCurrency(_ code: String)
+  /// The Group the Report tab showed last (Q81), if any.
+  func lastReportGroupID() -> UUID?
+  func setLastReportGroupID(_ id: UUID)
 }

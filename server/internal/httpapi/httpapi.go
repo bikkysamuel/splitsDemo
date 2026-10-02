@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/bikkysamuel/splitsDemo/server/internal/auth"
+	"github.com/bikkysamuel/splitsDemo/server/internal/balances"
 	"github.com/bikkysamuel/splitsDemo/server/internal/expenses"
 	"github.com/bikkysamuel/splitsDemo/server/internal/groups"
 	"github.com/bikkysamuel/splitsDemo/server/internal/httpapi/apigen"
@@ -83,6 +84,7 @@ type Deps struct {
 	Idempotency *idempotency.Service
 	Groups      *groups.Service
 	Expenses    *expenses.Service
+	Balances    *balances.Service
 	// IDs makes the X-Request-ID of requests that bring none.
 	IDs *platform.IDGenerator
 }

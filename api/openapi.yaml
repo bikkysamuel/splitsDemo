@@ -805,6 +805,54 @@ paths:
           $ref: "#/components/responses/IdempotencyKeyReused"
         "500":
           $ref: "#/components/responses/InternalError"
+  /v1/groups/{groupId}/balances:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      operationId: getBalances
+      summary: Balances and Settle-up Suggestions
+      description: |
+        Every Member's Balance in the Group Currency, Former Members
+        included, computed on read by `ledger` from accepted Expenses (and
+        confirmed Settlements) only (FR-B1, ADR-0009). Positive means the
+        Member is owed money; they always sum to zero. The Settle-up
+        Suggestions bring every Balance to zero in at most Members − 1
+        payments (FR-B2).
+      tags: [groups]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The Group's Balances.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupBalances"
+              example:
+                balances:
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                    balance: {minor: 66667, currency: INR}
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                    balance: {minor: -33334, currency: INR}
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d3
+                    balance: {minor: -33333, currency: INR}
+                suggestions:
+                  - from_member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                    to_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                    amount: {minor: 33334, currency: INR}
+                  - from_member_id: 0190b6c4-0000-7000-8000-0000000000d3
+                    to_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                    amount: {minor: 33333, currency: INR}
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /v1/expenses/{expenseId}:
     parameters:
       - $ref: "#/components/parameters/ExpenseId"
@@ -1583,6 +1631,58 @@ components:
           examples:
             - - member_id: 0190b6c4-0000-7000-8000-0000000000d1
                 share: {minor: 100001, currency: INR}
+
+    MemberBalance:
+      description: One Member's Balance; positive means they are owed money.
+      type: object
+      required: [member_id, balance]
+      additionalProperties: false
+      properties:
+        member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        balance:
+          $ref: "#/components/schemas/Money"
+
+    SettleUpSuggestion:
+      description: A payment that helps settle the Group (GLOSSARY).
+      type: object
+      required: [from_member_id, to_member_id, amount]
+      additionalProperties: false
+      properties:
+        from_member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d2"]
+        to_member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        amount:
+          $ref: "#/components/schemas/Money"
+
+    GroupBalances:
+      description: A Group's Balances and Settle-up Suggestions (FR-B1, FR-B2).
+      type: object
+      required: [balances, suggestions]
+      additionalProperties: false
+      properties:
+        balances:
+          description: Every Member, Former Members included, in joining order.
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberBalance"
+          examples:
+            - - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                balance: {minor: 0, currency: INR}
+        suggestions:
+          description: In the order chosen; empty when everyone is settled.
+          type: array
+          items:
+            $ref: "#/components/schemas/SettleUpSuggestion"
+          examples:
+            - []
 
     Money:
       description: |
