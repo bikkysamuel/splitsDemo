@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"time"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
@@ -61,8 +62,16 @@ func (s *Server) ResendVerificationCode(ctx context.Context, req apigen.ResendVe
 
 // SignIn checks the email and password and returns a new Session (FR-A4).
 func (s *Server) SignIn(ctx context.Context, req apigen.SignInRequestObject) (apigen.SignInResponseObject, error) {
-	session, err := s.deps.Auth.SignIn(ctx, req.Body.Email, req.Body.Password)
+	session, err := s.deps.Auth.SignIn(ctx, req.Body.Email, req.Body.Password, clientIP(ctx))
+	var throttled *auth.ThrottledError
 	switch {
+	case errors.As(err, &throttled):
+		return apigen.SignIn429ApplicationProblemPlusJSONResponse{
+			TooManyAttemptsApplicationProblemPlusJSONResponse: apigen.TooManyAttemptsApplicationProblemPlusJSONResponse{
+				Body:    problemTooManyAttempts.problem(""),
+				Headers: apigen.TooManyAttemptsResponseHeaders{RetryAfter: retryAfterSeconds(throttled.RetryAfter)},
+			},
+		}, nil
 	case errors.Is(err, auth.ErrInvalidCredentials):
 		return apigen.SignIn401ApplicationProblemPlusJSONResponse{
 			InvalidCredentialsApplicationProblemPlusJSONResponse: apigen.InvalidCredentialsApplicationProblemPlusJSONResponse(problemInvalidCredentials.problem("")),
@@ -72,6 +81,38 @@ func (s *Server) SignIn(ctx context.Context, req apigen.SignInRequestObject) (ap
 	}
 	noteUser(ctx, session.User.ID)
 	return apigen.SignIn200JSONResponse(authSession(session)), nil
+}
+
+// RefreshSession exchanges the refresh token for a new pair (ADR-0011).
+func (s *Server) RefreshSession(ctx context.Context, req apigen.RefreshSessionRequestObject) (apigen.RefreshSessionResponseObject, error) {
+	session, err := s.deps.Auth.Refresh(ctx, req.Body.RefreshToken)
+	switch {
+	case errors.Is(err, auth.ErrUnauthenticated):
+		return apigen.RefreshSession401ApplicationProblemPlusJSONResponse{
+			UnauthenticatedApplicationProblemPlusJSONResponse: apigen.UnauthenticatedApplicationProblemPlusJSONResponse(problemUnauthenticated.problem("")),
+		}, nil
+	case err != nil:
+		return nil, err
+	}
+	noteUser(ctx, session.User.ID)
+	return apigen.RefreshSession200JSONResponse(authSession(session)), nil
+}
+
+// SignOut revokes the signed-in User's Session.
+func (s *Server) SignOut(ctx context.Context, _ apigen.SignOutRequestObject) (apigen.SignOutResponseObject, error) {
+	p, ok := principalFrom(ctx)
+	if !ok {
+		return nil, errors.New("POST /v1/auth/signout reached without a principal")
+	}
+	if err := s.deps.Auth.SignOut(ctx, p); err != nil {
+		return nil, err
+	}
+	return apigen.SignOut204Response{}, nil
+}
+
+// retryAfterSeconds rounds a wait up to whole seconds, at least 1.
+func retryAfterSeconds(d time.Duration) int {
+	return max(1, int((d+time.Second-1)/time.Second))
 }
 
 // GetMe returns the signed-in User (FR-U1).

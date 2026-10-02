@@ -46,6 +46,7 @@ var (
 	problemIdempotencyKeyInProgress = problemKind{"idempotency-key-in-progress", "Idempotency key in progress", http.StatusConflict}
 	problemRequestTooLarge          = problemKind{"request-too-large", "Request too large", http.StatusRequestEntityTooLarge}
 	problemIdempotencyKeyReused     = problemKind{"idempotency-key-reused", "Idempotency key reused", http.StatusUnprocessableEntity}
+	problemTooManyAttempts          = problemKind{"too-many-attempts", "Too many attempts", http.StatusTooManyRequests}
 	problemInternal                 = problemKind{"internal", "Internal error", http.StatusInternalServerError}
 )
 

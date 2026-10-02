@@ -208,6 +208,55 @@ extension Components {
                 self.body = body
             }
         }
+        public struct TooManyAttempts: Sendable, Hashable {
+            /// - Remark: Generated from `#/components/responses/TooManyAttempts/headers`.
+            public struct Headers: Sendable, Hashable {
+                /// Seconds to wait before the next attempt.
+                ///
+                /// - Remark: Generated from `#/components/responses/TooManyAttempts/headers/Retry-After`.
+                public var retryAfter: Swift.Int
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - retryAfter: Seconds to wait before the next attempt.
+                public init(retryAfter: Swift.Int) {
+                    self.retryAfter = retryAfter
+                }
+            }
+            /// Received HTTP response headers
+            public var headers: Components.Responses.TooManyAttempts.Headers
+            /// - Remark: Generated from `#/components/responses/TooManyAttempts/content`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/components/responses/TooManyAttempts/content/application\/problem+json`.
+                case applicationProblemJson(Components.Schemas.Problem)
+                /// The associated value of the enum case if `self` is `.applicationProblemJson`.
+                ///
+                /// - Throws: An error if `self` is not `.applicationProblemJson`.
+                /// - SeeAlso: `.applicationProblemJson`.
+                public var applicationProblemJson: Components.Schemas.Problem {
+                    get throws {
+                        switch self {
+                        case let .applicationProblemJson(body):
+                            return body
+                        }
+                    }
+                }
+            }
+            /// Received HTTP response body
+            public var body: Components.Responses.TooManyAttempts.Body
+            /// Creates a new `TooManyAttempts`.
+            ///
+            /// - Parameters:
+            ///   - headers: Received HTTP response headers
+            ///   - body: Received HTTP response body
+            public init(
+                headers: Components.Responses.TooManyAttempts.Headers,
+                body: Components.Responses.TooManyAttempts.Body
+            ) {
+                self.headers = headers
+                self.body = body
+            }
+        }
         public struct IdempotencyKeyInProgress: Sendable, Hashable {
             /// - Remark: Generated from `#/components/responses/IdempotencyKeyInProgress/content`.
             @frozen public enum Body: Sendable, Hashable {

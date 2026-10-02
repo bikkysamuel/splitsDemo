@@ -64,10 +64,39 @@ public protocol APIProtocol: Sendable {
     /// too, with `user.email_verified` false, and goes to verification. A
     /// wrong email or password answers the same `invalid-credentials`.
     ///
+    /// After 5 failures, per account and per client IP, each further failure
+    /// makes the next attempt wait longer: 1 s, then doubling, at most
+    /// 15 minutes. An attempt before then answers `too-many-attempts` with
+    /// `Retry-After`, without checking the password. There is no lockout:
+    /// the wait always ends, a successful sign-in clears the account's
+    /// count, and an hour without failures clears both (FR-A4).
+    ///
     ///
     /// - Remark: HTTP `POST /v1/auth/signin`.
     /// - Remark: Generated from `#/paths//v1/auth/signin/post(signIn)`.
     func signIn(_ input: Operations.SignIn.Input) async throws -> Operations.SignIn.Output
+    /// Refresh the Session
+    ///
+    /// Exchanges the refresh token for a new token pair (ADR-0011). The old
+    /// pair stops working at once. Presenting a refresh token that was
+    /// already exchanged is taken as theft: the whole Session is revoked
+    /// and every token of it answers `unauthenticated`. An expired,
+    /// revoked or unknown refresh token answers `unauthenticated` too.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/refresh`.
+    /// - Remark: Generated from `#/paths//v1/auth/refresh/post(refreshSession)`.
+    func refreshSession(_ input: Operations.RefreshSession.Input) async throws -> Operations.RefreshSession.Output
+    /// Sign out
+    ///
+    /// Revokes the Session the access token belongs to: its access and
+    /// refresh tokens stop working (ADR-0011). Works for unverified Users
+    /// too.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/signout`.
+    /// - Remark: Generated from `#/paths//v1/auth/signout/post(signOut)`.
+    func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output
     /// The signed-in User
     ///
     /// The app's launch check (FR-U1). Works for unverified Users too.
@@ -160,6 +189,13 @@ extension APIProtocol {
     /// too, with `user.email_verified` false, and goes to verification. A
     /// wrong email or password answers the same `invalid-credentials`.
     ///
+    /// After 5 failures, per account and per client IP, each further failure
+    /// makes the next attempt wait longer: 1 s, then doubling, at most
+    /// 15 minutes. An attempt before then answers `too-many-attempts` with
+    /// `Retry-After`, without checking the password. There is no lockout:
+    /// the wait always ends, a successful sign-in clears the account's
+    /// count, and an hour without failures clears both (FR-A4).
+    ///
     ///
     /// - Remark: HTTP `POST /v1/auth/signin`.
     /// - Remark: Generated from `#/paths//v1/auth/signin/post(signIn)`.
@@ -171,6 +207,38 @@ extension APIProtocol {
             headers: headers,
             body: body
         ))
+    }
+    /// Refresh the Session
+    ///
+    /// Exchanges the refresh token for a new token pair (ADR-0011). The old
+    /// pair stops working at once. Presenting a refresh token that was
+    /// already exchanged is taken as theft: the whole Session is revoked
+    /// and every token of it answers `unauthenticated`. An expired,
+    /// revoked or unknown refresh token answers `unauthenticated` too.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/refresh`.
+    /// - Remark: Generated from `#/paths//v1/auth/refresh/post(refreshSession)`.
+    public func refreshSession(
+        headers: Operations.RefreshSession.Input.Headers = .init(),
+        body: Operations.RefreshSession.Input.Body
+    ) async throws -> Operations.RefreshSession.Output {
+        try await refreshSession(Operations.RefreshSession.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Sign out
+    ///
+    /// Revokes the Session the access token belongs to: its access and
+    /// refresh tokens stop working (ADR-0011). Works for unverified Users
+    /// too.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/signout`.
+    /// - Remark: Generated from `#/paths//v1/auth/signout/post(signOut)`.
+    public func signOut(headers: Operations.SignOut.Input.Headers) async throws -> Operations.SignOut.Output {
+        try await signOut(Operations.SignOut.Input(headers: headers))
     }
     /// The signed-in User
     ///

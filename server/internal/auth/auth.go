@@ -16,6 +16,15 @@ const (
 	RefreshTokenLifetime = 30 * 24 * time.Hour
 	CodeLifetime         = 15 * time.Minute
 	MaxCodeAttempts      = 5
+
+	// Login throttling (FR-A4, Q34): after FreeLoginFailures failures the
+	// next attempt waits FirstLoginDelay, doubling with each failure up to
+	// MaxLoginDelay. A count with no failure for LoginFailureMemory starts
+	// over. There is no lockout.
+	FreeLoginFailures  = 5
+	FirstLoginDelay    = time.Second
+	MaxLoginDelay      = 15 * time.Minute
+	LoginFailureMemory = time.Hour
 )
 
 // Errors the service returns for expected outcomes. Anything else is a
@@ -33,7 +42,20 @@ var (
 	ErrUnauthenticated = errors.New("auth: unauthenticated")
 	// ErrNotFound is returned by Repository lookups that find nothing.
 	ErrNotFound = errors.New("auth: not found")
+	// ErrRefreshReused is returned by Repository.RotateSession when the
+	// refresh token was already exchanged; the Session is then revoked.
+	ErrRefreshReused = errors.New("auth: refresh token reused")
 )
+
+// ThrottledError: too many failed sign-ins; the next attempt may come after
+// RetryAfter.
+type ThrottledError struct {
+	RetryAfter time.Duration
+}
+
+func (e *ThrottledError) Error() string {
+	return "auth: sign-in throttled for " + e.RetryAfter.String()
+}
 
 // User is a person with an account.
 type User struct {
@@ -54,7 +76,9 @@ type Session struct {
 
 // Principal is who an access token speaks for.
 type Principal struct {
-	UserID        platform.ID
+	UserID platform.ID
+	// SessionID identifies the Session (the family of rows its refreshes
+	// make), so sign-out revokes all of it.
 	SessionID     platform.ID
 	EmailVerified bool
 }
@@ -97,18 +121,21 @@ type UserRecord struct {
 	PasswordHash string
 }
 
-// SessionRecord is a stored Session, found by its access-token hash.
+// SessionRecord is a stored Session row, found by its access-token hash.
 type SessionRecord struct {
 	ID              platform.ID
+	FamilyID        platform.ID
 	UserID          platform.ID
 	EmailVerified   bool
 	AccessExpiresAt time.Time
 	Revoked         bool
 }
 
-// NewSession is a Session to store.
+// NewSession is a Session row to store. FamilyID is the ID of the
+// Session's first row; a brand-new Session has FamilyID == ID.
 type NewSession struct {
 	ID               platform.ID
+	FamilyID         platform.ID
 	UserID           platform.ID
 	AccessHash       []byte
 	AccessExpiresAt  time.Time
@@ -148,8 +175,24 @@ type SignUpRecord struct {
 	Session      NewSession
 }
 
-// Repository stores Users, Sessions and one-time codes. Each method is one
-// transaction.
+// ThrottleScope says what a login throttle counts failures of.
+type ThrottleScope string
+
+// Throttle scopes, as stored in login_throttle.scope.
+const (
+	ThrottleAccount ThrottleScope = "account"
+	ThrottleIP      ThrottleScope = "ip"
+)
+
+// ThrottleRecord is a stored count of failed sign-ins.
+type ThrottleRecord struct {
+	Failures      int
+	LastFailureAt time.Time
+	NextAllowedAt time.Time
+}
+
+// Repository stores Users, Sessions, one-time codes and login throttles.
+// Each method is one transaction.
 type Repository interface {
 	// SignUp creates an unverified User, or, if an unverified User has the
 	// email, replaces its password hash and revokes its Sessions. Either way
@@ -178,4 +221,24 @@ type Repository interface {
 	// verified and stores the Session. It returns ErrInvalidCode if the code
 	// was consumed meanwhile.
 	CompleteEmailVerification(ctx context.Context, codeID platform.ID, s NewSession) error
+
+	// RotateSession exchanges the row whose refresh token hashes to
+	// refreshHash for next (whose FamilyID and UserID it fills in), marking
+	// the old row replaced, and returns the User. If the row was already
+	// replaced it revokes the whole family and returns ErrRefreshReused; if
+	// it is revoked or its refresh token expired at now it returns
+	// ErrUnauthenticated; an unknown hash returns ErrNotFound.
+	RotateSession(ctx context.Context, refreshHash []byte, now time.Time, next NewSession) (User, error)
+	// RevokeSession revokes every row of the Session family.
+	RevokeSession(ctx context.Context, familyID platform.ID, now time.Time) error
+
+	// LoginThrottle returns the failure count, or ErrNotFound.
+	LoginThrottle(ctx context.Context, scope ThrottleScope, key []byte) (ThrottleRecord, error)
+	// RecordLoginFailure counts a failure, starting over at 1 when the last
+	// one was at or before staleBefore, and returns the new count.
+	RecordLoginFailure(ctx context.Context, scope ThrottleScope, key []byte, now, staleBefore time.Time) (int, error)
+	// SetLoginNextAllowed sets when the next attempt may come.
+	SetLoginNextAllowed(ctx context.Context, scope ThrottleScope, key []byte, at time.Time) error
+	// ClearLoginThrottle forgets the count.
+	ClearLoginThrottle(ctx context.Context, scope ThrottleScope, key []byte) error
 }

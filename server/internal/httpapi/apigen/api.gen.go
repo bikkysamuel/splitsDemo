@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -144,6 +145,7 @@ type Password = string
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type Problem struct {
 	// Detail Explanation of this occurrence; not for display.
@@ -175,6 +177,12 @@ type ReadinessStatus struct {
 
 // ReadinessStatusStatus defines model for ReadinessStatus.Status.
 type ReadinessStatusStatus string
+
+// RefreshSessionRequest Refresh input (ADR-0011).
+type RefreshSessionRequest struct {
+	// RefreshToken Examples: vu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+	RefreshToken string `json:"refresh_token"`
+}
 
 // ResendVerificationCodeRequest Asks for a new verification code (FR-A2).
 type ResendVerificationCodeRequest struct {
@@ -264,6 +272,7 @@ type IdempotencyKey = openapi_types.UUID
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type BadRequest = Problem
 
@@ -283,6 +292,7 @@ type BadRequest = Problem
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type EmailNotVerified = Problem
 
@@ -302,6 +312,7 @@ type EmailNotVerified = Problem
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type EmailTaken = Problem
 
@@ -321,6 +332,7 @@ type EmailTaken = Problem
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type IdempotencyKeyInProgress = Problem
 
@@ -340,6 +352,7 @@ type IdempotencyKeyInProgress = Problem
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type IdempotencyKeyReused = Problem
 
@@ -359,6 +372,7 @@ type IdempotencyKeyReused = Problem
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type InternalError = Problem
 
@@ -378,6 +392,7 @@ type InternalError = Problem
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type InvalidCredentials = Problem
 
@@ -397,6 +412,7 @@ type InvalidCredentials = Problem
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type NotReady = Problem
 
@@ -416,8 +432,29 @@ type NotReady = Problem
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type RequestTooLarge = Problem
+
+// TooManyAttempts RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `internal`: an unexpected server failure (500).
+type TooManyAttempts = Problem
 
 // Unauthenticated RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
@@ -435,8 +472,24 @@ type RequestTooLarge = Problem
 // - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
 // - `internal`: an unexpected server failure (500).
 type Unauthenticated = Problem
+
+// SignOutParams defines parameters for SignOut.
+type SignOutParams struct {
+	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
+	// (NFR-R1). Repeating a request with the same key within 24 hours
+	// returns the original response; reusing a key for a different request
+	// answers `idempotency-key-reused`, and repeating it while the first is
+	// still running answers `idempotency-key-in-progress`. Responses with a
+	// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+	// it: their responses carry tokens, which are never stored (ADR-0011).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// RefreshSessionJSONRequestBody defines body for RefreshSession for application/json ContentType.
+type RefreshSessionJSONRequestBody = RefreshSessionRequest
 
 // SignInJSONRequestBody defines body for SignIn for application/json ContentType.
 type SignInJSONRequestBody = SignInRequest
@@ -458,9 +511,15 @@ type ServerInterface interface {
 	// GetReadyz Readiness
 	// (GET /readyz)
 	GetReadyz(w http.ResponseWriter, r *http.Request)
+	// RefreshSession Refresh the Session
+	// (POST /v1/auth/refresh)
+	RefreshSession(w http.ResponseWriter, r *http.Request)
 	// SignIn Sign in
 	// (POST /v1/auth/signin)
 	SignIn(w http.ResponseWriter, r *http.Request)
+	// SignOut Sign out
+	// (POST /v1/auth/signout)
+	SignOut(w http.ResponseWriter, r *http.Request, params SignOutParams)
 	// SignUp Sign up
 	// (POST /v1/auth/signup)
 	SignUp(w http.ResponseWriter, r *http.Request)
@@ -512,11 +571,70 @@ func (siw *ServerInterfaceWrapper) GetReadyz(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// RefreshSession operation middleware
+func (siw *ServerInterfaceWrapper) RefreshSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RefreshSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SignIn operation middleware
 func (siw *ServerInterfaceWrapper) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SignIn(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SignOut operation middleware
+func (siw *ServerInterfaceWrapper) SignOut(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SignOutParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SignOut(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -708,6 +826,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/verify-email", wrapper.VerifyEmail)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/verify-email/resend", wrapper.ResendVerificationCode)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/signin", wrapper.SignIn)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/refresh", wrapper.RefreshSession)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/signout", wrapper.SignOut)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
 
 	return m
@@ -730,6 +850,15 @@ type InvalidCredentialsApplicationProblemPlusJSONResponse Problem
 type NotReadyApplicationProblemPlusJSONResponse Problem
 
 type RequestTooLargeApplicationProblemPlusJSONResponse Problem
+
+type TooManyAttemptsResponseHeaders struct {
+	RetryAfter int
+}
+type TooManyAttemptsApplicationProblemPlusJSONResponse struct {
+	Body Problem
+
+	Headers TooManyAttemptsResponseHeaders
+}
 
 type UnauthenticatedApplicationProblemPlusJSONResponse Problem
 
@@ -823,6 +952,92 @@ func (response GetReadyz503ApplicationProblemPlusJSONResponse) VisitGetReadyzRes
 	return err
 }
 
+type RefreshSessionRequestObject struct {
+	Body *RefreshSessionJSONRequestBody
+}
+
+type RefreshSessionResponseObject interface {
+	VisitRefreshSessionResponse(w http.ResponseWriter) error
+}
+
+type RefreshSession200JSONResponse AuthSession
+
+func (response RefreshSession200JSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSession400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response RefreshSession400ApplicationProblemPlusJSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSession401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response RefreshSession401ApplicationProblemPlusJSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSession413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response RefreshSession413ApplicationProblemPlusJSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshSession500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response RefreshSession500ApplicationProblemPlusJSONResponse) VisitRefreshSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SignInRequestObject struct {
 	Body *SignInJSONRequestBody
 }
@@ -893,11 +1108,140 @@ func (response SignIn413ApplicationProblemPlusJSONResponse) VisitSignInResponse(
 	return err
 }
 
+type SignIn429ApplicationProblemPlusJSONResponse struct {
+	TooManyAttemptsApplicationProblemPlusJSONResponse
+}
+
+func (response SignIn429ApplicationProblemPlusJSONResponse) VisitSignInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.Header().Set("Retry-After", fmt.Sprint(response.Headers.RetryAfter))
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SignIn500ApplicationProblemPlusJSONResponse struct {
 	InternalErrorApplicationProblemPlusJSONResponse
 }
 
 func (response SignIn500ApplicationProblemPlusJSONResponse) VisitSignInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignOutRequestObject struct {
+	Params SignOutParams
+}
+
+type SignOutResponseObject interface {
+	VisitSignOutResponse(w http.ResponseWriter) error
+}
+
+type SignOut204Response struct {
+}
+
+func (response SignOut204Response) VisitSignOutResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SignOut400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SignOut400ApplicationProblemPlusJSONResponse) VisitSignOutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignOut401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response SignOut401ApplicationProblemPlusJSONResponse) VisitSignOutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignOut409ApplicationProblemPlusJSONResponse struct {
+	IdempotencyKeyInProgressApplicationProblemPlusJSONResponse
+}
+
+func (response SignOut409ApplicationProblemPlusJSONResponse) VisitSignOutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignOut413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response SignOut413ApplicationProblemPlusJSONResponse) VisitSignOutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignOut422ApplicationProblemPlusJSONResponse struct {
+	IdempotencyKeyReusedApplicationProblemPlusJSONResponse
+}
+
+func (response SignOut422ApplicationProblemPlusJSONResponse) VisitSignOutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignOut500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response SignOut500ApplicationProblemPlusJSONResponse) VisitSignOutResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -1190,9 +1534,15 @@ type StrictServerInterface interface {
 	// GetReadyz Readiness
 	// (GET /readyz)
 	GetReadyz(ctx context.Context, request GetReadyzRequestObject) (GetReadyzResponseObject, error)
+	// RefreshSession Refresh the Session
+	// (POST /v1/auth/refresh)
+	RefreshSession(ctx context.Context, request RefreshSessionRequestObject) (RefreshSessionResponseObject, error)
 	// SignIn Sign in
 	// (POST /v1/auth/signin)
 	SignIn(ctx context.Context, request SignInRequestObject) (SignInResponseObject, error)
+	// SignOut Sign out
+	// (POST /v1/auth/signout)
+	SignOut(ctx context.Context, request SignOutRequestObject) (SignOutResponseObject, error)
 	// SignUp Sign up
 	// (POST /v1/auth/signup)
 	SignUp(ctx context.Context, request SignUpRequestObject) (SignUpResponseObject, error)
@@ -1294,6 +1644,37 @@ func (sh *strictHandler) GetReadyz(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// RefreshSession operation middleware
+func (sh *strictHandler) RefreshSession(w http.ResponseWriter, r *http.Request) {
+	var request RefreshSessionRequestObject
+
+	var body RefreshSessionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RefreshSession(ctx, request.(RefreshSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RefreshSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RefreshSessionResponseObject); ok {
+		if err := validResponse.VisitRefreshSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // SignIn operation middleware
 func (sh *strictHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	var request SignInRequestObject
@@ -1318,6 +1699,32 @@ func (sh *strictHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SignInResponseObject); ok {
 		if err := validResponse.VisitSignInResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SignOut operation middleware
+func (sh *strictHandler) SignOut(w http.ResponseWriter, r *http.Request, params SignOutParams) {
+	var request SignOutRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SignOut(ctx, request.(SignOutRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SignOut")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SignOutResponseObject); ok {
+		if err := validResponse.VisitSignOutResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
