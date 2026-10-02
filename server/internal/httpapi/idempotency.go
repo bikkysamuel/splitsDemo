@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -55,7 +56,7 @@ func (s *Server) idempotent(next http.Handler) http.Handler {
 
 		// The key is ours: finish it even if the client goes away or the
 		// handler panics.
-		rec := &responseRecorder{ResponseWriter: w, status: http.StatusOK}
+		rec := &responseRecorder{statusRecorder: statusRecorder{ResponseWriter: w, status: http.StatusOK}}
 		finishCtx := context.WithoutCancel(ctx)
 		completed := false
 		defer func() {
@@ -63,7 +64,8 @@ func (s *Server) idempotent(next http.Handler) http.Handler {
 				return
 			}
 			if err := s.deps.Idempotency.Release(finishCtx, p.UserID, key); err != nil {
-				s.deps.Logger.ErrorContext(finishCtx, "release idempotency key failed", "user_id", p.UserID.String())
+				s.deps.Logger.ErrorContext(finishCtx, "release idempotency key failed",
+					"user_id", p.UserID.String(), "error_type", fmt.Sprintf("%T", err))
 			}
 		}()
 		next.ServeHTTP(rec, r)
@@ -72,7 +74,8 @@ func (s *Server) idempotent(next http.Handler) http.Handler {
 		}
 		resp := idempotency.Response{Status: rec.status, ContentType: rec.Header().Get("Content-Type"), Body: rec.body.Bytes()}
 		if err := s.deps.Idempotency.Complete(finishCtx, p.UserID, key, resp); err != nil {
-			s.deps.Logger.ErrorContext(finishCtx, "complete idempotency key failed", "user_id", p.UserID.String())
+			s.deps.Logger.ErrorContext(finishCtx, "complete idempotency key failed",
+				"user_id", p.UserID.String(), "error_type", fmt.Sprintf("%T", err))
 			return
 		}
 		completed = true
@@ -108,25 +111,13 @@ func replay(w http.ResponseWriter, resp idempotency.Response) {
 	_, _ = w.Write(resp.Body)
 }
 
-// responseRecorder passes a response through and keeps a copy.
+// responseRecorder passes a response through and keeps a copy of the body.
 type responseRecorder struct {
-	http.ResponseWriter
-	status      int
-	wroteHeader bool
-	body        bytes.Buffer
-}
-
-func (r *responseRecorder) WriteHeader(status int) {
-	if !r.wroteHeader {
-		r.status, r.wroteHeader = status, true
-	}
-	r.ResponseWriter.WriteHeader(status)
+	statusRecorder
+	body bytes.Buffer
 }
 
 func (r *responseRecorder) Write(b []byte) (int, error) {
-	r.wroteHeader = true
 	r.body.Write(b)
-	return r.ResponseWriter.Write(b)
+	return r.statusRecorder.Write(b)
 }
-
-func (r *responseRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }

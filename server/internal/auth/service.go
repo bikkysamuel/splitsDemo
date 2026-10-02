@@ -49,15 +49,17 @@ func (s *Service) SignUp(ctx context.Context, rawEmail, password string) (Sessio
 	}
 	hash, err := HashPassword(password, s.deps.PasswordParams)
 	if err != nil {
-		return Session{}, err
+		return Session{}, fmt.Errorf("auth: hash password: %w", err)
 	}
 	code, err := s.deps.OTPSender.NewCode()
 	if err != nil {
 		return Session{}, fmt.Errorf("auth: new code: %w", err)
 	}
+	// The User's ID is known only once the store has upserted the User, so
+	// the store fills UserID in the code and Session (SignUpRecord).
 	session, stored, err := s.newSession(platform.ID{})
 	if err != nil {
-		return Session{}, err
+		return Session{}, fmt.Errorf("auth: new session: %w", err)
 	}
 	user, err := s.deps.Repository.SignUp(ctx, SignUpRecord{
 		UserID:       s.deps.IDs.New(),
@@ -113,7 +115,7 @@ func (s *Service) VerifyEmail(ctx context.Context, rawEmail, code string) (Sessi
 	}
 	session, stored, err := s.newSession(user.ID)
 	if err != nil {
-		return Session{}, err
+		return Session{}, fmt.Errorf("auth: new session: %w", err)
 	}
 	if err := s.deps.Repository.CompleteEmailVerification(ctx, live.ID, stored); err != nil {
 		if errors.Is(err, ErrInvalidCode) {
@@ -167,7 +169,7 @@ func (s *Service) SignIn(ctx context.Context, rawEmail, password string) (Sessio
 	if errors.Is(err, ErrNotFound) {
 		dummy, err := s.dummyHash()
 		if err != nil {
-			return Session{}, err
+			return Session{}, fmt.Errorf("auth: dummy hash: %w", err)
 		}
 		_, _ = VerifyPassword(dummy, password)
 		return Session{}, ErrInvalidCredentials
@@ -184,7 +186,7 @@ func (s *Service) SignIn(ctx context.Context, rawEmail, password string) (Sessio
 	}
 	session, stored, err := s.newSession(user.ID)
 	if err != nil {
-		return Session{}, err
+		return Session{}, fmt.Errorf("auth: new session: %w", err)
 	}
 	if err := s.deps.Repository.CreateSession(ctx, stored); err != nil {
 		return Session{}, fmt.Errorf("auth: create session: %w", err)

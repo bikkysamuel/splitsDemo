@@ -8,7 +8,6 @@ import (
 
 	"github.com/bikkysamuel/splitsDemo/server/internal/auth"
 	"github.com/bikkysamuel/splitsDemo/server/internal/httpapi/apigen"
-	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
 )
 
 // SignUp creates an unverified User and returns a Session (FR-A1–A3).
@@ -17,9 +16,7 @@ func (s *Server) SignUp(ctx context.Context, req apigen.SignUpRequestObject) (ap
 	var invalid *auth.ValidationError
 	switch {
 	case errors.As(err, &invalid):
-		return apigen.SignUp400ApplicationProblemPlusJSONResponse{
-			BadRequestApplicationProblemPlusJSONResponse: apigen.BadRequestApplicationProblemPlusJSONResponse(validationProblem(invalid)),
-		}, nil
+		return apigen.SignUp400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: validationProblem(invalid)}, nil
 	case errors.Is(err, auth.ErrEmailTaken):
 		return apigen.SignUp409ApplicationProblemPlusJSONResponse{
 			EmailTakenApplicationProblemPlusJSONResponse: apigen.EmailTakenApplicationProblemPlusJSONResponse(problemEmailTaken.problem("")),
@@ -27,7 +24,7 @@ func (s *Server) SignUp(ctx context.Context, req apigen.SignUpRequestObject) (ap
 	case err != nil:
 		return nil, err
 	}
-	s.noteUser(ctx, session.User.ID)
+	noteUser(ctx, session.User.ID)
 	return apigen.SignUp201JSONResponse(authSession(session)), nil
 }
 
@@ -37,9 +34,7 @@ func (s *Server) VerifyEmail(ctx context.Context, req apigen.VerifyEmailRequestO
 	var invalid *auth.ValidationError
 	switch {
 	case errors.As(err, &invalid):
-		return apigen.VerifyEmail400ApplicationProblemPlusJSONResponse{
-			BadRequestApplicationProblemPlusJSONResponse: apigen.BadRequestApplicationProblemPlusJSONResponse(validationProblem(invalid)),
-		}, nil
+		return apigen.VerifyEmail400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: validationProblem(invalid)}, nil
 	case errors.Is(err, auth.ErrInvalidCode):
 		return apigen.VerifyEmail400ApplicationProblemPlusJSONResponse{
 			BadRequestApplicationProblemPlusJSONResponse: apigen.BadRequestApplicationProblemPlusJSONResponse(problemInvalidCode.problem("")),
@@ -47,7 +42,7 @@ func (s *Server) VerifyEmail(ctx context.Context, req apigen.VerifyEmailRequestO
 	case err != nil:
 		return nil, err
 	}
-	s.noteUser(ctx, session.User.ID)
+	noteUser(ctx, session.User.ID)
 	return apigen.VerifyEmail200JSONResponse(authSession(session)), nil
 }
 
@@ -57,9 +52,7 @@ func (s *Server) ResendVerificationCode(ctx context.Context, req apigen.ResendVe
 	var invalid *auth.ValidationError
 	switch {
 	case errors.As(err, &invalid):
-		return apigen.ResendVerificationCode400ApplicationProblemPlusJSONResponse{
-			BadRequestApplicationProblemPlusJSONResponse: apigen.BadRequestApplicationProblemPlusJSONResponse(validationProblem(invalid)),
-		}, nil
+		return apigen.ResendVerificationCode400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: validationProblem(invalid)}, nil
 	case err != nil:
 		return nil, err
 	}
@@ -77,7 +70,7 @@ func (s *Server) SignIn(ctx context.Context, req apigen.SignInRequestObject) (ap
 	case err != nil:
 		return nil, err
 	}
-	s.noteUser(ctx, session.User.ID)
+	noteUser(ctx, session.User.ID)
 	return apigen.SignIn200JSONResponse(authSession(session)), nil
 }
 
@@ -92,14 +85,6 @@ func (s *Server) GetMe(ctx context.Context, _ apigen.GetMeRequestObject) (apigen
 		return nil, err
 	}
 	return apigen.GetMe200JSONResponse(apiUser(user)), nil
-}
-
-// noteUser puts the User's ID on the request log line of an anonymous auth
-// endpoint once the User is known.
-func (s *Server) noteUser(ctx context.Context, id platform.ID) {
-	if info, ok := ctx.Value(requestInfoKey{}).(*requestInfo); ok {
-		info.userID = &id
-	}
 }
 
 func apiUser(u auth.User) apigen.User {
@@ -118,12 +103,12 @@ func authSession(s auth.Session) apigen.AuthSession {
 
 // validationProblem lists each invalid field as a JSON Pointer to the
 // request field (doc 07).
-func validationProblem(v *auth.ValidationError) apigen.Problem {
+func validationProblem(v *auth.ValidationError) apigen.BadRequestApplicationProblemPlusJSONResponse {
 	p := problemValidationFailed.problem("")
 	errs := make([]apigen.FieldError, len(v.Fields))
 	for i, f := range v.Fields {
 		errs[i] = apigen.FieldError{Field: "/" + f.Field, Code: f.Code}
 	}
 	p.Errors = &errs
-	return p
+	return apigen.BadRequestApplicationProblemPlusJSONResponse(p)
 }

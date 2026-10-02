@@ -583,3 +583,16 @@ func TestAuthFlowsLogIDsOnly(t *testing.T) {
 		t.Error("logs never name the user's ID; want request logs to carry it")
 	}
 }
+
+func TestSignInRefusesARequestItCannotDecode(t *testing.T) {
+	srv := apptest.Start(t)
+
+	for name, body := range map[string][]byte{
+		"not JSON":    []byte("email=alice"),
+		"wrong types": []byte(`{"email": 1, "password": true}`),
+	} {
+		t.Run(name, func(t *testing.T) {
+			wantProblem(t, srv.Post(t, "/v1/auth/signin", body), http.StatusBadRequest, "invalid-request")
+		})
+	}
+}

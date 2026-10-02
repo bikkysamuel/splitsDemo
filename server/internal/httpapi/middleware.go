@@ -136,9 +136,7 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			s.responseError(w, r, err)
 			return
 		}
-		if info, ok := r.Context().Value(requestInfoKey{}).(*requestInfo); ok {
-			info.userID = &p.UserID
-		}
+		noteUser(r.Context(), p.UserID)
 		if !p.EmailVerified && !unverifiedRoutes[pattern] {
 			writeProblem(w, problemEmailNotVerified.problem(""))
 			return
@@ -179,6 +177,13 @@ type requestInfo struct {
 }
 
 type requestInfoKey struct{}
+
+// noteUser puts the User's ID on the request's log line.
+func noteUser(ctx context.Context, id platform.ID) {
+	if info, ok := ctx.Value(requestInfoKey{}).(*requestInfo); ok {
+		info.userID = &id
+	}
+}
 
 // statusRecorder remembers the status a handler writes.
 type statusRecorder struct {

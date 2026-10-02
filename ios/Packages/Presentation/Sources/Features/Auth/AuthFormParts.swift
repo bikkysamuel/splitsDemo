@@ -47,7 +47,9 @@ struct SubmitButton: View {
       HStack {
         Spacer()
         if isSubmitting {
+          // VoiceOver keeps reading the button's title while it works.
           ProgressView()
+            .accessibilityLabel(Text(LocalizedStringKey(titleKey), bundle: .module))
         } else {
           Text(LocalizedStringKey(titleKey), bundle: .module)
         }
