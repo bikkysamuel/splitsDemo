@@ -1,0 +1,82 @@
+import SwiftUI
+
+/// The signed-in shell (FR-U4): Home, Report and Settings, each with its
+/// own navigation stack. The tabs fill in as later tickets land.
+struct MainTabView: View {
+  var body: some View {
+    TabView {
+      Tab {
+        NavigationStack {
+          EmptyTab(titleKey: Self.home, messageKey: Self.homeEmpty, detailKey: Self.homeEmptyDetail, symbol: "person.3")
+        }
+      } label: {
+        Label {
+          Text(LocalizedStringKey(Self.home), bundle: .module)
+        } icon: {
+          Image(systemName: "house")
+        }
+      }
+      Tab {
+        NavigationStack {
+          EmptyTab(
+            titleKey: Self.report, messageKey: Self.reportEmpty, detailKey: Self.reportEmptyDetail, symbol: "chart.bar")
+        }
+      } label: {
+        Label {
+          Text(LocalizedStringKey(Self.report), bundle: .module)
+        } icon: {
+          Image(systemName: "chart.bar")
+        }
+      }
+      Tab {
+        NavigationStack {
+          EmptyTab(
+            titleKey: Self.settings, messageKey: Self.settingsEmpty, detailKey: Self.settingsEmptyDetail,
+            symbol: "gearshape")
+        }
+      } label: {
+        Label {
+          Text(LocalizedStringKey(Self.settings), bundle: .module)
+        } icon: {
+          Image(systemName: "gearshape")
+        }
+      }
+    }
+  }
+
+  nonisolated static let home = "Home"
+  nonisolated static let homeEmpty = "No Groups yet"
+  nonisolated static let homeEmptyDetail = "Groups you create or join will show here."
+  nonisolated static let report = "Report"
+  nonisolated static let reportEmpty = "Nothing to report yet"
+  nonisolated static let reportEmptyDetail = "Reports appear once you have Groups."
+  nonisolated static let settings = "Settings"
+  nonisolated static let settingsEmpty = "Settings are on their way"
+  nonisolated static let settingsEmptyDetail = "Theme, currency and account settings come next."
+
+  nonisolated static let allKeys = [
+    home, homeEmpty, homeEmptyDetail, report, reportEmpty, reportEmptyDetail, settings, settingsEmpty,
+    settingsEmptyDetail,
+  ]
+}
+
+/// A tab's placeholder until its content exists.
+private struct EmptyTab: View {
+  let titleKey: String
+  let messageKey: String
+  let detailKey: String
+  let symbol: String
+
+  var body: some View {
+    ContentUnavailableView {
+      Label {
+        Text(LocalizedStringKey(messageKey), bundle: .module)
+      } icon: {
+        Image(systemName: symbol).accessibilityHidden(true)
+      }
+    } description: {
+      Text(LocalizedStringKey(detailKey), bundle: .module)
+    }
+    .navigationTitle(Text(LocalizedStringKey(titleKey), bundle: .module))
+  }
+}

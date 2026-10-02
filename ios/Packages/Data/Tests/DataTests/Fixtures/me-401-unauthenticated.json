@@ -1,0 +1,5 @@
+{
+  "status": 401,
+  "title": "Unauthenticated",
+  "type": "https://splits.dev/problems/unauthenticated"
+}

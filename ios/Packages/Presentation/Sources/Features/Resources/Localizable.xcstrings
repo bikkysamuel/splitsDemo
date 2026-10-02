@@ -1,50 +1,506 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "Check again": {
-      "comment": "Button that re-checks whether the server is reachable",
+    "An account with this email already exists. Sign in instead.": {
+      "comment": "Sign-up error: the email belongs to a verified account",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Check again"
+            "value": "An account with this email already exists. Sign in instead."
           }
         }
       }
     },
-    "Checking the server…": {
-      "comment": "Status while the app checks whether the server is reachable",
+    "At least 10 characters.": {
+      "comment": "Hint under the new-password field on sign-up",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Checking the server…"
+            "value": "At least 10 characters."
           }
         }
       }
     },
-    "Server reachable": {
-      "comment": "Status when the server answered",
+    "Can't reach the server. Check your connection and try again.": {
+      "comment": "Error message when the server could not be reached",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Server reachable"
+            "value": "Can't reach the server. Check your connection and try again."
           }
         }
       }
     },
-    "Server unreachable": {
-      "comment": "Status when the server did not answer",
+    "Check the fields marked below.": {
+      "comment": "Error message when the server refused one or more form fields",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Server unreachable"
+            "value": "Check the fields marked below."
+          }
+        }
+      }
+    },
+    "Checking your session…": {
+      "comment": "VoiceOver label of the launch screen's progress indicator",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking your session…"
+          }
+        }
+      }
+    },
+    "Create account": {
+      "comment": "Title and button of the sign-up screen",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create account"
+          }
+        }
+      }
+    },
+    "Email": {
+      "comment": "Label of the email field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email"
+          }
+        }
+      }
+    },
+    "Enter a password.": {
+      "comment": "Field error: the password is empty",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a password."
+          }
+        }
+      }
+    },
+    "Enter a valid email address.": {
+      "comment": "Field error: the email is malformed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a valid email address."
+          }
+        }
+      }
+    },
+    "Enter your email address.": {
+      "comment": "Field error: the email is empty",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter your email address."
+          }
+        }
+      }
+    },
+    "Groups you create or join will show here.": {
+      "comment": "Home tab placeholder description",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groups you create or join will show here."
+          }
+        }
+      }
+    },
+    "Home": {
+      "comment": "Tab title: Home",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
+          }
+        }
+      }
+    },
+    "New to Splits? Create an account": {
+      "comment": "Link from sign-in to sign-up",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New to Splits? Create an account"
+          }
+        }
+      }
+    },
+    "No Groups yet": {
+      "comment": "Home tab placeholder title",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Groups yet"
+          }
+        }
+      }
+    },
+    "Nothing to report yet": {
+      "comment": "Report tab placeholder title",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to report yet"
+          }
+        }
+      }
+    },
+    "Password": {
+      "comment": "Label of the password field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password"
+          }
+        }
+      }
+    },
+    "Report": {
+      "comment": "Tab title: Report",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Report"
+          }
+        }
+      }
+    },
+    "Reports appear once you have Groups.": {
+      "comment": "Report tab placeholder description",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reports appear once you have Groups."
+          }
+        }
+      }
+    },
+    "Send a new code": {
+      "comment": "Button that sends a new verification code",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send a new code"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "comment": "Tab title: Settings",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "Settings are on their way": {
+      "comment": "Settings tab placeholder title",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings are on their way"
+          }
+        }
+      }
+    },
+    "Sign in": {
+      "comment": "Title and button of the sign-in screen",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in"
+          }
+        }
+      }
+    },
+    "Something went wrong. Try again.": {
+      "comment": "Error message when a request failed for an unexpected reason",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something went wrong. Try again."
+          }
+        }
+      }
+    },
+    "Splits": {
+      "comment": "App name on the launch screen",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Splits"
+          }
+        }
+      }
+    },
+    "That code didn't work. Check it, or send a new one.": {
+      "comment": "Verification error: the code is wrong, expired or used up",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That code didn't work. Check it, or send a new one."
+          }
+        }
+      }
+    },
+    "That's too much text to send.": {
+      "comment": "Error when a request body is over the size limit",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That's too much text to send."
+          }
+        }
+      }
+    },
+    "The email or password is wrong.": {
+      "comment": "Sign-in error: wrong email or password",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The email or password is wrong."
+          }
+        }
+      }
+    },
+    "Theme, currency and account settings come next.": {
+      "comment": "Settings tab placeholder description",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Theme, currency and account settings come next."
+          }
+        }
+      }
+    },
+    "This field is invalid.": {
+      "comment": "Field error with no more specific message",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This field is invalid."
+          }
+        }
+      }
+    },
+    "This password is too common. Choose another.": {
+      "comment": "Field error: the new password is on the common/breached list",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This password is too common. Choose another."
+          }
+        }
+      }
+    },
+    "Try again": {
+      "comment": "Button on the launch screen that re-checks the saved session",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        }
+      }
+    },
+    "Use another account": {
+      "comment": "Button that leaves verification for sign-in with another account",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use another account"
+          }
+        }
+      }
+    },
+    "Use at least 10 characters.": {
+      "comment": "Field error: the new password is shorter than 10 characters",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use at least 10 characters."
+          }
+        }
+      }
+    },
+    "Use at most 128 characters.": {
+      "comment": "Field error: the new password is longer than 128 characters",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use at most 128 characters."
+          }
+        }
+      }
+    },
+    "Verification code": {
+      "comment": "Label of the 6-digit verification code field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verification code"
+          }
+        }
+      }
+    },
+    "Verify": {
+      "comment": "Button that submits the verification code",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verify"
+          }
+        }
+      }
+    },
+    "Verify your email": {
+      "comment": "Title of the email verification screen",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verify your email"
+          }
+        }
+      }
+    },
+    "Verify your email first.": {
+      "comment": "Error when an unverified User tries something that needs verification",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verify your email first."
+          }
+        }
+      }
+    },
+    "We sent a 6-digit code to %@.": {
+      "comment": "Header of the verification screen; %@ is the User's email",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We sent a 6-digit code to %@."
+          }
+        }
+      }
+    },
+    "We sent a new code.": {
+      "comment": "Confirmation after a new verification code was sent",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We sent a new code."
+          }
+        }
+      }
+    },
+    "Your session has ended. Sign in again.": {
+      "comment": "Error when the saved session is no longer valid",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your session has ended. Sign in again."
+          }
+        }
+      }
+    },
+    "you@example.com": {
+      "comment": "Placeholder of the email field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "you@example.com"
           }
         }
       }
