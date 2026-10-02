@@ -1,0 +1,11 @@
+{
+  "access_expires_at": "2026-10-01T21:49:13.043361304Z",
+  "access_token": "fixture-access-token",
+  "refresh_expires_at": "2026-10-31T21:34:13.043361304Z",
+  "refresh_token": "fixture-refresh-token",
+  "user": {
+    "email": "alice@example.com",
+    "email_verified": true,
+    "id": "01a0f963-a5df-76b2-9991-df0c21402fd6"
+  }
+}

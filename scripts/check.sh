@@ -48,6 +48,15 @@ check_server() {
     if [ -n "$unformatted" ]; then
       echo "Run gofmt -w on:"; echo "$unformatted"; exit 1
     fi
+    step "server: sqlc generate, fail on drift (ADR-0014)"
+    sqlc_state() { git status --porcelain -- internal/store/sqlcgen; git diff -- internal/store/sqlcgen | git hash-object --stdin; }
+    before="$(sqlc_state)"
+    go generate ./internal/store/
+    if [ "$before" != "$(sqlc_state)" ]; then
+      echo "sqlc code was out of date with the queries or migrations; regenerated it. Review and commit:"
+      git status --porcelain -- internal/store/sqlcgen
+      exit 1
+    fi
     step "server: go vet"
     go vet ./...
     step "server: golangci-lint"

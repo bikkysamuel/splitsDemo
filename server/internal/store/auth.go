@@ -1,0 +1,181 @@
+package store
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/bikkysamuel/splitsDemo/server/internal/auth"
+	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
+	"github.com/bikkysamuel/splitsDemo/server/internal/store/sqlcgen"
+)
+
+// AuthRepository implements auth.Repository.
+type AuthRepository struct{ db *DB }
+
+// Auth returns the auth repository.
+func (db *DB) Auth() *AuthRepository { return &AuthRepository{db: db} }
+
+var _ auth.Repository = (*AuthRepository)(nil)
+
+// SignUp implements auth.Repository.
+func (r *AuthRepository) SignUp(ctx context.Context, rec auth.SignUpRecord) (auth.User, error) {
+	var user auth.User
+	err := r.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		row, err := q.UpsertUnverifiedUser(ctx, sqlcgen.UpsertUnverifiedUserParams{
+			ID: uuid(rec.UserID), Email: rec.Email, PasswordHash: rec.PasswordHash, Now: timestamptz(rec.Now),
+		})
+		if isNoRows(err) {
+			return auth.ErrEmailTaken
+		}
+		if err != nil {
+			return fmt.Errorf("upsert user: %w", err)
+		}
+		user = auth.User{ID: id(row.ID), Email: row.Email, EmailVerified: row.EmailVerifiedAt.Valid}
+		// A replaced unverified User loses its Sessions: nobody has proved
+		// they own the address yet.
+		if err := q.RevokeUserSessions(ctx, sqlcgen.RevokeUserSessionsParams{Now: timestamptz(rec.Now), UserID: row.ID}); err != nil {
+			return fmt.Errorf("revoke sessions: %w", err)
+		}
+		code := rec.Code
+		code.UserID = user.ID
+		if err := replaceCode(ctx, q, code); err != nil {
+			return err
+		}
+		session := rec.Session
+		session.UserID = user.ID
+		return insertSession(ctx, q, session)
+	})
+	return user, err
+}
+
+// UserByEmail implements auth.Repository.
+func (r *AuthRepository) UserByEmail(ctx context.Context, email string) (auth.UserRecord, error) {
+	row, err := sqlcgen.New(r.db.pool).UserByEmail(ctx, email)
+	if isNoRows(err) {
+		return auth.UserRecord{}, auth.ErrNotFound
+	}
+	if err != nil {
+		return auth.UserRecord{}, fmt.Errorf("select user by email: %w", err)
+	}
+	return auth.UserRecord{
+		User:         auth.User{ID: id(row.ID), Email: row.Email, EmailVerified: row.EmailVerifiedAt.Valid},
+		PasswordHash: row.PasswordHash,
+	}, nil
+}
+
+// UserByID implements auth.Repository.
+func (r *AuthRepository) UserByID(ctx context.Context, userID platform.ID) (auth.User, error) {
+	row, err := sqlcgen.New(r.db.pool).UserByID(ctx, uuid(userID))
+	if isNoRows(err) {
+		return auth.User{}, auth.ErrNotFound
+	}
+	if err != nil {
+		return auth.User{}, fmt.Errorf("select user by id: %w", err)
+	}
+	return auth.User{ID: id(row.ID), Email: row.Email, EmailVerified: row.EmailVerifiedAt.Valid}, nil
+}
+
+// CreateSession implements auth.Repository.
+func (r *AuthRepository) CreateSession(ctx context.Context, s auth.NewSession) error {
+	return insertSession(ctx, sqlcgen.New(r.db.pool), s)
+}
+
+// SessionByAccessHash implements auth.Repository.
+func (r *AuthRepository) SessionByAccessHash(ctx context.Context, hash []byte) (auth.SessionRecord, error) {
+	row, err := sqlcgen.New(r.db.pool).SessionByAccessHash(ctx, hash)
+	if isNoRows(err) {
+		return auth.SessionRecord{}, auth.ErrNotFound
+	}
+	if err != nil {
+		return auth.SessionRecord{}, fmt.Errorf("select session: %w", err)
+	}
+	return auth.SessionRecord{
+		ID:              id(row.ID),
+		UserID:          id(row.UserID),
+		EmailVerified:   row.EmailVerifiedAt.Valid,
+		AccessExpiresAt: row.AccessExpiresAt.Time,
+		Revoked:         row.RevokedAt.Valid,
+	}, nil
+}
+
+// ReplaceCode implements auth.Repository.
+func (r *AuthRepository) ReplaceCode(ctx context.Context, c auth.NewCode) error {
+	return r.db.inTx(ctx, func(q *sqlcgen.Queries) error { return replaceCode(ctx, q, c) })
+}
+
+// LiveCode implements auth.Repository.
+func (r *AuthRepository) LiveCode(ctx context.Context, userID platform.ID, purpose auth.CodePurpose) (auth.CodeRecord, error) {
+	row, err := sqlcgen.New(r.db.pool).LiveCode(ctx, sqlcgen.LiveCodeParams{UserID: uuid(userID), Purpose: string(purpose)})
+	if isNoRows(err) {
+		return auth.CodeRecord{}, auth.ErrNotFound
+	}
+	if err != nil {
+		return auth.CodeRecord{}, fmt.Errorf("select live code: %w", err)
+	}
+	return auth.CodeRecord{ID: id(row.ID), CodeHash: row.CodeHash, ExpiresAt: row.ExpiresAt.Time, Attempts: int(row.Attempts)}, nil
+}
+
+// CountCodeAttempt implements auth.Repository.
+func (r *AuthRepository) CountCodeAttempt(ctx context.Context, codeID platform.ID, maxAttempts int) (bool, error) {
+	n, err := sqlcgen.New(r.db.pool).CountCodeAttempt(ctx, sqlcgen.CountCodeAttemptParams{
+		ID: uuid(codeID), MaxAttempts: int32(maxAttempts), //nolint:gosec // a small constant
+	})
+	if err != nil {
+		return false, fmt.Errorf("count code attempt: %w", err)
+	}
+	return n == 1, nil
+}
+
+// CompleteEmailVerification implements auth.Repository.
+func (r *AuthRepository) CompleteEmailVerification(ctx context.Context, codeID platform.ID, s auth.NewSession) error {
+	return r.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		userID, err := q.ConsumeCode(ctx, sqlcgen.ConsumeCodeParams{Now: timestamptz(s.CreatedAt), ID: uuid(codeID)})
+		if isNoRows(err) {
+			return auth.ErrInvalidCode
+		}
+		if err != nil {
+			return fmt.Errorf("consume code: %w", err)
+		}
+		if id(userID) != s.UserID {
+			return fmt.Errorf("code %s belongs to another user", codeID)
+		}
+		if err := q.MarkEmailVerified(ctx, sqlcgen.MarkEmailVerifiedParams{Now: timestamptz(s.CreatedAt), ID: userID}); err != nil {
+			return fmt.Errorf("mark email verified: %w", err)
+		}
+		return insertSession(ctx, q, s)
+	})
+}
+
+func replaceCode(ctx context.Context, q *sqlcgen.Queries, c auth.NewCode) error {
+	if err := q.DeleteUserCodes(ctx, sqlcgen.DeleteUserCodesParams{UserID: uuid(c.UserID), Purpose: string(c.Purpose)}); err != nil {
+		return fmt.Errorf("delete codes: %w", err)
+	}
+	err := q.InsertCode(ctx, sqlcgen.InsertCodeParams{
+		ID:        uuid(c.ID),
+		UserID:    uuid(c.UserID),
+		Purpose:   string(c.Purpose),
+		CodeHash:  c.CodeHash,
+		ExpiresAt: timestamptz(c.ExpiresAt),
+		CreatedAt: timestamptz(c.CreatedAt),
+	})
+	if err != nil {
+		return fmt.Errorf("insert code: %w", err)
+	}
+	return nil
+}
+
+func insertSession(ctx context.Context, q *sqlcgen.Queries, s auth.NewSession) error {
+	err := q.InsertSession(ctx, sqlcgen.InsertSessionParams{
+		ID:               uuid(s.ID),
+		UserID:           uuid(s.UserID),
+		AccessHash:       s.AccessHash,
+		AccessExpiresAt:  timestamptz(s.AccessExpiresAt),
+		RefreshHash:      s.RefreshHash,
+		RefreshExpiresAt: timestamptz(s.RefreshExpiresAt),
+		CreatedAt:        timestamptz(s.CreatedAt),
+	})
+	if err != nil {
+		return fmt.Errorf("insert session: %w", err)
+	}
+	return nil
+}

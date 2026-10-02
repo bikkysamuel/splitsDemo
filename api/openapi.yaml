@@ -9,6 +9,11 @@ info:
   description: |
     REST API for Splits, an expense-sharing app. Health checks live at the
     root; every other endpoint is under `/v1`.
+
+    Every response carries an `X-Request-ID` header: the request's own
+    `X-Request-ID` when it sends a valid one (1–64 letters, digits, `-` or
+    `_`), otherwise one the server generates. Server logs carry the same ID.
+    Request bodies are limited to 64 KB (`request-too-large`).
   license:
     name: Proprietary
     identifier: LicenseRef-Proprietary
@@ -18,6 +23,10 @@ servers:
 tags:
   - name: health
     description: Liveness and readiness checks
+  - name: auth
+    description: Sign-up, email verification and sign-in (FR-A1–A4)
+  - name: me
+    description: The signed-in User's own account
 security: []
 
 paths:
@@ -58,7 +67,215 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /v1/auth/signup:
+    post:
+      operationId: signUp
+      summary: Sign up
+      description: |
+        Creates an unverified User and sends a verification code (development:
+        always `123456`, ADR-0016). Returns a Session at once, so the app can
+        keep the User on the verification screen across launches; until the
+        email is verified the access token works for `GET /v1/me` only.
+        Signing up again with the email of an unverified User replaces that
+        User's password and revokes its Sessions: nobody has proved they own
+        the address yet.
+      tags: [auth]
+      requestBody:
+        description: The new User's email and password.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpRequest"
+            example:
+                email: alice@example.com
+                password: correct horse battery
+      responses:
+        "201":
+          description: The User was created; a verification code was sent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+              example:
+                user:
+                  id: 0190b6c4-0000-7000-8000-000000000001
+                  email: alice@example.com
+                  email_verified: false
+                access_token: 3q2-7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                access_expires_at: "2026-10-01T09:15:00Z"
+                refresh_token: vu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                refresh_expires_at: "2026-10-31T09:00:00Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/EmailTaken"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/auth/verify-email:
+    post:
+      operationId: verifyEmail
+      summary: Verify an email address
+      description: |
+        Checks the 6-digit code sent at sign-up or by a resend. A code lasts
+        15 minutes, allows 5 attempts and works once (ADR-0016). Every failure,
+        including an unknown email, answers `invalid-code`.
+      tags: [auth]
+      requestBody:
+        description: The email being verified and the code sent to it.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailRequest"
+            example:
+                email: alice@example.com
+                code: "123456"
+      responses:
+        "200":
+          description: The email is verified; a new Session is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+              example:
+                user:
+                  id: 0190b6c4-0000-7000-8000-000000000001
+                  email: alice@example.com
+                  email_verified: true
+                access_token: 3q2-7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                access_expires_at: "2026-10-01T09:15:00Z"
+                refresh_token: vu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                refresh_expires_at: "2026-10-31T09:00:00Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/auth/verify-email/resend:
+    post:
+      operationId: resendVerificationCode
+      summary: Send a new verification code
+      description: |
+        Replaces any earlier code. Always answers 202, whether or not the
+        email belongs to an unverified User (doc 08).
+      tags: [auth]
+      requestBody:
+        description: The email to send a new code to.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResendVerificationCodeRequest"
+            example:
+                email: alice@example.com
+      responses:
+        "202":
+          description: A code was sent if the email belongs to an unverified User.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/auth/signin:
+    post:
+      operationId: signIn
+      summary: Sign in
+      description: |
+        Email and password → a new Session. An unverified User gets a Session
+        too, with `user.email_verified` false, and goes to verification. A
+        wrong email or password answers the same `invalid-credentials`.
+      tags: [auth]
+      requestBody:
+        description: The User's email and password.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+            example:
+                email: alice@example.com
+                password: correct horse battery
+      responses:
+        "200":
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+              example:
+                user:
+                  id: 0190b6c4-0000-7000-8000-000000000001
+                  email: alice@example.com
+                  email_verified: true
+                access_token: 3q2-7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                access_expires_at: "2026-10-01T09:15:00Z"
+                refresh_token: vu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                refresh_expires_at: "2026-10-31T09:00:00Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/me:
+    get:
+      operationId: getMe
+      summary: The signed-in User
+      description: The app's launch check (FR-U1). Works for unverified Users too.
+      tags: [me]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The User the access token belongs to.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+              example:
+                id: 0190b6c4-0000-7000-8000-000000000001
+                email: alice@example.com
+                email_verified: true
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        An opaque access token from an AuthSession (ADR-0011): 32 random
+        bytes, base64url, valid 15 minutes. Until the User's email is
+        verified it works for `GET /v1/me` only; other endpoints answer
+        `email-not-verified`.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        A client-generated UUID, required on every write by a signed-in User
+        (NFR-R1). Repeating a request with the same key within 24 hours
+        returns the original response; reusing a key for a different request
+        answers `idempotency-key-reused`, and repeating it while the first is
+        still running answers `idempotency-key-in-progress`. Responses with a
+        5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+        it: their responses carry tokens, which are never stored (ADR-0011).
+      schema:
+        type: string
+        format: uuid
+
   schemas:
     HealthStatus:
       description: Liveness answer.
@@ -88,6 +305,16 @@ components:
         Slugs in use:
         - `not-ready`: the server cannot reach its database (503).
         - `invalid-request`: the request could not be decoded (400).
+        - `validation-failed`: one or more fields are invalid; see `errors` (400).
+        - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+        - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+        - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+        - `invalid-credentials`: the email or password is wrong (401).
+        - `email-not-verified`: the User must verify their email first (403).
+        - `email-taken`: a verified User already has this email (409).
+        - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+        - `request-too-large`: the request body is over 64 KB (413).
+        - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
         - `internal`: an unexpected server failure (500).
       type: object
       required: [type, title, status]
@@ -131,6 +358,121 @@ components:
           type: string
           description: Stable machine-readable reason, such as `required` or `too_long`.
 
+    Email:
+      description: |
+        An email address. The server trims surrounding whitespace and compares
+        addresses ignoring case (FR-A1).
+      type: string
+      maxLength: 254
+      examples: ["alice@example.com"]
+
+    Password:
+      description: |
+        10–128 characters, no composition rules; common and breached passwords
+        are refused (FR-A3). Field error codes: `too_short`, `too_long`,
+        `too_common`.
+      type: string
+      maxLength: 1024
+      examples: ["correct horse battery"]
+
+    OneTimeCode:
+      description: "The 6-digit code sent by email (development: `123456`)."
+      type: string
+      maxLength: 16
+      examples: ["123456"]
+
+    SignUpRequest:
+      description: Sign-up input (FR-A1, FR-A3).
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+        password:
+          $ref: "#/components/schemas/Password"
+
+    VerifyEmailRequest:
+      description: Email verification input (FR-A2).
+      type: object
+      required: [email, code]
+      additionalProperties: false
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+        code:
+          $ref: "#/components/schemas/OneTimeCode"
+
+    ResendVerificationCodeRequest:
+      description: Asks for a new verification code (FR-A2).
+      type: object
+      required: [email]
+      additionalProperties: false
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+
+    SignInRequest:
+      description: |
+        Sign-in input (FR-A4). The password is not checked against the sign-up
+        rules, so a wrong one always answers `invalid-credentials`.
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+        password:
+          type: string
+          maxLength: 1024
+          examples: ["correct horse battery"]
+
+    User:
+      description: A User's own profile.
+      type: object
+      required: [id, email, email_verified]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-000000000001"]
+        email:
+          type: string
+          examples: ["alice@example.com"]
+        email_verified:
+          type: boolean
+          examples: [true]
+
+    AuthSession:
+      description: |
+        A new Session (ADR-0011): an access token valid 15 minutes and a
+        refresh token valid 30 days, both opaque. Keep both in the Keychain.
+      type: object
+      required: [user, access_token, access_expires_at, refresh_token, refresh_expires_at]
+      additionalProperties: false
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+          examples:
+            - id: 0190b6c4-0000-7000-8000-000000000001
+              email: alice@example.com
+              email_verified: true
+        access_token:
+          type: string
+          examples: ["3q2-7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+        access_expires_at:
+          type: string
+          format: date-time
+          examples: ["2026-10-01T09:15:00Z"]
+        refresh_token:
+          type: string
+          examples: ["vu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+        refresh_expires_at:
+          type: string
+          format: date-time
+          examples: ["2026-10-31T09:00:00Z"]
+
     Money:
       description: |
         An amount in integer minor units of an ISO 4217 currency (ADR-0002).
@@ -162,6 +504,90 @@ components:
       examples: ["83.25"]
 
   responses:
+    BadRequest:
+      description: |
+        The request could not be decoded (`invalid-request`), a field is
+        invalid (`validation-failed`, with `errors`), or a one-time code was
+        refused (`invalid-code`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/validation-failed
+            title: Validation failed
+            status: 400
+            errors: [{field: /password, code: too_short}]
+    Unauthenticated:
+      description: No access token, or it is unknown, expired or revoked.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/unauthenticated
+            title: Unauthenticated
+            status: 401
+    InvalidCredentials:
+      description: The email or password is wrong.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/invalid-credentials
+            title: Invalid credentials
+            status: 401
+    EmailNotVerified:
+      description: The signed-in User must verify their email first.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/email-not-verified
+            title: Email not verified
+            status: 403
+    EmailTaken:
+      description: A verified User already has this email.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/email-taken
+            title: Email taken
+            status: 409
+    RequestTooLarge:
+      description: The request body is over 64 KB.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/request-too-large
+            title: Request too large
+            status: 413
+    IdempotencyKeyReused:
+      description: The Idempotency-Key was already used for a different request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/idempotency-key-reused
+            title: Idempotency key reused
+            status: 422
+    IdempotencyKeyInProgress:
+      description: A request with the same Idempotency-Key is still being processed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/idempotency-key-in-progress
+            title: Idempotency key in progress
+            status: 409
     NotReady:
       description: The database is unreachable.
       content:

@@ -68,7 +68,7 @@ users ─1───*─ sessions
 | `notifications` | `id`, `user_id`, `group_id`, `kind`, `action_required bool`, `subject_type`, `subject_id`, `read_at null`, `resolved_at null` | Action-required items resolve when the underlying action happens. |
 | `notification_mutes` | `user_id`, `group_id` | Mutes informational kinds only (FR-N2). |
 | `notification_preferences` | `user_id`, `kind`, `push_enabled bool` | Push delivery only (FR-N5); a missing row means enabled. The reminder toggle is kind `reminder` (FR-N6). |
-| `idempotency_keys` | `user_id`, `key`, `request_hash`, `status`, `response jsonb`, `created_at` | PK `(user_id, key)`, kept 24 h (NFR-R1). |
+| `idempotency_keys` | `user_id`, `key`, `request_hash`, `status (in_progress \| completed)`, `response_status`, `response_content_type`, `response_body bytea`, `created_at` | PK `(user_id, key)`, kept 24 h (NFR-R1). The response is stored as sent, so a replay is byte-identical; 5xx responses are not kept. |
 
 Balances are derived from accepted `expense_shares`, `expenses.payer_id` and confirmed `settlements`. Whether to also keep a `group_balances` table, updated in the same transaction, is decided when performance tests run (NFR-P2), and an ADR is written if it is added.
 

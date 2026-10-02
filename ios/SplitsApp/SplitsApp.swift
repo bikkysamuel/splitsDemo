@@ -6,20 +6,19 @@ import SwiftUI
 
 /// The composition root: the only module that imports every layer
 /// (ADR-0015). It builds the infrastructure, wraps it in repositories and
-/// hands those to the ViewModels.
+/// hands those to the app-level session, which drives the root view.
 @main
 struct SplitsApp: App {
-  @State private var serverStatus: ServerStatusViewModel
+  @State private var session: AppSession
 
   init() {
-    _serverStatus = State(
-      initialValue: ServerStatusViewModel(repository: ServerHealthAPIRepository(configuration: Self.apiConfiguration()))
-    )
+    let repository = AuthAPIRepository(configuration: Self.apiConfiguration(), tokens: KeychainTokenStore())
+    _session = State(initialValue: AppSession(repository: repository))
   }
 
   var body: some Scene {
     WindowGroup {
-      ServerStatusView(viewModel: serverStatus)
+      RootView(session: session)
     }
   }
 

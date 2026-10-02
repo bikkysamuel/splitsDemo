@@ -12,6 +12,230 @@ public import struct Foundation.Date
 extension Components {
     /// Types generated from the `#/components/responses` section of the OpenAPI document.
     public enum Responses {
+        public struct BadRequest: Sendable, Hashable {
+            /// - Remark: Generated from `#/components/responses/BadRequest/content`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/components/responses/BadRequest/content/application\/problem+json`.
+                case applicationProblemJson(Components.Schemas.Problem)
+                /// The associated value of the enum case if `self` is `.applicationProblemJson`.
+                ///
+                /// - Throws: An error if `self` is not `.applicationProblemJson`.
+                /// - SeeAlso: `.applicationProblemJson`.
+                public var applicationProblemJson: Components.Schemas.Problem {
+                    get throws {
+                        switch self {
+                        case let .applicationProblemJson(body):
+                            return body
+                        }
+                    }
+                }
+            }
+            /// Received HTTP response body
+            public var body: Components.Responses.BadRequest.Body
+            /// Creates a new `BadRequest`.
+            ///
+            /// - Parameters:
+            ///   - body: Received HTTP response body
+            public init(body: Components.Responses.BadRequest.Body) {
+                self.body = body
+            }
+        }
+        public struct Unauthenticated: Sendable, Hashable {
+            /// - Remark: Generated from `#/components/responses/Unauthenticated/content`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/components/responses/Unauthenticated/content/application\/problem+json`.
+                case applicationProblemJson(Components.Schemas.Problem)
+                /// The associated value of the enum case if `self` is `.applicationProblemJson`.
+                ///
+                /// - Throws: An error if `self` is not `.applicationProblemJson`.
+                /// - SeeAlso: `.applicationProblemJson`.
+                public var applicationProblemJson: Components.Schemas.Problem {
+                    get throws {
+                        switch self {
+                        case let .applicationProblemJson(body):
+                            return body
+                        }
+                    }
+                }
+            }
+            /// Received HTTP response body
+            public var body: Components.Responses.Unauthenticated.Body
+            /// Creates a new `Unauthenticated`.
+            ///
+            /// - Parameters:
+            ///   - body: Received HTTP response body
+            public init(body: Components.Responses.Unauthenticated.Body) {
+                self.body = body
+            }
+        }
+        public struct InvalidCredentials: Sendable, Hashable {
+            /// - Remark: Generated from `#/components/responses/InvalidCredentials/content`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/components/responses/InvalidCredentials/content/application\/problem+json`.
+                case applicationProblemJson(Components.Schemas.Problem)
+                /// The associated value of the enum case if `self` is `.applicationProblemJson`.
+                ///
+                /// - Throws: An error if `self` is not `.applicationProblemJson`.
+                /// - SeeAlso: `.applicationProblemJson`.
+                public var applicationProblemJson: Components.Schemas.Problem {
+                    get throws {
+                        switch self {
+                        case let .applicationProblemJson(body):
+                            return body
+                        }
+                    }
+                }
+            }
+            /// Received HTTP response body
+            public var body: Components.Responses.InvalidCredentials.Body
+            /// Creates a new `InvalidCredentials`.
+            ///
+            /// - Parameters:
+            ///   - body: Received HTTP response body
+            public init(body: Components.Responses.InvalidCredentials.Body) {
+                self.body = body
+            }
+        }
+        public struct EmailNotVerified: Sendable, Hashable {
+            /// - Remark: Generated from `#/components/responses/EmailNotVerified/content`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/components/responses/EmailNotVerified/content/application\/problem+json`.
+                case applicationProblemJson(Components.Schemas.Problem)
+                /// The associated value of the enum case if `self` is `.applicationProblemJson`.
+                ///
+                /// - Throws: An error if `self` is not `.applicationProblemJson`.
+                /// - SeeAlso: `.applicationProblemJson`.
+                public var applicationProblemJson: Components.Schemas.Problem {
+                    get throws {
+                        switch self {
+                        case let .applicationProblemJson(body):
+                            return body
+                        }
+                    }
+                }
+            }
+            /// Received HTTP response body
+            public var body: Components.Responses.EmailNotVerified.Body
+            /// Creates a new `EmailNotVerified`.
+            ///
+            /// - Parameters:
+            ///   - body: Received HTTP response body
+            public init(body: Components.Responses.EmailNotVerified.Body) {
+                self.body = body
+            }
+        }
+        public struct EmailTaken: Sendable, Hashable {
+            /// - Remark: Generated from `#/components/responses/EmailTaken/content`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/components/responses/EmailTaken/content/application\/problem+json`.
+                case applicationProblemJson(Components.Schemas.Problem)
+                /// The associated value of the enum case if `self` is `.applicationProblemJson`.
+                ///
+                /// - Throws: An error if `self` is not `.applicationProblemJson`.
+                /// - SeeAlso: `.applicationProblemJson`.
+                public var applicationProblemJson: Components.Schemas.Problem {
+                    get throws {
+                        switch self {
+                        case let .applicationProblemJson(body):
+                            return body
+                        }
+                    }
+                }
+            }
+            /// Received HTTP response body
+            public var body: Components.Responses.EmailTaken.Body
+            /// Creates a new `EmailTaken`.
+            ///
+            /// - Parameters:
+            ///   - body: Received HTTP response body
+            public init(body: Components.Responses.EmailTaken.Body) {
+                self.body = body
+            }
+        }
+        public struct RequestTooLarge: Sendable, Hashable {
+            /// - Remark: Generated from `#/components/responses/RequestTooLarge/content`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/components/responses/RequestTooLarge/content/application\/problem+json`.
+                case applicationProblemJson(Components.Schemas.Problem)
+                /// The associated value of the enum case if `self` is `.applicationProblemJson`.
+                ///
+                /// - Throws: An error if `self` is not `.applicationProblemJson`.
+                /// - SeeAlso: `.applicationProblemJson`.
+                public var applicationProblemJson: Components.Schemas.Problem {
+                    get throws {
+                        switch self {
+                        case let .applicationProblemJson(body):
+                            return body
+                        }
+                    }
+                }
+            }
+            /// Received HTTP response body
+            public var body: Components.Responses.RequestTooLarge.Body
+            /// Creates a new `RequestTooLarge`.
+            ///
+            /// - Parameters:
+            ///   - body: Received HTTP response body
+            public init(body: Components.Responses.RequestTooLarge.Body) {
+                self.body = body
+            }
+        }
+        public struct IdempotencyKeyReused: Sendable, Hashable {
+            /// - Remark: Generated from `#/components/responses/IdempotencyKeyReused/content`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/components/responses/IdempotencyKeyReused/content/application\/problem+json`.
+                case applicationProblemJson(Components.Schemas.Problem)
+                /// The associated value of the enum case if `self` is `.applicationProblemJson`.
+                ///
+                /// - Throws: An error if `self` is not `.applicationProblemJson`.
+                /// - SeeAlso: `.applicationProblemJson`.
+                public var applicationProblemJson: Components.Schemas.Problem {
+                    get throws {
+                        switch self {
+                        case let .applicationProblemJson(body):
+                            return body
+                        }
+                    }
+                }
+            }
+            /// Received HTTP response body
+            public var body: Components.Responses.IdempotencyKeyReused.Body
+            /// Creates a new `IdempotencyKeyReused`.
+            ///
+            /// - Parameters:
+            ///   - body: Received HTTP response body
+            public init(body: Components.Responses.IdempotencyKeyReused.Body) {
+                self.body = body
+            }
+        }
+        public struct IdempotencyKeyInProgress: Sendable, Hashable {
+            /// - Remark: Generated from `#/components/responses/IdempotencyKeyInProgress/content`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/components/responses/IdempotencyKeyInProgress/content/application\/problem+json`.
+                case applicationProblemJson(Components.Schemas.Problem)
+                /// The associated value of the enum case if `self` is `.applicationProblemJson`.
+                ///
+                /// - Throws: An error if `self` is not `.applicationProblemJson`.
+                /// - SeeAlso: `.applicationProblemJson`.
+                public var applicationProblemJson: Components.Schemas.Problem {
+                    get throws {
+                        switch self {
+                        case let .applicationProblemJson(body):
+                            return body
+                        }
+                    }
+                }
+            }
+            /// Received HTTP response body
+            public var body: Components.Responses.IdempotencyKeyInProgress.Body
+            /// Creates a new `IdempotencyKeyInProgress`.
+            ///
+            /// - Parameters:
+            ///   - body: Received HTTP response body
+            public init(body: Components.Responses.IdempotencyKeyInProgress.Body) {
+                self.body = body
+            }
+        }
         public struct NotReady: Sendable, Hashable {
             /// - Remark: Generated from `#/components/responses/NotReady/content`.
             @frozen public enum Body: Sendable, Hashable {

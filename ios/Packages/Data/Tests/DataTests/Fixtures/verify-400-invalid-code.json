@@ -1,0 +1,5 @@
+{
+  "status": 400,
+  "title": "Invalid code",
+  "type": "https://splits.dev/problems/invalid-code"
+}

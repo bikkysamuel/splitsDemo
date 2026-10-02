@@ -19,6 +19,7 @@ linters:
             - "**/internal/platform/**"
             - "**/internal/ledger/**"
             - "**/internal/auth/**"
+            - "**/internal/idempotency/**"
             - "**/internal/groups/**"
             - "**/internal/expenses/**"
             - "**/internal/settlements/**"

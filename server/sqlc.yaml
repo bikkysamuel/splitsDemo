@@ -1,0 +1,15 @@
+# sqlc: type-safe Go from the SQL in internal/store/queries (ADR-0014).
+# Regenerate with `go generate ./internal/store/`; scripts/check.sh server
+# fails if the committed code drifts.
+version: "2"
+sql:
+  - engine: postgresql
+    schema: migrations
+    queries: internal/store/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/store/sqlcgen
+        sql_package: pgx/v5
+        emit_methods_with_db_argument: false
+        emit_empty_slices: true

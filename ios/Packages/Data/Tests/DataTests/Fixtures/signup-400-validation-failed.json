@@ -1,0 +1,15 @@
+{
+  "errors": [
+    {
+      "code": "invalid",
+      "field": "/email"
+    },
+    {
+      "code": "too_short",
+      "field": "/password"
+    }
+  ],
+  "status": 400,
+  "title": "Validation failed",
+  "type": "https://splits.dev/problems/validation-failed"
+}

@@ -11,6 +11,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
+
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for HealthStatusStatus.
@@ -43,10 +46,37 @@ func (e ReadinessStatusStatus) Valid() bool {
 	}
 }
 
+// AuthSession A new Session (ADR-0011): an access token valid 15 minutes and a
+// refresh token valid 30 days, both opaque. Keep both in the Keychain.
+type AuthSession struct {
+	// AccessExpiresAt Examples: 2026-10-01T09:15:00Z
+	AccessExpiresAt time.Time `json:"access_expires_at"`
+
+	// AccessToken Examples: 3q2-7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+	AccessToken string `json:"access_token"`
+
+	// RefreshExpiresAt Examples: 2026-10-31T09:00:00Z
+	RefreshExpiresAt time.Time `json:"refresh_expires_at"`
+
+	// RefreshToken Examples: vu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+	RefreshToken string `json:"refresh_token"`
+
+	// User A User's own profile.
+	//
+	// Examples: {"email":"alice@example.com","email_verified":true,"id":"0190b6c4-0000-7000-8000-000000000001"}
+	User User `json:"user"`
+}
+
 // CurrencyCode ISO 4217 alphabetic currency code.
 //
 // Examples: INR
 type CurrencyCode = string
+
+// Email An email address. The server trims surrounding whitespace and compares
+// addresses ignoring case (FR-A1).
+//
+// Examples: alice@example.com
+type Email = string
 
 // ExchangeRate An exact decimal held in a string (ADR-0007), never a JSON number:
 // units of the Group currency per one unit of the Expense currency.
@@ -86,12 +116,34 @@ type Money struct {
 	Minor int64 `json:"minor"`
 }
 
+// OneTimeCode The 6-digit code sent by email (development: `123456`).
+//
+// Examples: 123456
+type OneTimeCode = string
+
+// Password 10–128 characters, no composition rules; common and breached passwords
+// are refused (FR-A3). Field error codes: `too_short`, `too_long`,
+// `too_common`.
+//
+// Examples: correct horse battery
+type Password = string
+
 // Problem RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
 // message. Clients must treat an unknown `type` as a generic error.
 // Slugs in use:
 // - `not-ready`: the server cannot reach its database (503).
 // - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `internal`: an unexpected server failure (500).
 type Problem struct {
 	// Detail Explanation of this occurrence; not for display.
@@ -124,14 +176,210 @@ type ReadinessStatus struct {
 // ReadinessStatusStatus defines model for ReadinessStatus.Status.
 type ReadinessStatusStatus string
 
+// ResendVerificationCodeRequest Asks for a new verification code (FR-A2).
+type ResendVerificationCodeRequest struct {
+	// Email An email address. The server trims surrounding whitespace and compares
+	// addresses ignoring case (FR-A1).
+	//
+	//
+	// Examples: alice@example.com
+	Email Email `json:"email"`
+}
+
+// SignInRequest Sign-in input (FR-A4). The password is not checked against the sign-up
+// rules, so a wrong one always answers `invalid-credentials`.
+type SignInRequest struct {
+	// Email An email address. The server trims surrounding whitespace and compares
+	// addresses ignoring case (FR-A1).
+	//
+	//
+	// Examples: alice@example.com
+	Email Email `json:"email"`
+
+	// Password Examples: correct horse battery
+	Password string `json:"password"`
+}
+
+// SignUpRequest Sign-up input (FR-A1, FR-A3).
+type SignUpRequest struct {
+	// Email An email address. The server trims surrounding whitespace and compares
+	// addresses ignoring case (FR-A1).
+	//
+	//
+	// Examples: alice@example.com
+	Email Email `json:"email"`
+
+	// Password 10–128 characters, no composition rules; common and breached passwords
+	// are refused (FR-A3). Field error codes: `too_short`, `too_long`,
+	// `too_common`.
+	//
+	//
+	// Examples: correct horse battery
+	Password Password `json:"password"`
+}
+
+// User A User's own profile.
+type User struct {
+	// Email Examples: alice@example.com
+	Email string `json:"email"`
+
+	// EmailVerified Examples: true
+	EmailVerified bool `json:"email_verified"`
+
+	// Id Examples: 0190b6c4-0000-7000-8000-000000000001
+	Id openapi_types.UUID `json:"id"`
+}
+
+// VerifyEmailRequest Email verification input (FR-A2).
+type VerifyEmailRequest struct {
+	// Code The 6-digit code sent by email (development: `123456`).
+	//
+	// Examples: 123456
+	Code OneTimeCode `json:"code"`
+
+	// Email An email address. The server trims surrounding whitespace and compares
+	// addresses ignoring case (FR-A1).
+	//
+	//
+	// Examples: alice@example.com
+	Email Email `json:"email"`
+}
+
+// IdempotencyKey defines model for IdempotencyKey.
+type IdempotencyKey = openapi_types.UUID
+
+// BadRequest RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `internal`: an unexpected server failure (500).
+type BadRequest = Problem
+
+// EmailNotVerified RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `internal`: an unexpected server failure (500).
+type EmailNotVerified = Problem
+
+// EmailTaken RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `internal`: an unexpected server failure (500).
+type EmailTaken = Problem
+
+// IdempotencyKeyInProgress RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `internal`: an unexpected server failure (500).
+type IdempotencyKeyInProgress = Problem
+
+// IdempotencyKeyReused RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `internal`: an unexpected server failure (500).
+type IdempotencyKeyReused = Problem
+
 // InternalError RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
 // message. Clients must treat an unknown `type` as a generic error.
 // Slugs in use:
 // - `not-ready`: the server cannot reach its database (503).
 // - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `internal`: an unexpected server failure (500).
 type InternalError = Problem
+
+// InvalidCredentials RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `internal`: an unexpected server failure (500).
+type InvalidCredentials = Problem
 
 // NotReady RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
@@ -139,8 +387,68 @@ type InternalError = Problem
 // Slugs in use:
 // - `not-ready`: the server cannot reach its database (503).
 // - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `internal`: an unexpected server failure (500).
 type NotReady = Problem
+
+// RequestTooLarge RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `internal`: an unexpected server failure (500).
+type RequestTooLarge = Problem
+
+// Unauthenticated RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `internal`: an unexpected server failure (500).
+type Unauthenticated = Problem
+
+// SignInJSONRequestBody defines body for SignIn for application/json ContentType.
+type SignInJSONRequestBody = SignInRequest
+
+// SignUpJSONRequestBody defines body for SignUp for application/json ContentType.
+type SignUpJSONRequestBody = SignUpRequest
+
+// VerifyEmailJSONRequestBody defines body for VerifyEmail for application/json ContentType.
+type VerifyEmailJSONRequestBody = VerifyEmailRequest
+
+// ResendVerificationCodeJSONRequestBody defines body for ResendVerificationCode for application/json ContentType.
+type ResendVerificationCodeJSONRequestBody = ResendVerificationCodeRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -150,6 +458,21 @@ type ServerInterface interface {
 	// GetReadyz Readiness
 	// (GET /readyz)
 	GetReadyz(w http.ResponseWriter, r *http.Request)
+	// SignIn Sign in
+	// (POST /v1/auth/signin)
+	SignIn(w http.ResponseWriter, r *http.Request)
+	// SignUp Sign up
+	// (POST /v1/auth/signup)
+	SignUp(w http.ResponseWriter, r *http.Request)
+	// VerifyEmail Verify an email address
+	// (POST /v1/auth/verify-email)
+	VerifyEmail(w http.ResponseWriter, r *http.Request)
+	// ResendVerificationCode Send a new verification code
+	// (POST /v1/auth/verify-email/resend)
+	ResendVerificationCode(w http.ResponseWriter, r *http.Request)
+	// GetMe The signed-in User
+	// (GET /v1/me)
+	GetMe(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -180,6 +503,76 @@ func (siw *ServerInterfaceWrapper) GetReadyz(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetReadyz(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SignIn operation middleware
+func (siw *ServerInterfaceWrapper) SignIn(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SignIn(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SignUp operation middleware
+func (siw *ServerInterfaceWrapper) SignUp(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SignUp(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// VerifyEmail operation middleware
+func (siw *ServerInterfaceWrapper) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VerifyEmail(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResendVerificationCode operation middleware
+func (siw *ServerInterfaceWrapper) ResendVerificationCode(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResendVerificationCode(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMe operation middleware
+func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMe(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -311,13 +704,34 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/healthz", wrapper.GetHealthz)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/readyz", wrapper.GetReadyz)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/signup", wrapper.SignUp)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/verify-email", wrapper.VerifyEmail)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/verify-email/resend", wrapper.ResendVerificationCode)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/signin", wrapper.SignIn)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
 
 	return m
 }
 
+type BadRequestApplicationProblemPlusJSONResponse Problem
+
+type EmailNotVerifiedApplicationProblemPlusJSONResponse Problem
+
+type EmailTakenApplicationProblemPlusJSONResponse Problem
+
+type IdempotencyKeyInProgressApplicationProblemPlusJSONResponse Problem
+
+type IdempotencyKeyReusedApplicationProblemPlusJSONResponse Problem
+
 type InternalErrorApplicationProblemPlusJSONResponse Problem
 
+type InvalidCredentialsApplicationProblemPlusJSONResponse Problem
+
 type NotReadyApplicationProblemPlusJSONResponse Problem
+
+type RequestTooLargeApplicationProblemPlusJSONResponse Problem
+
+type UnauthenticatedApplicationProblemPlusJSONResponse Problem
 
 type GetHealthzRequestObject struct {
 }
@@ -409,6 +823,365 @@ func (response GetReadyz503ApplicationProblemPlusJSONResponse) VisitGetReadyzRes
 	return err
 }
 
+type SignInRequestObject struct {
+	Body *SignInJSONRequestBody
+}
+
+type SignInResponseObject interface {
+	VisitSignInResponse(w http.ResponseWriter) error
+}
+
+type SignIn200JSONResponse AuthSession
+
+func (response SignIn200JSONResponse) VisitSignInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignIn400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SignIn400ApplicationProblemPlusJSONResponse) VisitSignInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignIn401ApplicationProblemPlusJSONResponse struct {
+	InvalidCredentialsApplicationProblemPlusJSONResponse
+}
+
+func (response SignIn401ApplicationProblemPlusJSONResponse) VisitSignInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignIn413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response SignIn413ApplicationProblemPlusJSONResponse) VisitSignInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignIn500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response SignIn500ApplicationProblemPlusJSONResponse) VisitSignInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignUpRequestObject struct {
+	Body *SignUpJSONRequestBody
+}
+
+type SignUpResponseObject interface {
+	VisitSignUpResponse(w http.ResponseWriter) error
+}
+
+type SignUp201JSONResponse AuthSession
+
+func (response SignUp201JSONResponse) VisitSignUpResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignUp400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response SignUp400ApplicationProblemPlusJSONResponse) VisitSignUpResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignUp409ApplicationProblemPlusJSONResponse struct {
+	EmailTakenApplicationProblemPlusJSONResponse
+}
+
+func (response SignUp409ApplicationProblemPlusJSONResponse) VisitSignUpResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignUp413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response SignUp413ApplicationProblemPlusJSONResponse) VisitSignUpResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignUp500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response SignUp500ApplicationProblemPlusJSONResponse) VisitSignUpResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VerifyEmailRequestObject struct {
+	Body *VerifyEmailJSONRequestBody
+}
+
+type VerifyEmailResponseObject interface {
+	VisitVerifyEmailResponse(w http.ResponseWriter) error
+}
+
+type VerifyEmail200JSONResponse AuthSession
+
+func (response VerifyEmail200JSONResponse) VisitVerifyEmailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VerifyEmail400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response VerifyEmail400ApplicationProblemPlusJSONResponse) VisitVerifyEmailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VerifyEmail413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response VerifyEmail413ApplicationProblemPlusJSONResponse) VisitVerifyEmailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VerifyEmail500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response VerifyEmail500ApplicationProblemPlusJSONResponse) VisitVerifyEmailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResendVerificationCodeRequestObject struct {
+	Body *ResendVerificationCodeJSONRequestBody
+}
+
+type ResendVerificationCodeResponseObject interface {
+	VisitResendVerificationCodeResponse(w http.ResponseWriter) error
+}
+
+type ResendVerificationCode202Response struct {
+}
+
+func (response ResendVerificationCode202Response) VisitResendVerificationCodeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
+
+type ResendVerificationCode400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ResendVerificationCode400ApplicationProblemPlusJSONResponse) VisitResendVerificationCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResendVerificationCode413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response ResendVerificationCode413ApplicationProblemPlusJSONResponse) VisitResendVerificationCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResendVerificationCode500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response ResendVerificationCode500ApplicationProblemPlusJSONResponse) VisitResendVerificationCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMeRequestObject struct {
+}
+
+type GetMeResponseObject interface {
+	VisitGetMeResponse(w http.ResponseWriter) error
+}
+
+type GetMe200JSONResponse User
+
+func (response GetMe200JSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMe401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response GetMe401ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMe500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response GetMe500ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// GetHealthz Liveness
@@ -417,6 +1190,21 @@ type StrictServerInterface interface {
 	// GetReadyz Readiness
 	// (GET /readyz)
 	GetReadyz(ctx context.Context, request GetReadyzRequestObject) (GetReadyzResponseObject, error)
+	// SignIn Sign in
+	// (POST /v1/auth/signin)
+	SignIn(ctx context.Context, request SignInRequestObject) (SignInResponseObject, error)
+	// SignUp Sign up
+	// (POST /v1/auth/signup)
+	SignUp(ctx context.Context, request SignUpRequestObject) (SignUpResponseObject, error)
+	// VerifyEmail Verify an email address
+	// (POST /v1/auth/verify-email)
+	VerifyEmail(ctx context.Context, request VerifyEmailRequestObject) (VerifyEmailResponseObject, error)
+	// ResendVerificationCode Send a new verification code
+	// (POST /v1/auth/verify-email/resend)
+	ResendVerificationCode(ctx context.Context, request ResendVerificationCodeRequestObject) (ResendVerificationCodeResponseObject, error)
+	// GetMe The signed-in User
+	// (GET /v1/me)
+	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -499,6 +1287,154 @@ func (sh *strictHandler) GetReadyz(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetReadyzResponseObject); ok {
 		if err := validResponse.VisitGetReadyzResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SignIn operation middleware
+func (sh *strictHandler) SignIn(w http.ResponseWriter, r *http.Request) {
+	var request SignInRequestObject
+
+	var body SignInJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SignIn(ctx, request.(SignInRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SignIn")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SignInResponseObject); ok {
+		if err := validResponse.VisitSignInResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SignUp operation middleware
+func (sh *strictHandler) SignUp(w http.ResponseWriter, r *http.Request) {
+	var request SignUpRequestObject
+
+	var body SignUpJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SignUp(ctx, request.(SignUpRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SignUp")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SignUpResponseObject); ok {
+		if err := validResponse.VisitSignUpResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VerifyEmail operation middleware
+func (sh *strictHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	var request VerifyEmailRequestObject
+
+	var body VerifyEmailJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.VerifyEmail(ctx, request.(VerifyEmailRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VerifyEmail")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(VerifyEmailResponseObject); ok {
+		if err := validResponse.VisitVerifyEmailResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResendVerificationCode operation middleware
+func (sh *strictHandler) ResendVerificationCode(w http.ResponseWriter, r *http.Request) {
+	var request ResendVerificationCodeRequestObject
+
+	var body ResendVerificationCodeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResendVerificationCode(ctx, request.(ResendVerificationCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResendVerificationCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResendVerificationCodeResponseObject); ok {
+		if err := validResponse.VisitResendVerificationCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMe operation middleware
+func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	var request GetMeRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMe(ctx, request.(GetMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMeResponseObject); ok {
+		if err := validResponse.VisitGetMeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

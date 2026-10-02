@@ -30,7 +30,13 @@ scripts/check.sh ios                   # from the repository root: swift-format,
 
 Each package also runs on the Mac with `swift test` from its directory, which is faster while iterating.
 
-ViewModels are tested with Swift Testing and a fake repository (see `FeaturesTests`).
+ViewModels are tested with Swift Testing and a fake repository (see `FeaturesTests`). Data repositories are tested over a fake `ClientTransport` answering with JSON recorded from the real server (`DataTests/Fixtures/`; tokens and emails replaced with fake values so gitleaks stays quiet).
+
+The Keychain token store (`KeychainTokenStore`) has no unit test: package tests run without a signed host app, so the Keychain answers `errSecMissingEntitlement`. Check it in the app: sign up, quit, relaunch, and the splash should go straight to verification or Home.
+
+## Session and sign-in
+
+`AppSession` (Presentation) holds the app-level state, `launching` → `signedOut` / `needsVerification` / `signedIn`, and `RootView` shows the matching screen (FR-U1). On launch it calls `GET /v1/me` with the saved access token; a failed check stays on the splash with a retry, never sign-in, so a valid Session is kept. Tokens live only in the Keychain (`AfterFirstUnlockThisDeviceOnly`); `AuthenticationMiddleware` adds them to every operation except the anonymous ones. Server problem `type`s map to `ServiceError` (Domain) and then to String Catalog messages (`ServiceErrorMessage`). In development the verification code is always `123456`.
 
 ## API client
 

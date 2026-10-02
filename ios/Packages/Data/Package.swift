@@ -22,6 +22,7 @@ let package = Package(
       dependencies: [
         "Domain",
         .product(name: "APIClient", package: "Infrastructure"),
+        .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
       ]
     ),
     .testTarget(
@@ -32,7 +33,8 @@ let package = Package(
         .product(name: "APIClient", package: "Infrastructure"),
         .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
         .product(name: "HTTPTypes", package: "swift-http-types"),
-      ]
+      ],
+      resources: [.copy("Fixtures")]
     ),
   ],
   swiftLanguageModes: [.v6]

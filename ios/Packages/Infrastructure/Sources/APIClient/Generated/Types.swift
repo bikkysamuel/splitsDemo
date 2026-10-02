@@ -25,6 +25,56 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /readyz`.
     /// - Remark: Generated from `#/paths//readyz/get(getReadyz)`.
     func getReadyz(_ input: Operations.GetReadyz.Input) async throws -> Operations.GetReadyz.Output
+    /// Sign up
+    ///
+    /// Creates an unverified User and sends a verification code (development:
+    /// always `123456`, ADR-0016). Returns a Session at once, so the app can
+    /// keep the User on the verification screen across launches; until the
+    /// email is verified the access token works for `GET /v1/me` only.
+    /// Signing up again with the email of an unverified User replaces that
+    /// User's password and revokes its Sessions: nobody has proved they own
+    /// the address yet.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/signup`.
+    /// - Remark: Generated from `#/paths//v1/auth/signup/post(signUp)`.
+    func signUp(_ input: Operations.SignUp.Input) async throws -> Operations.SignUp.Output
+    /// Verify an email address
+    ///
+    /// Checks the 6-digit code sent at sign-up or by a resend. A code lasts
+    /// 15 minutes, allows 5 attempts and works once (ADR-0016). Every failure,
+    /// including an unknown email, answers `invalid-code`.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/verify-email`.
+    /// - Remark: Generated from `#/paths//v1/auth/verify-email/post(verifyEmail)`.
+    func verifyEmail(_ input: Operations.VerifyEmail.Input) async throws -> Operations.VerifyEmail.Output
+    /// Send a new verification code
+    ///
+    /// Replaces any earlier code. Always answers 202, whether or not the
+    /// email belongs to an unverified User (doc 08).
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/verify-email/resend`.
+    /// - Remark: Generated from `#/paths//v1/auth/verify-email/resend/post(resendVerificationCode)`.
+    func resendVerificationCode(_ input: Operations.ResendVerificationCode.Input) async throws -> Operations.ResendVerificationCode.Output
+    /// Sign in
+    ///
+    /// Email and password → a new Session. An unverified User gets a Session
+    /// too, with `user.email_verified` false, and goes to verification. A
+    /// wrong email or password answers the same `invalid-credentials`.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/signin`.
+    /// - Remark: Generated from `#/paths//v1/auth/signin/post(signIn)`.
+    func signIn(_ input: Operations.SignIn.Input) async throws -> Operations.SignIn.Output
+    /// The signed-in User
+    ///
+    /// The app's launch check (FR-U1). Works for unverified Users too.
+    ///
+    /// - Remark: HTTP `GET /v1/me`.
+    /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
+    func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -46,6 +96,90 @@ extension APIProtocol {
     /// - Remark: Generated from `#/paths//readyz/get(getReadyz)`.
     public func getReadyz(headers: Operations.GetReadyz.Input.Headers = .init()) async throws -> Operations.GetReadyz.Output {
         try await getReadyz(Operations.GetReadyz.Input(headers: headers))
+    }
+    /// Sign up
+    ///
+    /// Creates an unverified User and sends a verification code (development:
+    /// always `123456`, ADR-0016). Returns a Session at once, so the app can
+    /// keep the User on the verification screen across launches; until the
+    /// email is verified the access token works for `GET /v1/me` only.
+    /// Signing up again with the email of an unverified User replaces that
+    /// User's password and revokes its Sessions: nobody has proved they own
+    /// the address yet.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/signup`.
+    /// - Remark: Generated from `#/paths//v1/auth/signup/post(signUp)`.
+    public func signUp(
+        headers: Operations.SignUp.Input.Headers = .init(),
+        body: Operations.SignUp.Input.Body
+    ) async throws -> Operations.SignUp.Output {
+        try await signUp(Operations.SignUp.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Verify an email address
+    ///
+    /// Checks the 6-digit code sent at sign-up or by a resend. A code lasts
+    /// 15 minutes, allows 5 attempts and works once (ADR-0016). Every failure,
+    /// including an unknown email, answers `invalid-code`.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/verify-email`.
+    /// - Remark: Generated from `#/paths//v1/auth/verify-email/post(verifyEmail)`.
+    public func verifyEmail(
+        headers: Operations.VerifyEmail.Input.Headers = .init(),
+        body: Operations.VerifyEmail.Input.Body
+    ) async throws -> Operations.VerifyEmail.Output {
+        try await verifyEmail(Operations.VerifyEmail.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Send a new verification code
+    ///
+    /// Replaces any earlier code. Always answers 202, whether or not the
+    /// email belongs to an unverified User (doc 08).
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/verify-email/resend`.
+    /// - Remark: Generated from `#/paths//v1/auth/verify-email/resend/post(resendVerificationCode)`.
+    public func resendVerificationCode(
+        headers: Operations.ResendVerificationCode.Input.Headers = .init(),
+        body: Operations.ResendVerificationCode.Input.Body
+    ) async throws -> Operations.ResendVerificationCode.Output {
+        try await resendVerificationCode(Operations.ResendVerificationCode.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Sign in
+    ///
+    /// Email and password → a new Session. An unverified User gets a Session
+    /// too, with `user.email_verified` false, and goes to verification. A
+    /// wrong email or password answers the same `invalid-credentials`.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/auth/signin`.
+    /// - Remark: Generated from `#/paths//v1/auth/signin/post(signIn)`.
+    public func signIn(
+        headers: Operations.SignIn.Input.Headers = .init(),
+        body: Operations.SignIn.Input.Body
+    ) async throws -> Operations.SignIn.Output {
+        try await signIn(Operations.SignIn.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// The signed-in User
+    ///
+    /// The app's launch check (FR-U1). Works for unverified Users too.
+    ///
+    /// - Remark: HTTP `GET /v1/me`.
+    /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
+    public func getMe(headers: Operations.GetMe.Input.Headers = .init()) async throws -> Operations.GetMe.Output {
+        try await getMe(Operations.GetMe.Input(headers: headers))
     }
 }
 

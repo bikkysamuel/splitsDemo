@@ -1,3 +1,4 @@
+import Domain
 import Foundation
 import Testing
 
@@ -6,19 +7,32 @@ import Testing
 /// User-facing strings come only from the String Catalog (NFR): a key the
 /// code uses but the catalog lacks would silently show the raw key.
 struct StringCatalogTests {
-  @Test(arguments: [
-    ServerStatusViewModel.Status.unknown, .checking, .reachable, .unreachable,
-  ])
-  func everyServerStatusTitleIsInTheCatalog(status: ServerStatusViewModel.Status) {
-    let key = ServerStatusAppearance(status).titleKey
-
+  @Test(arguments: ServiceErrorMessage.allKeys)
+  func everyErrorMessageIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))
   }
 
-  @Test func theRetryButtonTitleIsInTheCatalog() {
-    let key = ServerStatusView.retryKey
-
+  @Test(arguments: Keys.all)
+  func everyAuthScreenStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))
+  }
+
+  @Test(arguments: MainTabView.allKeys)
+  func everyTabStringIsInTheCatalog(key: String) {
+    #expect(isInCatalog(key))
+  }
+
+  @Test(arguments: [
+    SplashView.titleKey, SplashView.retryKey, SplashView.checkingKey, VerifyEmailViewModel.resentMessage,
+  ])
+  func everySplashAndVerificationStringIsInTheCatalog(key: String) {
+    #expect(isInCatalog(key))
+  }
+
+  @Test func theCodeSentMessageFormatsTheEmail() {
+    let format = Bundle.module.localizedString(forKey: Keys.codeSentFormat, value: nil, table: nil)
+
+    #expect(String(format: format, "alice@example.com") == "We sent a 6-digit code to alice@example.com.")
   }
 
   private func isInCatalog(_ key: String) -> Bool {

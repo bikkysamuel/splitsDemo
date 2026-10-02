@@ -80,6 +80,16 @@ extension Components {
         /// Slugs in use:
         /// - `not-ready`: the server cannot reach its database (503).
         /// - `invalid-request`: the request could not be decoded (400).
+        /// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+        /// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+        /// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+        /// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+        /// - `invalid-credentials`: the email or password is wrong (401).
+        /// - `email-not-verified`: the User must verify their email first (403).
+        /// - `email-taken`: a verified User already has this email (409).
+        /// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+        /// - `request-too-large`: the request body is over 64 KB (413).
+        /// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
         /// - `internal`: an unexpected server failure (500).
         ///
         ///
@@ -171,6 +181,298 @@ extension Components {
                 try decoder.ensureNoAdditionalProperties(knownKeys: [
                     "field",
                     "code"
+                ])
+            }
+        }
+        /// An email address. The server trims surrounding whitespace and compares
+        /// addresses ignoring case (FR-A1).
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/Email`.
+        public typealias Email = Swift.String
+        /// 10–128 characters, no composition rules; common and breached passwords
+        /// are refused (FR-A3). Field error codes: `too_short`, `too_long`,
+        /// `too_common`.
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/Password`.
+        public typealias Password = Swift.String
+        /// The 6-digit code sent by email (development: `123456`).
+        ///
+        /// - Remark: Generated from `#/components/schemas/OneTimeCode`.
+        public typealias OneTimeCode = Swift.String
+        /// Sign-up input (FR-A1, FR-A3).
+        ///
+        /// - Remark: Generated from `#/components/schemas/SignUpRequest`.
+        public struct SignUpRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/SignUpRequest/email`.
+            public var email: Components.Schemas.Email
+            /// - Remark: Generated from `#/components/schemas/SignUpRequest/password`.
+            public var password: Components.Schemas.Password
+            /// Creates a new `SignUpRequest`.
+            ///
+            /// - Parameters:
+            ///   - email:
+            ///   - password:
+            public init(
+                email: Components.Schemas.Email,
+                password: Components.Schemas.Password
+            ) {
+                self.email = email
+                self.password = password
+            }
+            public enum CodingKeys: String, CodingKey {
+                case email
+                case password
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.email = try container.decode(
+                    Components.Schemas.Email.self,
+                    forKey: .email
+                )
+                self.password = try container.decode(
+                    Components.Schemas.Password.self,
+                    forKey: .password
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "email",
+                    "password"
+                ])
+            }
+        }
+        /// Email verification input (FR-A2).
+        ///
+        /// - Remark: Generated from `#/components/schemas/VerifyEmailRequest`.
+        public struct VerifyEmailRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/VerifyEmailRequest/email`.
+            public var email: Components.Schemas.Email
+            /// - Remark: Generated from `#/components/schemas/VerifyEmailRequest/code`.
+            public var code: Components.Schemas.OneTimeCode
+            /// Creates a new `VerifyEmailRequest`.
+            ///
+            /// - Parameters:
+            ///   - email:
+            ///   - code:
+            public init(
+                email: Components.Schemas.Email,
+                code: Components.Schemas.OneTimeCode
+            ) {
+                self.email = email
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case email
+                case code
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.email = try container.decode(
+                    Components.Schemas.Email.self,
+                    forKey: .email
+                )
+                self.code = try container.decode(
+                    Components.Schemas.OneTimeCode.self,
+                    forKey: .code
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "email",
+                    "code"
+                ])
+            }
+        }
+        /// Asks for a new verification code (FR-A2).
+        ///
+        /// - Remark: Generated from `#/components/schemas/ResendVerificationCodeRequest`.
+        public struct ResendVerificationCodeRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ResendVerificationCodeRequest/email`.
+            public var email: Components.Schemas.Email
+            /// Creates a new `ResendVerificationCodeRequest`.
+            ///
+            /// - Parameters:
+            ///   - email:
+            public init(email: Components.Schemas.Email) {
+                self.email = email
+            }
+            public enum CodingKeys: String, CodingKey {
+                case email
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.email = try container.decode(
+                    Components.Schemas.Email.self,
+                    forKey: .email
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "email"
+                ])
+            }
+        }
+        /// Sign-in input (FR-A4). The password is not checked against the sign-up
+        /// rules, so a wrong one always answers `invalid-credentials`.
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/SignInRequest`.
+        public struct SignInRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/SignInRequest/email`.
+            public var email: Components.Schemas.Email
+            /// - Remark: Generated from `#/components/schemas/SignInRequest/password`.
+            public var password: Swift.String
+            /// Creates a new `SignInRequest`.
+            ///
+            /// - Parameters:
+            ///   - email:
+            ///   - password:
+            public init(
+                email: Components.Schemas.Email,
+                password: Swift.String
+            ) {
+                self.email = email
+                self.password = password
+            }
+            public enum CodingKeys: String, CodingKey {
+                case email
+                case password
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.email = try container.decode(
+                    Components.Schemas.Email.self,
+                    forKey: .email
+                )
+                self.password = try container.decode(
+                    Swift.String.self,
+                    forKey: .password
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "email",
+                    "password"
+                ])
+            }
+        }
+        /// A User's own profile.
+        ///
+        /// - Remark: Generated from `#/components/schemas/User`.
+        public struct User: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/User/id`.
+            public var id: Swift.String
+            /// - Remark: Generated from `#/components/schemas/User/email`.
+            public var email: Swift.String
+            /// - Remark: Generated from `#/components/schemas/User/email_verified`.
+            public var emailVerified: Swift.Bool
+            /// Creates a new `User`.
+            ///
+            /// - Parameters:
+            ///   - id:
+            ///   - email:
+            ///   - emailVerified:
+            public init(
+                id: Swift.String,
+                email: Swift.String,
+                emailVerified: Swift.Bool
+            ) {
+                self.id = id
+                self.email = email
+                self.emailVerified = emailVerified
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case email
+                case emailVerified = "email_verified"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.id = try container.decode(
+                    Swift.String.self,
+                    forKey: .id
+                )
+                self.email = try container.decode(
+                    Swift.String.self,
+                    forKey: .email
+                )
+                self.emailVerified = try container.decode(
+                    Swift.Bool.self,
+                    forKey: .emailVerified
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "id",
+                    "email",
+                    "email_verified"
+                ])
+            }
+        }
+        /// A new Session (ADR-0011): an access token valid 15 minutes and a
+        /// refresh token valid 30 days, both opaque. Keep both in the Keychain.
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/AuthSession`.
+        public struct AuthSession: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/AuthSession/user`.
+            public var user: Components.Schemas.User
+            /// - Remark: Generated from `#/components/schemas/AuthSession/access_token`.
+            public var accessToken: Swift.String
+            /// - Remark: Generated from `#/components/schemas/AuthSession/access_expires_at`.
+            public var accessExpiresAt: Foundation.Date
+            /// - Remark: Generated from `#/components/schemas/AuthSession/refresh_token`.
+            public var refreshToken: Swift.String
+            /// - Remark: Generated from `#/components/schemas/AuthSession/refresh_expires_at`.
+            public var refreshExpiresAt: Foundation.Date
+            /// Creates a new `AuthSession`.
+            ///
+            /// - Parameters:
+            ///   - user:
+            ///   - accessToken:
+            ///   - accessExpiresAt:
+            ///   - refreshToken:
+            ///   - refreshExpiresAt:
+            public init(
+                user: Components.Schemas.User,
+                accessToken: Swift.String,
+                accessExpiresAt: Foundation.Date,
+                refreshToken: Swift.String,
+                refreshExpiresAt: Foundation.Date
+            ) {
+                self.user = user
+                self.accessToken = accessToken
+                self.accessExpiresAt = accessExpiresAt
+                self.refreshToken = refreshToken
+                self.refreshExpiresAt = refreshExpiresAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case user
+                case accessToken = "access_token"
+                case accessExpiresAt = "access_expires_at"
+                case refreshToken = "refresh_token"
+                case refreshExpiresAt = "refresh_expires_at"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.user = try container.decode(
+                    Components.Schemas.User.self,
+                    forKey: .user
+                )
+                self.accessToken = try container.decode(
+                    Swift.String.self,
+                    forKey: .accessToken
+                )
+                self.accessExpiresAt = try container.decode(
+                    Foundation.Date.self,
+                    forKey: .accessExpiresAt
+                )
+                self.refreshToken = try container.decode(
+                    Swift.String.self,
+                    forKey: .refreshToken
+                )
+                self.refreshExpiresAt = try container.decode(
+                    Foundation.Date.self,
+                    forKey: .refreshExpiresAt
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "user",
+                    "access_token",
+                    "access_expires_at",
+                    "refresh_token",
+                    "refresh_expires_at"
                 ])
             }
         }
