@@ -12,6 +12,18 @@ public import struct Foundation.Date
 extension Components {
     /// Types generated from the `#/components/parameters` section of the OpenAPI document.
     public enum Parameters {
+        /// The Group's ID.
+        ///
+        /// - Remark: Generated from `#/components/parameters/GroupId`.
+        public typealias GroupId = Swift.String
+        /// The `next_cursor` of the previous page; omit for the first page.
+        ///
+        /// - Remark: Generated from `#/components/parameters/Cursor`.
+        public typealias Cursor = Swift.String
+        /// Page size, 1–200 (default 50).
+        ///
+        /// - Remark: Generated from `#/components/parameters/Limit`.
+        public typealias Limit = Swift.Int
         /// A client-generated UUID, required on every write by a signed-in User
         /// (NFR-R1). Repeating a request with the same key within 24 hours
         /// returns the original response; reusing a key for a different request

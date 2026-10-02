@@ -103,28 +103,4 @@ public struct AuthAPIRepository: AuthRepository {
     }
     return user
   }
-
-  /// Runs a client call, mapping transport and decoding failures.
-  private func send<Output>(_ call: () async throws -> Output) async throws(ServiceError) -> Output {
-    do {
-      return try await call()
-    } catch {
-      throw ServiceErrorMapper.transportError(error)
-    }
-  }
-
-  /// Reads a response body; a body that doesn't match the contract is a
-  /// server bug.
-  private func decoding<Body>(_ read: () throws -> Body) throws(ServiceError) -> Body {
-    do {
-      return try read()
-    } catch {
-      throw .unexpected(status: nil)
-    }
-  }
-
-  private func problem(_ status: Int, _ read: () throws -> Components.Schemas.Problem) -> ServiceError {
-    guard let p = try? read() else { return .unexpected(status: status) }
-    return ServiceErrorMapper.error(problem: p, status: status)
-  }
 }

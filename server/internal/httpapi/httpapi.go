@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/bikkysamuel/splitsDemo/server/internal/auth"
+	"github.com/bikkysamuel/splitsDemo/server/internal/groups"
 	"github.com/bikkysamuel/splitsDemo/server/internal/httpapi/apigen"
 	"github.com/bikkysamuel/splitsDemo/server/internal/idempotency"
 	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
@@ -47,6 +48,11 @@ var (
 	problemRequestTooLarge          = problemKind{"request-too-large", "Request too large", http.StatusRequestEntityTooLarge}
 	problemIdempotencyKeyReused     = problemKind{"idempotency-key-reused", "Idempotency key reused", http.StatusUnprocessableEntity}
 	problemTooManyAttempts          = problemKind{"too-many-attempts", "Too many attempts", http.StatusTooManyRequests}
+	problemAdminRequired            = problemKind{"admin-required", "Admin required", http.StatusForbidden}
+	problemNotFound                 = problemKind{"not-found", "Not found", http.StatusNotFound}
+	problemVersionConflict          = problemKind{"version-conflict", "Version conflict", http.StatusConflict}
+	problemGroupLimitReached        = problemKind{"group-limit-reached", "Group limit reached", http.StatusConflict}
+	problemInvalidCursor            = problemKind{"invalid-cursor", "Invalid cursor", http.StatusBadRequest}
 	problemInternal                 = problemKind{"internal", "Internal error", http.StatusInternalServerError}
 )
 
@@ -71,6 +77,7 @@ type Deps struct {
 	Readiness   Readiness
 	Auth        *auth.Service
 	Idempotency *idempotency.Service
+	Groups      *groups.Service
 	// IDs makes the X-Request-ID of requests that bring none.
 	IDs *platform.IDGenerator
 }

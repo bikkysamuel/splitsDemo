@@ -1,0 +1,18 @@
+{
+  "currency": "INR",
+  "id": "01a0faaf-d1d6-7b92-93fe-46b51e96ba43",
+  "members": [
+    {
+      "display_name": "Alice",
+      "id": "01a0faaf-d1d6-7f06-ae6a-ff0d46436053",
+      "join_seq": 1,
+      "placeholder": false,
+      "role": "admin",
+      "status": "active"
+    }
+  ],
+  "my_member_id": "01a0faaf-d1d6-7f06-ae6a-ff0d46436053",
+  "name": "Goa 2026",
+  "state": "active",
+  "version": 2
+}

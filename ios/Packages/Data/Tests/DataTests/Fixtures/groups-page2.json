@@ -1,0 +1,11 @@
+{
+  "items": [
+    {
+      "currency": "EUR",
+      "id": "01a0faaf-d2e1-7986-99e5-a87befe63474",
+      "name": "Flat",
+      "state": "active"
+    }
+  ],
+  "next_cursor": null
+}

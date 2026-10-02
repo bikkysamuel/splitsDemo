@@ -22,13 +22,18 @@ struct StringCatalogTests {
     #expect(isInCatalog(key))
   }
 
+  @Test(arguments: GroupKeys.all + CommonKeys.all + CreateGroupView.allKeys + GroupView.allKeys)
+  func everyGroupScreenStringIsInTheCatalog(key: String) {
+    #expect(isInCatalog(key))
+  }
+
   @Test(arguments: MainTabView.allKeys)
   func everyTabStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))
   }
 
   @Test(arguments: [
-    SplashView.titleKey, SplashView.retryKey, SplashView.checkingKey, VerifyEmailViewModel.resentMessage,
+    SplashView.titleKey, SplashView.checkingKey, VerifyEmailViewModel.resentMessage,
   ])
   func everySplashAndVerificationStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))

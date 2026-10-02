@@ -6,11 +6,19 @@ import SwiftUI
 struct SettingsView: View {
   let user: User
   let session: AppSession
+  @Bindable var viewModel: SettingsViewModel
   @State private var confirmsSignOut = false
   @State private var isSigningOut = false
 
   var body: some View {
     List {
+      Section {
+        CurrencyPicker(titleKey: Self.defaultCurrency, selection: $viewModel.defaultCurrency)
+      } header: {
+        Text(LocalizedStringKey(Self.newGroups), bundle: .module)
+      } footer: {
+        Text(LocalizedStringKey(Self.defaultCurrencyFooter), bundle: .module)
+      }
       Section {
         LabeledContent {
           Text(verbatim: user.email)
@@ -57,5 +65,10 @@ struct SettingsView: View {
   nonisolated static let signOut = "Sign out"
   nonisolated static let confirmTitle = "Sign out of Splits on this iPhone?"
   nonisolated static let signingOut = "Signing out…"
-  nonisolated static let allKeys = [account, signedInAs, signOut, confirmTitle, signingOut]
+  nonisolated static let newGroups = "New Groups"
+  nonisolated static let defaultCurrency = "Default currency"
+  nonisolated static let defaultCurrencyFooter = "Pre-fills the Group Currency when you create a Group."
+  nonisolated static let allKeys = [
+    account, signedInAs, signOut, confirmTitle, signingOut, newGroups, defaultCurrency, defaultCurrencyFooter,
+  ]
 }

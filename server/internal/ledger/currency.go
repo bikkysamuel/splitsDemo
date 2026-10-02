@@ -45,3 +45,35 @@ func isCurrencyCode(code string) bool {
 	}
 	return true
 }
+
+// activeCurrencies are the ISO 4217 codes of currencies in circulation
+// (table A.1, as of 2026), without fund codes (BOV, CLF, UYI…), precious
+// metals (XAU…) and testing codes (XTS, XXX). A Group or Expense currency
+// must be one of these (Q91).
+var activeCurrencies = []string{
+	"AED", "AFN", "ALL", "AMD", "AOA", "ARS", "AUD", "AWG", "AZN", "BAM", "BBD", "BDT", "BHD", "BIF", "BMD",
+	"BND", "BOB", "BRL", "BSD", "BTN", "BWP", "BYN", "BZD", "CAD", "CDF", "CHF", "CLP", "CNY", "COP", "CRC",
+	"CUP", "CVE", "CZK", "DJF", "DKK", "DOP", "DZD", "EGP", "ERN", "ETB", "EUR", "FJD", "FKP", "GBP", "GEL",
+	"GHS", "GIP", "GMD", "GNF", "GTQ", "GYD", "HKD", "HNL", "HTG", "HUF", "IDR", "ILS", "INR", "IQD", "IRR",
+	"ISK", "JMD", "JOD", "JPY", "KES", "KGS", "KHR", "KMF", "KPW", "KRW", "KWD", "KYD", "KZT", "LAK", "LBP",
+	"LKR", "LRD", "LSL", "LYD", "MAD", "MDL", "MGA", "MKD", "MMK", "MNT", "MOP", "MRU", "MUR", "MVR", "MWK",
+	"MXN", "MYR", "MZN", "NAD", "NGN", "NIO", "NOK", "NPR", "NZD", "OMR", "PAB", "PEN", "PGK", "PHP", "PKR",
+	"PLN", "PYG", "QAR", "RON", "RSD", "RUB", "RWF", "SAR", "SBD", "SCR", "SDG", "SEK", "SGD", "SHP", "SLE",
+	"SOS", "SRD", "SSP", "STN", "SVC", "SYP", "SZL", "THB", "TJS", "TMT", "TND", "TOP", "TRY", "TTD", "TWD",
+	"TZS", "UAH", "UGX", "USD", "UYU", "UZS", "VED", "VES", "VND", "VUV", "WST", "XAF", "XCD", "XCG", "XOF",
+	"XPF", "YER", "ZAR", "ZMW", "ZWG",
+}
+
+var activeCurrencySet = func() map[string]bool {
+	set := make(map[string]bool, len(activeCurrencies))
+	for _, c := range activeCurrencies {
+		set[c] = true
+	}
+	return set
+}()
+
+// IsActiveCurrency reports whether code is an active ISO 4217 currency.
+func IsActiveCurrency(code string) bool { return activeCurrencySet[code] }
+
+// ActiveCurrencies lists the active ISO 4217 codes, alphabetically.
+func ActiveCurrencies() []string { return append([]string(nil), activeCurrencies...) }

@@ -1,6 +1,18 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "(you)": {
+      "comment": "Shown after the signed-in User's own Member name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(you)"
+          }
+        }
+      }
+    },
     "Account": {
       "comment": "Settings section header: the signed-in account",
       "extractionState": "manual",
@@ -9,6 +21,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Account"
+          }
+        }
+      }
+    },
+    "Admin": {
+      "comment": "Badge on an Admin Member",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Admin"
           }
         }
       }
@@ -37,6 +61,18 @@
         }
       }
     },
+    "Balances and Settlements are in this currency. It can't change once there are Expenses.": {
+      "comment": "Footer under the Group Currency picker",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Balances and Settlements are in this currency. It can't change once there are Expenses."
+          }
+        }
+      }
+    },
     "Can't reach the server. Check your connection and try again.": {
       "comment": "Error message when the server could not be reached",
       "extractionState": "manual",
@@ -45,6 +81,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Can't reach the server. Check your connection and try again."
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "comment": "Button that closes a form without saving",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
           }
         }
       }
@@ -73,6 +121,42 @@
         }
       }
     },
+    "Choose a currency.": {
+      "comment": "Field error: the currency isn't accepted",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a currency."
+          }
+        }
+      }
+    },
+    "Couldn't rename": {
+      "comment": "Title of the alert when renaming failed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't rename"
+          }
+        }
+      }
+    },
+    "Create Group": {
+      "comment": "Button and title for creating a Group",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create Group"
+          }
+        }
+      }
+    },
     "Create account": {
       "comment": "Title and button of the sign-up screen",
       "extractionState": "manual",
@@ -85,6 +169,18 @@
         }
       }
     },
+    "Default currency": {
+      "comment": "Settings label for the default Group Currency",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default currency"
+          }
+        }
+      }
+    },
     "Email": {
       "comment": "Label of the email field",
       "extractionState": "manual",
@@ -93,6 +189,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Email"
+          }
+        }
+      }
+    },
+    "Enter a name.": {
+      "comment": "Field error: the Group name is empty",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a name."
           }
         }
       }
@@ -133,6 +241,54 @@
         }
       }
     },
+    "Enter your name in this Group.": {
+      "comment": "Field error: the User's display name is empty",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter your name in this Group."
+          }
+        }
+      }
+    },
+    "Goa trip": {
+      "comment": "Placeholder of the Group name field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Goa trip"
+          }
+        }
+      }
+    },
+    "Group Currency": {
+      "comment": "Label of the Group Currency picker",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group Currency"
+          }
+        }
+      }
+    },
+    "Group name": {
+      "comment": "Label of the Group name field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group name"
+          }
+        }
+      }
+    },
     "Groups you create or join will show here.": {
       "comment": "Home tab placeholder description",
       "extractionState": "manual",
@@ -153,6 +309,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Home"
+          }
+        }
+      }
+    },
+    "Loading…": {
+      "comment": "VoiceOver label of a loading indicator",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading…"
+          }
+        }
+      }
+    },
+    "Members": {
+      "comment": "Section header listing a Group's Members",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Members"
+          }
+        }
+      }
+    },
+    "New Groups": {
+      "comment": "Settings section header for new-Group defaults",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Groups"
           }
         }
       }
@@ -205,6 +397,30 @@
         }
       }
     },
+    "Only an Admin of this Group can do this.": {
+      "comment": "Error when a non-Admin tries an Admin action",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only an Admin of this Group can do this."
+          }
+        }
+      }
+    },
+    "Others in the Group see this name.": {
+      "comment": "Footer under the display name field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Others in the Group see this name."
+          }
+        }
+      }
+    },
     "Password": {
       "comment": "Label of the password field",
       "extractionState": "manual",
@@ -213,6 +429,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Password"
+          }
+        }
+      }
+    },
+    "Placeholder": {
+      "comment": "Badge on a Placeholder Member",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Placeholder"
+          }
+        }
+      }
+    },
+    "Pre-fills the Group Currency when you create a Group.": {
+      "comment": "Footer under the default currency setting",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pre-fills the Group Currency when you create a Group."
+          }
+        }
+      }
+    },
+    "Rename": {
+      "comment": "Button that renames a Group",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename"
+          }
+        }
+      }
+    },
+    "Rename Group": {
+      "comment": "Title of the rename alert",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename Group"
           }
         }
       }
@@ -237,6 +501,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reports appear once you have Groups."
+          }
+        }
+      }
+    },
+    "Save": {
+      "comment": "Button that saves a change",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
           }
         }
       }
@@ -349,6 +625,30 @@
         }
       }
     },
+    "Someone else changed this just now. Reload and try again.": {
+      "comment": "Error when the item changed since it was loaded",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Someone else changed this just now. Reload and try again."
+          }
+        }
+      }
+    },
+    "Someone in this Group already has this name.": {
+      "comment": "Field error: another Member has this display name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Someone in this Group already has this name."
+          }
+        }
+      }
+    },
     "Something went wrong. Try again.": {
       "comment": "Error message when a request failed for an unexpected reason",
       "extractionState": "manual",
@@ -421,6 +721,18 @@
         }
       }
     },
+    "This isn't available to you.": {
+      "comment": "Error when something doesn't exist or the User can't see it",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This isn't available to you."
+          }
+        }
+      }
+    },
     "This password is too common. Choose another.": {
       "comment": "Field error: the new password is on the common/breached list",
       "extractionState": "manual",
@@ -481,6 +793,18 @@
         }
       }
     },
+    "Use at most 100 characters.": {
+      "comment": "Field error: the Group name is too long",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use at most 100 characters."
+          }
+        }
+      }
+    },
     "Use at most 128 characters.": {
       "comment": "Field error: the new password is longer than 128 characters",
       "extractionState": "manual",
@@ -489,6 +813,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Use at most 128 characters."
+          }
+        }
+      }
+    },
+    "Use at most 50 characters.": {
+      "comment": "Field error: the display name is too long",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use at most 50 characters."
           }
         }
       }
@@ -561,6 +897,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "We sent a new code."
+          }
+        }
+      }
+    },
+    "You're already in 200 Groups, the most allowed.": {
+      "comment": "Error when the User is in the maximum number of Groups",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're already in 200 Groups, the most allowed."
+          }
+        }
+      }
+    },
+    "Your name in this Group": {
+      "comment": "Label of the creator's display name field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your name in this Group"
           }
         }
       }

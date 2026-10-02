@@ -10,16 +10,19 @@ import SwiftUI
 @main
 struct SplitsApp: App {
   @State private var session: AppSession
+  private let dependencies: AppDependencies
 
   init() {
+    // One APISession for the whole app, so every repository shares one
+    // token refresher (ADR-0011).
     let api = APISession(configuration: Self.apiConfiguration(), tokens: KeychainTokenStore())
-    let repository = AuthAPIRepository(api: api)
-    _session = State(initialValue: AppSession(repository: repository))
+    _session = State(initialValue: AppSession(repository: AuthAPIRepository(api: api)))
+    dependencies = AppDependencies(groups: GroupsAPIRepository(api: api), preferences: UserDefaultsPreferences())
   }
 
   var body: some Scene {
     WindowGroup {
-      RootView(session: session)
+      RootView(session: session, dependencies: dependencies)
     }
   }
 

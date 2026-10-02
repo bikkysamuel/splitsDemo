@@ -1,0 +1,15 @@
+{
+  "errors": [
+    {
+      "code": "required",
+      "field": "/name"
+    },
+    {
+      "code": "invalid",
+      "field": "/currency"
+    }
+  ],
+  "status": 400,
+  "title": "Validation failed",
+  "type": "https://splits.dev/problems/validation-failed"
+}

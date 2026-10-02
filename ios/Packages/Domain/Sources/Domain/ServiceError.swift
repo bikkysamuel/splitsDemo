@@ -27,6 +27,11 @@ public enum ProblemKind: String, CaseIterable, Sendable {
   case requestTooLarge = "request-too-large"
   case idempotencyKeyReused = "idempotency-key-reused"
   case tooManyAttempts = "too-many-attempts"
+  case adminRequired = "admin-required"
+  case notFound = "not-found"
+  case versionConflict = "version-conflict"
+  case groupLimitReached = "group-limit-reached"
+  case invalidCursor = "invalid-cursor"
   case notReady = "not-ready"
   case `internal`
 }
@@ -49,6 +54,7 @@ public struct FieldIssue: Equatable, Hashable, Sendable {
     case tooShort
     case tooLong
     case tooCommon
+    case taken
     case other(String)
 
     public init(code: String) {
@@ -58,6 +64,7 @@ public struct FieldIssue: Equatable, Hashable, Sendable {
       case "too_short": self = .tooShort
       case "too_long": self = .tooLong
       case "too_common": self = .tooCommon
+      case "taken": self = .taken
       default: self = .other(code)
       }
     }

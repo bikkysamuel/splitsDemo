@@ -27,6 +27,8 @@ tags:
     description: Sign-up, email verification and sign-in (FR-A1–A4)
   - name: me
     description: The signed-in User's own account
+  - name: groups
+    description: Groups and their Members (FR-G*, FR-M*)
 security: []
 
 paths:
@@ -305,6 +307,202 @@ paths:
           $ref: "#/components/responses/IdempotencyKeyReused"
         "500":
           $ref: "#/components/responses/InternalError"
+  /v1/groups:
+    get:
+      operationId: listGroups
+      summary: My Groups
+      description: |
+        The Groups where the User is an active Member, oldest first, a page
+        at a time (doc 07 list convention).
+      tags: [groups]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: One page of Groups.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupPage"
+              example:
+                items:
+                  - id: 0190b6c4-0000-7000-8000-0000000000c1
+                    name: Goa trip
+                    currency: INR
+                    state: active
+                next_cursor: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createGroup
+      summary: Create a Group
+      description: |
+        Creates a Group in a Group Currency; the creator becomes its first
+        Admin under the display name they give (FR-G1). A User can be an
+        active Member of at most 200 Groups (FR-G2): the next one answers
+        `group-limit-reached`.
+      tags: [groups]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        description: The new Group and the creator's name in it.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupRequest"
+            example:
+              name: Goa trip
+              currency: INR
+              display_name: Alice
+      responses:
+        "201":
+          description: The Group was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000c1
+                name: Goa trip
+                currency: INR
+                state: active
+                version: 1
+                my_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                members:
+                  - id: 0190b6c4-0000-7000-8000-0000000000d1
+                    display_name: Alice
+                    role: admin
+                    status: active
+                    placeholder: false
+                    join_seq: 1
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "422":
+          $ref: "#/components/responses/IdempotencyKeyReused"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/groups/{groupId}:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      operationId: getGroup
+      summary: A Group
+      description: |
+        The Group with its Members. A Group the User isn't an active Member
+        of answers `404`, exactly like one that doesn't exist (doc 07).
+      tags: [groups]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The Group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000c1
+                name: Goa trip
+                currency: INR
+                state: active
+                version: 1
+                my_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                members:
+                  - id: 0190b6c4-0000-7000-8000-0000000000d1
+                    display_name: Alice
+                    role: admin
+                    status: active
+                    placeholder: false
+                    join_seq: 1
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    patch:
+      operationId: renameGroup
+      summary: Rename a Group
+      description: |
+        Admins only (FR-G3): other Members get `admin-required`. Send the
+        `version` you last read; a stale one answers `version-conflict`
+        (NFR-R4).
+      tags: [groups]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        description: The new name and the version it changes.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RenameGroupRequest"
+            example:
+              name: Goa trip 2026
+              version: 1
+      responses:
+        "200":
+          description: The renamed Group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000c1
+                name: Goa trip
+                currency: INR
+                state: active
+                version: 1
+                my_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                members:
+                  - id: 0190b6c4-0000-7000-8000-0000000000d1
+                    display_name: Alice
+                    role: admin
+                    status: active
+                    placeholder: false
+                    join_seq: 1
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "422":
+          $ref: "#/components/responses/IdempotencyKeyReused"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /v1/me:
     get:
       operationId: getMe
@@ -341,6 +539,32 @@ components:
         `email-not-verified`.
 
   parameters:
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      description: The Group's ID.
+      schema:
+        type: string
+        format: uuid
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: The `next_cursor` of the previous page; omit for the first page.
+      schema:
+        type: string
+        maxLength: 256
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Page size, 1–200 (default 50).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -397,6 +621,11 @@ components:
         - `request-too-large`: the request body is over 64 KB (413).
         - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
         - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+        - `admin-required`: only an Admin of the Group may do this (403).
+        - `not-found`: no such resource, or one the User can't see (404).
+        - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+        - `group-limit-reached`: the User is already in 200 Groups (409).
+        - `invalid-cursor`: the `cursor` is not one the server gave (400).
         - `internal`: an unexpected server failure (500).
       type: object
       required: [type, title, status]
@@ -566,6 +795,175 @@ components:
           format: date-time
           examples: ["2026-10-31T09:00:00Z"]
 
+    GroupState:
+      description: |
+        A Group's lifecycle state (FR-G6). Closing and Closed come with M3.
+      type: string
+      enum: [active, closing, closed]
+      examples: ["active"]
+
+    MemberRole:
+      description: An Admin or an ordinary Member (FR-G3).
+      type: string
+      enum: [admin, member]
+      examples: ["admin"]
+
+    MemberStatus:
+      description: Active, or a Former Member who left or was removed (FR-M7).
+      type: string
+      enum: [active, former]
+      examples: ["active"]
+
+    DisplayName:
+      description: |
+        A Member's name in one Group: 1–50 characters after trimming,
+        unique within the Group ignoring case (FR-M4). Field error codes:
+        `required`, `too_long`, `taken`.
+      type: string
+      maxLength: 200
+      examples: ["Alice"]
+
+    GroupName:
+      description: "1–100 characters after trimming. Field error codes: `required`, `too_long`."
+      type: string
+      maxLength: 400
+      examples: ["Goa trip"]
+
+    GroupSummary:
+      description: A Group in the User's list.
+      type: object
+      required: [id, name, currency, state]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000c1"]
+        name:
+          type: string
+          examples: ["Goa trip"]
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        state:
+          $ref: "#/components/schemas/GroupState"
+
+    GroupPage:
+      description: One page of the User's Groups.
+      type: object
+      required: [items, next_cursor]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupSummary"
+          examples:
+            - - id: 0190b6c4-0000-7000-8000-0000000000c1
+                name: Goa trip
+                currency: INR
+                state: active
+        next_cursor:
+          description: Pass as `cursor` for the next page; null on the last page.
+          type: [string, "null"]
+          examples: [null]
+
+    Member:
+      description: |
+        A person's place in one Group (GLOSSARY: Member). `placeholder` is
+        true for a Placeholder Member, not yet linked to a User.
+      type: object
+      required: [id, display_name, role, status, placeholder, join_seq]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        display_name:
+          type: string
+          examples: ["Alice"]
+        role:
+          $ref: "#/components/schemas/MemberRole"
+        status:
+          $ref: "#/components/schemas/MemberStatus"
+        placeholder:
+          type: boolean
+          examples: [false]
+        join_seq:
+          description: Order of joining; breaks rounding ties (ADR-0010).
+          type: integer
+          format: int32
+          examples: [1]
+
+    Group:
+      description: A Group with its Members, as one of its Members sees it.
+      type: object
+      required: [id, name, currency, state, version, my_member_id, members]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000c1"]
+        name:
+          type: string
+          examples: ["Goa trip"]
+        currency:
+          $ref: "#/components/schemas/CurrencyCode"
+        state:
+          $ref: "#/components/schemas/GroupState"
+        version:
+          description: Send it back when changing the Group (NFR-R4).
+          type: integer
+          format: int32
+          examples: [1]
+        my_member_id:
+          description: The signed-in User's Member in this Group.
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        members:
+          description: Every Member, Former ones included, in joining order.
+          type: array
+          items:
+            $ref: "#/components/schemas/Member"
+          examples:
+            - - id: 0190b6c4-0000-7000-8000-0000000000d1
+                display_name: Alice
+                role: admin
+                status: active
+                placeholder: false
+                join_seq: 1
+
+    CreateGroupRequest:
+      description: Create-Group input (FR-G1).
+      type: object
+      required: [name, currency, display_name]
+      additionalProperties: false
+      properties:
+        name:
+          $ref: "#/components/schemas/GroupName"
+        currency:
+          type: string
+          maxLength: 16
+          description: "An active ISO 4217 code. Field error code: `invalid`."
+          examples: ["INR"]
+        display_name:
+          $ref: "#/components/schemas/DisplayName"
+
+    RenameGroupRequest:
+      description: Rename input (FR-G3).
+      type: object
+      required: [name, version]
+      additionalProperties: false
+      properties:
+        name:
+          $ref: "#/components/schemas/GroupName"
+        version:
+          type: integer
+          format: int32
+          examples: [1]
+
     Money:
       description: |
         An amount in integer minor units of an ISO 4217 currency (ADR-0002).
@@ -671,6 +1069,42 @@ components:
             type: https://splits.dev/problems/idempotency-key-reused
             title: Idempotency key reused
             status: 422
+    Forbidden:
+      description: |
+        The signed-in User may not do this: their email isn't verified
+        (`email-not-verified`) or they aren't an Admin (`admin-required`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/admin-required
+            title: Admin required
+            status: 403
+    NotFound:
+      description: No such resource, or one the User can't see.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/not-found
+            title: Not found
+            status: 404
+    Conflict:
+      description: |
+        The request conflicts with the current state: a stale `version`
+        (`version-conflict`), the Group limit (`group-limit-reached`), or a
+        request with the same Idempotency-Key still running
+        (`idempotency-key-in-progress`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/version-conflict
+            title: Version conflict
+            status: 409
     TooManyAttempts:
       description: Too many failed sign-ins; wait before trying again.
       headers:

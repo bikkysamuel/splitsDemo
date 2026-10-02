@@ -1674,6 +1674,1190 @@ public enum Operations {
             }
         }
     }
+    /// My Groups
+    ///
+    /// The Groups where the User is an active Member, oldest first, a page
+    /// at a time (doc 07 list convention).
+    ///
+    ///
+    /// - Remark: HTTP `GET /v1/groups`.
+    /// - Remark: Generated from `#/paths//v1/groups/get(listGroups)`.
+    public enum ListGroups {
+        public static let id: Swift.String = "listGroups"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/groups/GET/query`.
+            public struct Query: Sendable, Hashable {
+                /// The `next_cursor` of the previous page; omit for the first page.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/GET/query/cursor`.
+                public var cursor: Components.Parameters.Cursor?
+                /// Page size, 1–200 (default 50).
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/GET/query/limit`.
+                public var limit: Components.Parameters.Limit?
+                /// Creates a new `Query`.
+                ///
+                /// - Parameters:
+                ///   - cursor: The `next_cursor` of the previous page; omit for the first page.
+                ///   - limit: Page size, 1–200 (default 50).
+                public init(
+                    cursor: Components.Parameters.Cursor? = nil,
+                    limit: Components.Parameters.Limit? = nil
+                ) {
+                    self.cursor = cursor
+                    self.limit = limit
+                }
+            }
+            public var query: Operations.ListGroups.Input.Query
+            /// - Remark: Generated from `#/paths/v1/groups/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListGroups.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListGroups.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.ListGroups.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - query:
+            ///   - headers:
+            public init(
+                query: Operations.ListGroups.Input.Query = .init(),
+                headers: Operations.ListGroups.Input.Headers = .init()
+            ) {
+                self.query = query
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/groups/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/groups/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.GroupPage)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.GroupPage {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ListGroups.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ListGroups.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// One page of Groups.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/get(listGroups)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.ListGroups.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.ListGroups.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request could not be decoded (`invalid-request`), a field is
+            /// invalid (`validation-failed`, with `errors`), or a one-time code was
+            /// refused (`invalid-code`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/get(listGroups)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No access token, or it is unknown, expired or revoked.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/get(listGroups)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthenticated)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthenticated {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The signed-in User may not do this: their email isn't verified
+            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/get(listGroups)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// An unexpected server failure.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/get(listGroups)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
+    /// Create a Group
+    ///
+    /// Creates a Group in a Group Currency; the creator becomes its first
+    /// Admin under the display name they give (FR-G1). A User can be an
+    /// active Member of at most 200 Groups (FR-G2): the next one answers
+    /// `group-limit-reached`.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups`.
+    /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)`.
+    public enum CreateGroup {
+        public static let id: Swift.String = "createGroup"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/groups/POST/header`.
+            public struct Headers: Sendable, Hashable {
+                /// A client-generated UUID, required on every write by a signed-in User
+                /// (NFR-R1). Repeating a request with the same key within 24 hours
+                /// returns the original response; reusing a key for a different request
+                /// answers `idempotency-key-reused`, and repeating it while the first is
+                /// still running answers `idempotency-key-in-progress`. Responses with a
+                /// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+                /// it: their responses carry tokens, which are never stored (ADR-0011).
+                ///
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/POST/header/Idempotency-Key`.
+                public var idempotencyKey: Components.Parameters.IdempotencyKey
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.CreateGroup.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - idempotencyKey: A client-generated UUID, required on every write by a signed-in User
+                ///   - accept:
+                public init(
+                    idempotencyKey: Components.Parameters.IdempotencyKey,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.CreateGroup.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.idempotencyKey = idempotencyKey
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.CreateGroup.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/groups/POST/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/groups/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.CreateGroupRequest)
+            }
+            public var body: Operations.CreateGroup.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - headers:
+            ///   - body:
+            public init(
+                headers: Operations.CreateGroup.Input.Headers,
+                body: Operations.CreateGroup.Input.Body
+            ) {
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Created: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/groups/POST/responses/201/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/groups/POST/responses/201/content/application\/json`.
+                    case json(Components.Schemas.Group)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Group {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.CreateGroup.Output.Created.Body
+                /// Creates a new `Created`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.CreateGroup.Output.Created.Body) {
+                    self.body = body
+                }
+            }
+            /// The Group was created.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)/responses/201`.
+            ///
+            /// HTTP response code: `201 created`.
+            case created(Operations.CreateGroup.Output.Created)
+            /// The associated value of the enum case if `self` is `.created`.
+            ///
+            /// - Throws: An error if `self` is not `.created`.
+            /// - SeeAlso: `.created`.
+            public var created: Operations.CreateGroup.Output.Created {
+                get throws {
+                    switch self {
+                    case let .created(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "created",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request could not be decoded (`invalid-request`), a field is
+            /// invalid (`validation-failed`, with `errors`), or a one-time code was
+            /// refused (`invalid-code`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No access token, or it is unknown, expired or revoked.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthenticated)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthenticated {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The signed-in User may not do this: their email isn't verified
+            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request conflicts with the current state: a stale `version`
+            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// request with the same Idempotency-Key still running
+            /// (`idempotency-key-in-progress`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)/responses/409`.
+            ///
+            /// HTTP response code: `409 conflict`.
+            case conflict(Components.Responses.Conflict)
+            /// The associated value of the enum case if `self` is `.conflict`.
+            ///
+            /// - Throws: An error if `self` is not `.conflict`.
+            /// - SeeAlso: `.conflict`.
+            public var conflict: Components.Responses.Conflict {
+                get throws {
+                    switch self {
+                    case let .conflict(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "conflict",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request body is over 64 KB.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)/responses/413`.
+            ///
+            /// HTTP response code: `413 contentTooLarge`.
+            case contentTooLarge(Components.Responses.RequestTooLarge)
+            /// The associated value of the enum case if `self` is `.contentTooLarge`.
+            ///
+            /// - Throws: An error if `self` is not `.contentTooLarge`.
+            /// - SeeAlso: `.contentTooLarge`.
+            public var contentTooLarge: Components.Responses.RequestTooLarge {
+                get throws {
+                    switch self {
+                    case let .contentTooLarge(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "contentTooLarge",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The Idempotency-Key was already used for a different request.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)/responses/422`.
+            ///
+            /// HTTP response code: `422 unprocessableContent`.
+            case unprocessableContent(Components.Responses.IdempotencyKeyReused)
+            /// The associated value of the enum case if `self` is `.unprocessableContent`.
+            ///
+            /// - Throws: An error if `self` is not `.unprocessableContent`.
+            /// - SeeAlso: `.unprocessableContent`.
+            public var unprocessableContent: Components.Responses.IdempotencyKeyReused {
+                get throws {
+                    switch self {
+                    case let .unprocessableContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unprocessableContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// An unexpected server failure.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
+    /// A Group
+    ///
+    /// The Group with its Members. A Group the User isn't an active Member
+    /// of answers `404`, exactly like one that doesn't exist (doc 07).
+    ///
+    ///
+    /// - Remark: HTTP `GET /v1/groups/{groupId}`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/get(getGroup)`.
+    public enum GetGroup {
+        public static let id: Swift.String = "getGroup"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/GET/path`.
+            public struct Path: Sendable, Hashable {
+                /// The Group's ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/GET/path/groupId`.
+                public var groupId: Components.Parameters.GroupId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - groupId: The Group's ID.
+                public init(groupId: Components.Parameters.GroupId) {
+                    self.groupId = groupId
+                }
+            }
+            public var path: Operations.GetGroup.Input.Path
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetGroup.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetGroup.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.GetGroup.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            public init(
+                path: Operations.GetGroup.Input.Path,
+                headers: Operations.GetGroup.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/groups/{groupId}/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.Group)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Group {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetGroup.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetGroup.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The Group.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/get(getGroup)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.GetGroup.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.GetGroup.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request could not be decoded (`invalid-request`), a field is
+            /// invalid (`validation-failed`, with `errors`), or a one-time code was
+            /// refused (`invalid-code`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/get(getGroup)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No access token, or it is unknown, expired or revoked.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/get(getGroup)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthenticated)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthenticated {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The signed-in User may not do this: their email isn't verified
+            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/get(getGroup)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No such resource, or one the User can't see.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/get(getGroup)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Components.Responses.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Components.Responses.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// An unexpected server failure.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/get(getGroup)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
+    /// Rename a Group
+    ///
+    /// Admins only (FR-G3): other Members get `admin-required`. Send the
+    /// `version` you last read; a stale one answers `version-conflict`
+    /// (NFR-R4).
+    ///
+    ///
+    /// - Remark: HTTP `PATCH /v1/groups/{groupId}`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)`.
+    public enum RenameGroup {
+        public static let id: Swift.String = "renameGroup"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/PATCH/path`.
+            public struct Path: Sendable, Hashable {
+                /// The Group's ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/PATCH/path/groupId`.
+                public var groupId: Components.Parameters.GroupId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - groupId: The Group's ID.
+                public init(groupId: Components.Parameters.GroupId) {
+                    self.groupId = groupId
+                }
+            }
+            public var path: Operations.RenameGroup.Input.Path
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/PATCH/header`.
+            public struct Headers: Sendable, Hashable {
+                /// A client-generated UUID, required on every write by a signed-in User
+                /// (NFR-R1). Repeating a request with the same key within 24 hours
+                /// returns the original response; reusing a key for a different request
+                /// answers `idempotency-key-reused`, and repeating it while the first is
+                /// still running answers `idempotency-key-in-progress`. Responses with a
+                /// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+                /// it: their responses carry tokens, which are never stored (ADR-0011).
+                ///
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/PATCH/header/Idempotency-Key`.
+                public var idempotencyKey: Components.Parameters.IdempotencyKey
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RenameGroup.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - idempotencyKey: A client-generated UUID, required on every write by a signed-in User
+                ///   - accept:
+                public init(
+                    idempotencyKey: Components.Parameters.IdempotencyKey,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RenameGroup.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.idempotencyKey = idempotencyKey
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.RenameGroup.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/PATCH/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/PATCH/requestBody/content/application\/json`.
+                case json(Components.Schemas.RenameGroupRequest)
+            }
+            public var body: Operations.RenameGroup.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            ///   - body:
+            public init(
+                path: Operations.RenameGroup.Input.Path,
+                headers: Operations.RenameGroup.Input.Headers,
+                body: Operations.RenameGroup.Input.Body
+            ) {
+                self.path = path
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/PATCH/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/groups/{groupId}/PATCH/responses/200/content/application\/json`.
+                    case json(Components.Schemas.Group)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Group {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RenameGroup.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RenameGroup.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The renamed Group.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.RenameGroup.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.RenameGroup.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request could not be decoded (`invalid-request`), a field is
+            /// invalid (`validation-failed`, with `errors`), or a one-time code was
+            /// refused (`invalid-code`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No access token, or it is unknown, expired or revoked.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthenticated)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthenticated {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The signed-in User may not do this: their email isn't verified
+            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No such resource, or one the User can't see.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Components.Responses.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Components.Responses.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request conflicts with the current state: a stale `version`
+            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// request with the same Idempotency-Key still running
+            /// (`idempotency-key-in-progress`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)/responses/409`.
+            ///
+            /// HTTP response code: `409 conflict`.
+            case conflict(Components.Responses.Conflict)
+            /// The associated value of the enum case if `self` is `.conflict`.
+            ///
+            /// - Throws: An error if `self` is not `.conflict`.
+            /// - SeeAlso: `.conflict`.
+            public var conflict: Components.Responses.Conflict {
+                get throws {
+                    switch self {
+                    case let .conflict(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "conflict",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request body is over 64 KB.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)/responses/413`.
+            ///
+            /// HTTP response code: `413 contentTooLarge`.
+            case contentTooLarge(Components.Responses.RequestTooLarge)
+            /// The associated value of the enum case if `self` is `.contentTooLarge`.
+            ///
+            /// - Throws: An error if `self` is not `.contentTooLarge`.
+            /// - SeeAlso: `.contentTooLarge`.
+            public var contentTooLarge: Components.Responses.RequestTooLarge {
+                get throws {
+                    switch self {
+                    case let .contentTooLarge(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "contentTooLarge",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The Idempotency-Key was already used for a different request.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)/responses/422`.
+            ///
+            /// HTTP response code: `422 unprocessableContent`.
+            case unprocessableContent(Components.Responses.IdempotencyKeyReused)
+            /// The associated value of the enum case if `self` is `.unprocessableContent`.
+            ///
+            /// - Throws: An error if `self` is not `.unprocessableContent`.
+            /// - SeeAlso: `.unprocessableContent`.
+            public var unprocessableContent: Components.Responses.IdempotencyKeyReused {
+                get throws {
+                    switch self {
+                    case let .unprocessableContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unprocessableContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// An unexpected server failure.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
     /// The signed-in User
     ///
     /// The app's launch check (FR-U1). Works for unverified Users too.
