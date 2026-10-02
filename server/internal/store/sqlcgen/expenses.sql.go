@@ -99,17 +99,6 @@ func (q *Queries) ExpenseShares(ctx context.Context, expenseID pgtype.UUID) ([]E
 	return items, nil
 }
 
-const groupCurrency = `-- name: GroupCurrency :one
-SELECT currency FROM groups WHERE id = $1
-`
-
-func (q *Queries) GroupCurrency(ctx context.Context, id pgtype.UUID) (string, error) {
-	row := q.db.QueryRow(ctx, groupCurrency, id)
-	var currency string
-	err := row.Scan(&currency)
-	return currency, err
-}
-
 const insertActivityEvent = `-- name: InsertActivityEvent :exec
 INSERT INTO activity_events (group_id, actor_member_id, on_behalf_of_member_id, type, subject_type, subject_id,
                              payload, occurred_at)
@@ -209,11 +198,11 @@ func (q *Queries) InsertShare(ctx context.Context, arg InsertShareParams) error 
 }
 
 const listExpenses = `-- name: ListExpenses :many
-SELECT id, payer_id, category, note, spent_on, amount_minor, state
-FROM expenses
-WHERE group_id = $1
-  AND (NOT $2::boolean OR (spent_on, id) < ($3::date, $4::uuid))
-ORDER BY spent_on DESC, id DESC
+SELECT e.id, e.payer_id, e.category, e.note, e.spent_on, e.amount_minor, e.state, g.currency
+FROM expenses e JOIN groups g ON g.id = e.group_id
+WHERE e.group_id = $1
+  AND (NOT $2::boolean OR (e.spent_on, e.id) < ($3::date, $4::uuid))
+ORDER BY e.spent_on DESC, e.id DESC
 LIMIT $5
 `
 
@@ -233,6 +222,7 @@ type ListExpensesRow struct {
 	SpentOn     pgtype.Date
 	AmountMinor int64
 	State       string
+	Currency    string
 }
 
 // One page, newest first; after_* is the last row of the previous page.
@@ -259,6 +249,7 @@ func (q *Queries) ListExpenses(ctx context.Context, arg ListExpensesParams) ([]L
 			&i.SpentOn,
 			&i.AmountMinor,
 			&i.State,
+			&i.Currency,
 		); err != nil {
 			return nil, err
 		}

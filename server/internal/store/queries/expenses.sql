@@ -35,12 +35,9 @@ ORDER BY m.join_seq;
 
 -- name: ListExpenses :many
 -- One page, newest first; after_* is the last row of the previous page.
-SELECT id, payer_id, category, note, spent_on, amount_minor, state
-FROM expenses
-WHERE group_id = @group_id
-  AND (NOT @has_cursor::boolean OR (spent_on, id) < (@after_spent_on::date, @after_id::uuid))
-ORDER BY spent_on DESC, id DESC
+SELECT e.id, e.payer_id, e.category, e.note, e.spent_on, e.amount_minor, e.state, g.currency
+FROM expenses e JOIN groups g ON g.id = e.group_id
+WHERE e.group_id = @group_id
+  AND (NOT @has_cursor::boolean OR (e.spent_on, e.id) < (@after_spent_on::date, @after_id::uuid))
+ORDER BY e.spent_on DESC, e.id DESC
 LIMIT @max_rows;
-
--- name: GroupCurrency :one
-SELECT currency FROM groups WHERE id = @id;

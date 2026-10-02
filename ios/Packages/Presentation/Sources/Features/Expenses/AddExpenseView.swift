@@ -15,7 +15,7 @@ struct AddExpenseView: View {
         }
         .font(.title2.monospacedDigit())
         .decimalEntry()
-        .accessibilityHint(Text(verbatim: viewModel.group.currency))
+        .accessibilityHint(Text(verbatim: CurrencyPicker.label(viewModel.group.currency)))
         if viewModel.amountIsInvalid {
           FieldErrorText(key: Self.amountInvalid)
         }

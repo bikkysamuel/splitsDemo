@@ -1261,6 +1261,18 @@
         }
       }
     },
+    "Unknown Member": {
+      "comment": "Shown for a Member the Group no longer lists",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown Member"
+          }
+        }
+      }
+    },
     "Use another account": {
       "comment": "Button that leaves verification for sign-in with another account",
       "extractionState": "manual",

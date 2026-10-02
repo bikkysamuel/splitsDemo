@@ -121,7 +121,8 @@ type GroupReader interface {
 type Repository interface {
 	// Create stores the Expense, its Shares and an `expense_created`
 	// Activity History event together (NFR-R2), with the Group's state
-	// held steady; it returns ErrGroupClosed for a Closed Group.
+	// held steady; it returns ErrGroupClosed for a Closed Group, or a
+	// *ValidationError if the Group Currency is no longer e.Currency.
 	Create(ctx context.Context, e Expense) error
 	// ExpenseForUser returns the Expense if the User is an active Member of
 	// its Group, or ErrNotFound.

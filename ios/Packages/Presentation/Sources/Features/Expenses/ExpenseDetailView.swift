@@ -24,7 +24,7 @@ struct ExpenseDetailView: View {
           if let note = e.note { Text(verbatim: note) }
           CategoryLabel(category: e.category)
           LabeledContent {
-            Text(verbatim: viewModel.name(e.payerID))
+            MemberName(name: viewModel.name(e.payerID))
           } label: {
             Text(LocalizedStringKey(AddExpenseView.paidBy), bundle: .module)
           }
@@ -39,7 +39,7 @@ struct ExpenseDetailView: View {
             LabeledContent {
               Text(verbatim: share.amount.formatted()).monospacedDigit()
             } label: {
-              Text(verbatim: viewModel.name(share.memberID))
+              MemberName(name: viewModel.name(share.memberID))
             }
           }
         } header: {
@@ -51,13 +51,29 @@ struct ExpenseDetailView: View {
 
   nonisolated static let title = "Expense"
   nonisolated static let shares = "Shares"
-  nonisolated static let allKeys = [title, shares]
+  nonisolated static let allKeys = [title, shares, MemberName.unknown]
+}
+
+/// A Member's display name, or "Unknown Member" if the Group no longer
+/// lists them.
+struct MemberName: View {
+  let name: String?
+
+  var body: some View {
+    if let name {
+      Text(verbatim: name)
+    } else {
+      Text(LocalizedStringKey(Self.unknown), bundle: .module)
+    }
+  }
+
+  nonisolated static let unknown = "Unknown Member"
 }
 
 /// An Expense in the Group's list.
 struct ExpenseRow: View {
   let expense: ExpenseSummary
-  let payerName: String
+  let payerName: String?
 
   var body: some View {
     HStack(alignment: .firstTextBaseline) {
@@ -68,8 +84,11 @@ struct ExpenseRow: View {
         } else {
           Text(LocalizedStringKey(CategoryLabel.nameKey(expense.category)), bundle: .module)
         }
-        Text(LocalizedStringKey("\(payerName) paid · \(Self.dayText(expense.spentOn))"), bundle: .module)
-          .font(.footnote).foregroundStyle(.secondary)
+        Text(
+          LocalizedStringKey("\(payerName ?? Self.unknownName) paid · \(Self.dayText(expense.spentOn))"),
+          bundle: .module
+        )
+        .font(.footnote).foregroundStyle(.secondary)
       }
       Spacer()
       Text(verbatim: expense.amount.formatted()).monospacedDigit()
@@ -77,7 +96,12 @@ struct ExpenseRow: View {
     .accessibilityElement(children: .combine)
   }
 
+  /// The catalog key the subtitle's interpolation produces.
   nonisolated static let paidOnFormat = "%@ paid · %@"
+
+  private static var unknownName: String {
+    String(localized: String.LocalizationValue(MemberName.unknown), bundle: .module)
+  }
 
   /// "2026-10-01" in the User's style, such as "1 Oct 2026".
   static func dayText(_ day: String) -> String {

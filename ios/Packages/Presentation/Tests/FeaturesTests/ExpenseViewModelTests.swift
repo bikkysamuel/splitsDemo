@@ -145,6 +145,7 @@ struct ExpenseDetailViewModelTests {
 
     #expect(viewModel.state == .loaded(.dinner))
     #expect(viewModel.name(Group.me) == "Alice")
+    #expect(viewModel.name(UUID()) == nil)
   }
 }
 

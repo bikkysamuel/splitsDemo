@@ -110,21 +110,24 @@ enum ExpenseMapper {
     Expense(
       id: try uuid(e.id), groupID: try uuid(e.groupId), payerID: try uuid(e.payerMemberId),
       createdByID: try uuid(e.createdByMemberId), amount: money(e.amount), category: category(e.category),
-      note: e.note, spentOn: e.spentOn, state: state(e.state), version: Int(e.version),
+      note: e.note, spentOn: e.spentOn, state: try state(e.state), version: Int(e.version),
       shares: try e.shares.map(share))
   }
 
   static func summary(_ e: Components.Schemas.ExpenseSummary) throws(ServiceError) -> ExpenseSummary {
     ExpenseSummary(
       id: try uuid(e.id), payerID: try uuid(e.payerMemberId), amount: money(e.amount), category: category(e.category),
-      note: e.note, spentOn: e.spentOn, state: state(e.state))
+      note: e.note, spentOn: e.spentOn, state: try state(e.state))
   }
 
   private static func category(_ c: Components.Schemas.Category) -> Domain.Category {
     Domain.Category(rawValue: c.rawValue) ?? .other
   }
 
-  private static func state(_ s: Components.Schemas.ExpenseState) -> ExpenseState {
-    ExpenseState(rawValue: s.rawValue) ?? .accepted
+  /// An unknown state is a server the app doesn't understand: refuse it
+  /// rather than show it as one that counts (ADR-0009).
+  private static func state(_ s: Components.Schemas.ExpenseState) throws(ServiceError) -> ExpenseState {
+    guard let state = ExpenseState(rawValue: s.rawValue) else { throw .unexpected(status: nil) }
+    return state
   }
 }

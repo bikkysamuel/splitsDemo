@@ -27,5 +27,6 @@ public final class ExpenseDetailViewModel {
     }
   }
 
-  func name(_ memberID: UUID) -> String { group.member(memberID)?.displayName ?? "?" }
+  /// The Member's display name; nil if the Group no longer lists them.
+  func name(_ memberID: UUID) -> String? { group.member(memberID)?.displayName }
 }

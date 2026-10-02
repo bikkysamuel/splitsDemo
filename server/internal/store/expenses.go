@@ -32,6 +32,10 @@ func (r *ExpensesRepository) Create(ctx context.Context, e expenses.Expense) err
 		if groups.State(g.State) == groups.StateClosed {
 			return expenses.ErrGroupClosed
 		}
+		// Checked again under the lock: the service validated before it.
+		if g.Currency != e.Currency {
+			return &expenses.ValidationError{Fields: []expenses.FieldError{{Field: "amount/currency", Code: expenses.CodeNotGroupCurrency}}}
+		}
 		err = q.InsertExpense(ctx, sqlcgen.InsertExpenseParams{
 			ID: uuid(e.ID), GroupID: uuid(e.GroupID), CreatedBy: uuid(e.CreatedBy), PayerID: uuid(e.PayerID),
 			Category: e.Category, Note: text(e.Note), SpentOn: date(e.SpentOn),
@@ -105,14 +109,10 @@ func (r *ExpensesRepository) List(ctx context.Context, groupID platform.ID, afte
 	if err != nil {
 		return nil, fmt.Errorf("list expenses: %w", err)
 	}
-	currency, err := sqlcgen.New(r.db.pool).GroupCurrency(ctx, uuid(groupID))
-	if err != nil {
-		return nil, fmt.Errorf("select group currency: %w", err)
-	}
 	items := make([]expenses.Summary, len(rows))
 	for i, e := range rows {
 		items[i] = expenses.Summary{
-			ID: id(e.ID), PayerID: id(e.PayerID), Amount: e.AmountMinor, Currency: currency,
+			ID: id(e.ID), PayerID: id(e.PayerID), Amount: e.AmountMinor, Currency: e.Currency,
 			Category: e.Category, Note: optionalText(e.Note), SpentOn: e.SpentOn.Time, State: e.State,
 		}
 	}

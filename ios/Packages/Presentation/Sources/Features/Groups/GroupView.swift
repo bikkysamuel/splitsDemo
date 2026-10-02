@@ -121,7 +121,7 @@ struct GroupView: View {
                 viewModel: ExpenseDetailViewModel(
                   expenseID: e.id, group: group, repository: viewModel.expensesRepository))
             } label: {
-              ExpenseRow(expense: e, payerName: group.member(e.payerID)?.displayName ?? "?")
+              ExpenseRow(expense: e, payerName: group.member(e.payerID)?.displayName)
             }
           }
           if viewModel.hasMoreExpenses {

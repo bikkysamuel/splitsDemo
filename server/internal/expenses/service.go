@@ -93,8 +93,9 @@ func (s *Service) Create(ctx context.Context, userID, groupID platform.ID, in In
 		Shares: inJoinOrder(g, c.Shares),
 	}
 	if err := s.deps.Repository.Create(ctx, e); err != nil {
-		if errors.Is(err, ErrGroupClosed) {
-			return Expense{}, ErrGroupClosed
+		var invalid *ValidationError
+		if errors.Is(err, ErrGroupClosed) || errors.As(err, &invalid) {
+			return Expense{}, err
 		}
 		return Expense{}, fmt.Errorf("expenses: create in group %s: %w", g.ID, err)
 	}
