@@ -123,8 +123,8 @@ struct GroupExpensesTests {
     await expenses.set(pages: [
       nil: ExpensePage(items: [a], nextCursor: "c1"), "c1": ExpensePage(items: [b], nextCursor: nil),
     ])
-    let viewModel = GroupViewModel(
-      groupID: Group.trip.id, repository: FakeGroupsRepository(), expenses: expenses, balances: FakeBalancesRepository()
+    let viewModel = GroupViewModel.make(
+      groupID: Group.trip.id, groups: FakeGroupsRepository(), expenses: expenses, balances: FakeBalancesRepository()
     )
 
     await viewModel.load()

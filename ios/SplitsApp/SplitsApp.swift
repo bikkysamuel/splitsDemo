@@ -19,7 +19,7 @@ struct SplitsApp: App {
     _session = State(initialValue: AppSession(repository: AuthAPIRepository(api: api)))
     dependencies = AppDependencies(
       groups: GroupsAPIRepository(api: api), expenses: ExpensesAPIRepository(api: api),
-      balances: BalancesAPIRepository(api: api),
+      balances: BalancesAPIRepository(api: api), settlements: SettlementsAPIRepository(api: api),
       preferences: UserDefaultsPreferences())
   }
 

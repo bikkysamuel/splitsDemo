@@ -6,6 +6,9 @@ public enum ServiceError: Error, Equatable, Sendable {
   case invalidFields([FieldIssue])
   /// The server refused the request for a documented reason.
   case problem(ProblemKind)
+  /// The request would cause something the User must confirm
+  /// (`confirmation-required`); resend acknowledging these warning codes.
+  case needsConfirmation([String])
   /// The server could not be reached: no network, timeout, connection lost.
   case unreachable
   /// The server answered something the app doesn't understand, or failed;
@@ -35,6 +38,9 @@ public enum ProblemKind: String, CaseIterable, Sendable {
   case memberLimitReached = "member-limit-reached"
   case memberNotEligible = "member-not-eligible"
   case groupClosed = "group-closed"
+  case notCreator = "not-creator"
+  case invalidState = "invalid-state"
+  case confirmationRequired = "confirmation-required"
   case notReady = "not-ready"
   case `internal`
 }
@@ -63,6 +69,7 @@ public struct FieldIssue: Equatable, Hashable, Sendable {
     case notAMember
     case duplicateMember
     case noMembers
+    case sameMember
     case other(String)
 
     public init(code: String) {
@@ -78,6 +85,7 @@ public struct FieldIssue: Equatable, Hashable, Sendable {
       case "not_a_member": self = .notAMember
       case "duplicate_member": self = .duplicateMember
       case "no_members": self = .noMembers
+      case "same_member": self = .sameMember
       default: self = .other(code)
       }
     }

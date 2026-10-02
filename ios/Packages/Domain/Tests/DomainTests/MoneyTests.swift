@@ -14,6 +14,14 @@ struct MoneyTests {
     #expect(money.formatted(locale: Locale(identifier: locale)) == expected)
   }
 
+  @Test(arguments: ["en_US", "de_DE", "en_IN"])
+  func editableTextParsesBackToTheSameMoney(locale: String) {
+    let money = Money(minorUnits: 123456, currency: "INR")
+    let l = Locale(identifier: locale)
+
+    #expect(Money.parse(money.editableText(locale: l), currency: "INR", locale: l) == money)
+  }
+
   @Test func anUnsignedNegativeAmountDropsTheMinus() {
     let money = Money(minorUnits: -5000, currency: "INR")
 

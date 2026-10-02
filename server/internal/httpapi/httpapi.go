@@ -22,6 +22,7 @@ import (
 	"github.com/bikkysamuel/splitsDemo/server/internal/httpapi/apigen"
 	"github.com/bikkysamuel/splitsDemo/server/internal/idempotency"
 	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
+	"github.com/bikkysamuel/splitsDemo/server/internal/settlements"
 )
 
 // problemTypeBase prefixes every problem+json type URI (doc 07).
@@ -58,6 +59,9 @@ var (
 	problemMemberLimitReached       = problemKind{"member-limit-reached", "Member limit reached", http.StatusConflict}
 	problemMemberNotEligible        = problemKind{"member-not-eligible", "Member not eligible", http.StatusConflict}
 	problemGroupClosed              = problemKind{"group-closed", "Group closed", http.StatusConflict}
+	problemNotCreator               = problemKind{"not-creator", "Not the creator", http.StatusForbidden}
+	problemInvalidState             = problemKind{"invalid-state", "Invalid state", http.StatusConflict}
+	problemConfirmationRequired     = problemKind{"confirmation-required", "Confirmation required", http.StatusUnprocessableEntity}
 	problemInternal                 = problemKind{"internal", "Internal error", http.StatusInternalServerError}
 )
 
@@ -85,6 +89,7 @@ type Deps struct {
 	Groups      *groups.Service
 	Expenses    *expenses.Service
 	Balances    *balances.Service
+	Settlements *settlements.Service
 	// IDs makes the X-Request-ID of requests that bring none.
 	IDs *platform.IDGenerator
 }

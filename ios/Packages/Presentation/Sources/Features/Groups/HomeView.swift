@@ -30,7 +30,7 @@ struct HomeView: View {
           GroupView(
             viewModel: GroupViewModel(
               groupID: id, repository: dependencies.groups, expenses: dependencies.expenses,
-              balances: dependencies.balances))
+              balances: dependencies.balances, settlements: dependencies.settlements))
         }
         .sheet(item: $createGroup) { model in
           NavigationStack {

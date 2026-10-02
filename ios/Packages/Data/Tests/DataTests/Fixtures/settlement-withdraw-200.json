@@ -1,0 +1,16 @@
+{
+  "amount": {
+    "currency": "INR",
+    "minor": 500
+  },
+  "created_at": "2026-10-02T04:31:05.628385Z",
+  "created_by_member_id": "01a0fae1-4f3a-7c92-8675-9d81e1b3ac9f",
+  "from_member_id": "01a0fae1-503b-722e-b8a7-10e6c36009ab",
+  "group_id": "01a0fae1-4f3a-7c92-8675-9d81e1b3ac9e",
+  "id": "01a0fae1-519c-7237-b3e2-2de53a4277df",
+  "note": "Cash",
+  "settled_on": "2026-10-02",
+  "state": "withdrawn",
+  "to_member_id": "01a0fae1-4f3a-7c92-8675-9d81e1b3ac9f",
+  "version": 2
+}

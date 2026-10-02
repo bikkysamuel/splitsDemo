@@ -1,0 +1,10 @@
+{
+  "status": 422,
+  "title": "Confirmation required",
+  "type": "https://splits.dev/problems/confirmation-required",
+  "warnings": [
+    {
+      "code": "overpayment"
+    }
+  ]
+}

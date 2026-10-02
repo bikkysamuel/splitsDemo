@@ -15,6 +15,8 @@ public final class GroupViewModel {
   private(set) var expensesError: String?
   private(set) var balances: GroupBalances?
   private(set) var balancesError: String?
+  /// The latest Settlements, newest first.
+  private(set) var settlements: [Settlement] = []
   /// A failed change's message key (rename, grant Admin).
   private(set) var changeError: String?
   public private(set) var isRenaming = false
@@ -22,17 +24,19 @@ public final class GroupViewModel {
   let repository: any GroupsRepository
   let expensesRepository: any ExpensesRepository
   let balancesRepository: any BalancesRepository
+  let settlementsRepository: any SettlementsRepository
   private var renameKeys = WriteKeys<[String]>()
   private var adminKeys = WriteKeys<[String]>()
 
   public init(
     groupID: UUID, repository: any GroupsRepository, expenses: any ExpensesRepository,
-    balances: any BalancesRepository
+    balances: any BalancesRepository, settlements: any SettlementsRepository
   ) {
     self.groupID = groupID
     self.repository = repository
     self.expensesRepository = expenses
     self.balancesRepository = balances
+    self.settlementsRepository = settlements
   }
 
   /// Loads the Group and the first page of its Expenses.
@@ -45,6 +49,18 @@ public final class GroupViewModel {
       return
     }
     await loadExpenses(after: nil)
+    await loadSettlements()
+    await loadBalances()
+  }
+
+  /// The first page of Settlements (most Groups have few).
+  func loadSettlements() async {
+    settlements = (try? await settlementsRepository.settlements(groupID: groupID, cursor: nil))?.items ?? settlements
+  }
+
+  /// Reloads after a Settlement was recorded or withdrawn.
+  func settlementsChanged() async {
+    await loadSettlements()
     await loadBalances()
   }
 

@@ -46,10 +46,18 @@ func (r *BalancesRepository) Items(ctx context.Context, groupID platform.ID) (ba
 		for _, s := range shares {
 			byExpense[s.ExpenseID] = append(byExpense[s.ExpenseID], ledger.Share{JoinSeq: int(s.JoinSeq), Amount: s.ShareMinor})
 		}
-		// Settlements join the items with #23.
 		for _, e := range exps {
 			items.Expenses = append(items.Expenses, ledger.Expense{
 				State: itemState(e.State), Payer: int(e.PayerJoinSeq), Amount: e.AmountMinor, Shares: byExpense[e.ID],
+			})
+		}
+		sts, err := q.LedgerSettlements(ctx, uuid(groupID))
+		if err != nil {
+			return fmt.Errorf("select settlements: %w", err)
+		}
+		for _, s := range sts {
+			items.Settlements = append(items.Settlements, ledger.Settlement{
+				State: itemState(s.State), From: int(s.FromJoinSeq), To: int(s.ToJoinSeq), Amount: s.AmountMinor,
 			})
 		}
 		return nil

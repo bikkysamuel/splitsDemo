@@ -266,3 +266,21 @@ func addChecked(a, b int64) (int64, bool) {
 func inconsistent(format string, args ...any) error {
 	return fmt.Errorf("%w: "+format, append([]any{ErrInconsistentLedger}, args...)...)
 }
+
+// Overpays reports whether a Settlement of amount from Member from to
+// Member to (join_seq values) pays more than from owes or more than to is
+// owed (FR-S2). It is a warning, never a refusal (Q24).
+func Overpays(balances []Balance, from, to int, amount int64) (bool, error) {
+	byMember := make(map[int]int64, len(balances))
+	for _, b := range balances {
+		byMember[b.JoinSeq] = b.Amount
+	}
+	fromBalance, okFrom := byMember[from]
+	toBalance, okTo := byMember[to]
+	if !okFrom || !okTo {
+		return false, inconsistent("settlement between unknown members %d and %d", from, to)
+	}
+	owes := max(-fromBalance, 0)
+	owed := max(toBalance, 0)
+	return amount > owes || amount > owed, nil
+}

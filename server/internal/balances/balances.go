@@ -15,8 +15,8 @@ import (
 
 // Items are everything Balances are computed from, read from one
 // snapshot: every Member (Former Members included), every Expense with its
-// Shares and, once they exist (#23), every Settlement. ledger decides
-// which states count (ADR-0009).
+// Shares and every Settlement. ledger decides which states count
+// (ADR-0009; a confirmed Settlement is Accepted).
 type Items struct {
 	Members     []MemberRef
 	Expenses    []ledger.Expense

@@ -21,6 +21,13 @@ public struct Money: Equatable, Hashable, Sendable {
         .sign(strategy: signed ? .automatic : .never))
   }
 
+  /// The amount as an editable number ("333.34", no symbol or grouping),
+  /// to pre-fill a form; `parse` reads it back.
+  public func editableText(locale: Locale = .current) -> String {
+    decimalValue.formatted(
+      .number.locale(locale).grouping(.never).precision(.fractionLength(Currency.minorUnitDigits(currency))))
+  }
+
   /// The amount in major units, for display only.
   var decimalValue: Decimal {
     Decimal(minorUnits) / pow(10, Currency.minorUnitDigits(currency))

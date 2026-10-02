@@ -9,6 +9,7 @@ struct GroupView: View {
   @State private var newName = ""
   @State private var addMember: AddMemberViewModel?
   @State private var addExpense: AddExpenseViewModel?
+  @State private var recordSettlement: RecordSettlementViewModel?
   @State private var promoting: Member?
 
   var body: some View {
@@ -29,6 +30,15 @@ struct GroupView: View {
             }
           }
         }
+        if let group = viewModel.state.value {
+          ToolbarItem(placement: .secondaryAction) {
+            Button {
+              recordSettlement = RecordSettlementViewModel(group: group, repository: viewModel.settlementsRepository)
+            } label: {
+              Text(LocalizedStringKey(RecordSettlementView.title), bundle: .module)
+            }
+          }
+        }
         if viewModel.canRename {
           ToolbarItem(placement: .secondaryAction) {
             Button {
@@ -37,6 +47,14 @@ struct GroupView: View {
             } label: {
               Text(LocalizedStringKey(Self.rename), bundle: .module)
             }
+          }
+        }
+      }
+      .sheet(item: $recordSettlement) { model in
+        NavigationStack {
+          RecordSettlementView(viewModel: model) { _ in
+            recordSettlement = nil
+            Task { await viewModel.settlementsChanged() }
           }
         }
       }
@@ -112,7 +130,10 @@ struct GroupView: View {
           }
         }
         if let balances = viewModel.balances {
-          BalancesSection(group: group, balances: balances)
+          BalancesSection(group: group, balances: balances) { suggestion in
+            recordSettlement = RecordSettlementViewModel(
+              group: group, repository: viewModel.settlementsRepository, suggestion: suggestion)
+          }
         }
         if let key = viewModel.balancesError {
           Section {
@@ -151,6 +172,26 @@ struct GroupView: View {
           }
         } header: {
           Text(LocalizedStringKey(Self.expenses), bundle: .module)
+        }
+        if !viewModel.settlements.isEmpty {
+          Section {
+            ForEach(viewModel.settlements) { s in
+              NavigationLink {
+                SettlementDetailView(
+                  viewModel: SettlementDetailViewModel(
+                    settlementID: s.id, group: group, repository: viewModel.settlementsRepository)
+                ) {
+                  Task { await viewModel.settlementsChanged() }
+                }
+              } label: {
+                SettlementRow(
+                  settlement: s, fromName: group.member(s.fromMemberID)?.displayName,
+                  toName: group.member(s.toMemberID)?.displayName)
+              }
+            }
+          } header: {
+            Text(LocalizedStringKey(Self.settlements), bundle: .module)
+          }
         }
         Section {
           ForEach(group.members) { member in
@@ -202,10 +243,11 @@ struct GroupView: View {
   nonisolated static let expenses = "Expenses"
   nonisolated static let noExpenses = "No Expenses yet. Add the first with +."
   nonisolated static let loadMore = "Show more"
+  nonisolated static let settlements = "Settlements"
   nonisolated static let allKeys =
     [
       rename, renameTitle, renameFailed, members, makeAdmin, makeAdminTitle, makeAdminMessage, expenses, noExpenses,
-      loadMore,
+      loadMore, settlements,
     ]
     + MemberRow.allKeys
 }

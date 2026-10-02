@@ -34,6 +34,11 @@ struct StringCatalogTests {
     #expect(isInCatalog(key))
   }
 
+  @Test(arguments: RecordSettlementView.allKeys + SettlementDetailView.allKeys + [SettlementRow.paidFormat])
+  func everySettlementStringIsInTheCatalog(key: String) {
+    #expect(isInCatalog(key))
+  }
+
   @Test(arguments: BalancesSection.allKeys + ReportView.allKeys)
   func everyBalancesStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))

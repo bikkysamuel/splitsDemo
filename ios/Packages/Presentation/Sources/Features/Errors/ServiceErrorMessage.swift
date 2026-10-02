@@ -7,12 +7,14 @@ enum ServiceErrorMessage {
   static let generic = "Something went wrong. Try again."
   static let unreachable = "Can't reach the server. Check your connection and try again."
   static let checkFields = "Check the fields marked below."
+  static let confirmTitle = "Please confirm this."
 
   /// The screen-level message for an error.
   static func key(for error: ServiceError) -> String {
     switch error {
     case .invalidFields: checkFields
     case .problem(let kind): key(for: kind)
+    case .needsConfirmation: confirmTitle
     case .unreachable: unreachable
     case .unexpected: generic
     }
@@ -34,8 +36,10 @@ enum ServiceErrorMessage {
     case .memberLimitReached: "This Group already has 50 Members, the most allowed."
     case .memberNotEligible: "Only a Member who has an account can be an Admin."
     case .groupClosed: "This Group is closed. Reopen it to make changes."
+    case .notCreator: "Only the person who recorded this can do that."
+    case .invalidState: "This can't be done any more. Reload to see its current state."
     case .invalidRequest, .idempotencyKeyRequired, .idempotencyKeyInProgress, .idempotencyKeyReused, .notReady,
-      .internal, .invalidCursor:
+      .internal, .invalidCursor, .confirmationRequired:
       generic
     }
   }
@@ -59,6 +63,8 @@ enum ServiceErrorMessage {
     case ("amount/minor", _): "Enter an amount above zero."
     case ("amount/currency", _): "Use the Group Currency."
     case ("payer_member_id", _): "Choose who paid from the Group's Members."
+    case ("to_member_id", .sameMember): "Choose someone other than the payer."
+    case ("from_member_id", _), ("to_member_id", _): "Choose a Member of this Group."
     case ("note", .tooLong): "Use at most 500 characters."
     case ("split/members", _): "Choose at least one Member to share it."
     case (let field, _) where field.hasPrefix("split/"): "Check who shares this Expense."
@@ -68,11 +74,11 @@ enum ServiceErrorMessage {
 
   /// Every key the catalog must hold, for StringCatalogTests.
   static var allKeys: [String] {
-    var keys = [generic, unreachable, checkFields] + ProblemKind.allCases.map(key(for:))
+    var keys = [generic, unreachable, checkFields, confirmTitle] + ProblemKind.allCases.map(key(for:))
     let reasons: [FieldIssue.Reason] = [.required, .invalid, .tooShort, .tooLong, .tooCommon, .taken, .other("x")]
     for field in [
       "email", "password", "name", "display_name", "currency", "amount/minor", "amount/currency", "payer_member_id",
-      "note", "split/members", "split/members/0/member_id", "other",
+      "note", "split/members", "split/members/0/member_id", "from_member_id", "to_member_id", "other",
     ] {
       keys += reasons.map { key(for: FieldIssue(field: field, reason: $0)) }
     }
