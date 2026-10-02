@@ -145,8 +145,8 @@ func (s *Service) Withdraw(ctx context.Context, userID, settlementID platform.ID
 		return Settlement{}, ErrInvalidState
 	}
 	w, err := s.deps.Repository.Withdraw(ctx, st, st.State, version, me, s.deps.Clock.Now())
-	if errors.Is(err, ErrVersionConflict) {
-		return Settlement{}, ErrVersionConflict
+	if errors.Is(err, ErrVersionConflict) || errors.Is(err, ErrGroupClosed) {
+		return Settlement{}, err
 	}
 	if err != nil {
 		return Settlement{}, fmt.Errorf("settlements: withdraw %s: %w", settlementID, err)

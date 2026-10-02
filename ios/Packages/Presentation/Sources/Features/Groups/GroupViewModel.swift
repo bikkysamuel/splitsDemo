@@ -17,6 +17,7 @@ public final class GroupViewModel {
   private(set) var balancesError: String?
   /// The latest Settlements, newest first.
   private(set) var settlements: [Settlement] = []
+  private(set) var settlementsError: String?
   /// A failed change's message key (rename, grant Admin).
   private(set) var changeError: String?
   public private(set) var isRenaming = false
@@ -53,9 +54,15 @@ public final class GroupViewModel {
     await loadBalances()
   }
 
-  /// The first page of Settlements (most Groups have few).
+  /// The latest 50 Settlements (most Groups have far fewer; paging comes
+  /// with the Expense filters, #21).
   func loadSettlements() async {
-    settlements = (try? await settlementsRepository.settlements(groupID: groupID, cursor: nil))?.items ?? settlements
+    do {
+      settlements = try await settlementsRepository.settlements(groupID: groupID, cursor: nil).items
+      settlementsError = nil
+    } catch {
+      settlementsError = ServiceErrorMessage.key(for: error)
+    }
   }
 
   /// Reloads after a Settlement was recorded or withdrawn.

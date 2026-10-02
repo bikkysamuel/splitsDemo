@@ -22,7 +22,7 @@ struct SettlementDetailView: View {
         }
       }
       .alert(
-        Text(LocalizedStringKey(GroupView.renameFailed), bundle: .module),
+        Text(LocalizedStringKey(Self.withdrawFailed), bundle: .module),
         isPresented: Binding(get: { viewModel.actionError != nil }, set: { if !$0 { viewModel.dismissError() } })
       ) {
         Button {
@@ -90,7 +90,8 @@ struct SettlementDetailView: View {
   nonisolated static let withdrawTitle = "Withdraw this Settlement?"
   nonisolated static let withdrawFooter = "It stays in the history but no longer counts toward Balances."
   nonisolated static let withdrawn = "Withdrawn"
-  nonisolated static let allKeys = [title, withdraw, withdrawTitle, withdrawFooter, withdrawn]
+  nonisolated static let withdrawFailed = "Couldn't withdraw"
+  nonisolated static let allKeys = [title, withdraw, withdrawTitle, withdrawFooter, withdrawn, withdrawFailed]
 }
 
 /// A Settlement in the Group's list.

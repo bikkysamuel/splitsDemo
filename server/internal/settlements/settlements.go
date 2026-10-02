@@ -14,9 +14,9 @@ import (
 
 const maxNoteLength = 500
 
-// States, as stored in settlements.state (doc 06).
+// States, as stored in settlements.state (doc 06). Pending, Disputed and
+// WithdrawalPending arrive with the agreement flow (M2).
 const (
-	StatePending   = "pending"
 	StateAccepted  = "accepted"
 	StateWithdrawn = "withdrawn"
 )
@@ -111,6 +111,7 @@ type Repository interface {
 	List(ctx context.Context, groupID platform.ID, after *Cursor, limit int) ([]Settlement, error)
 	// Withdraw moves the Settlement from fromState to Withdrawn if its
 	// version is still version, writing a `settlement_withdrawn` event by
-	// actor; it returns ErrVersionConflict otherwise.
+	// actor, with the Group's state held steady; it returns ErrGroupClosed
+	// or ErrVersionConflict otherwise.
 	Withdraw(ctx context.Context, s Settlement, fromState string, version int, actor platform.ID, now time.Time) (Settlement, error)
 }

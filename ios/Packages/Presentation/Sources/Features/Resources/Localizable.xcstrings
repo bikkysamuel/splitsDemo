@@ -373,6 +373,18 @@
         }
       }
     },
+    "Couldn't withdraw": {
+      "comment": "Title of the alert when withdrawing failed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't withdraw"
+          }
+        }
+      }
+    },
     "Create Group": {
       "comment": "Button and title for creating a Group",
       "extractionState": "manual",

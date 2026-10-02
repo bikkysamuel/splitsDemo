@@ -38,3 +38,27 @@ func TestOverpaysRefusesUnknownMembers(t *testing.T) {
 		t.Error("Overpays with an unknown Member = nil error; want ErrInconsistentLedger")
 	}
 }
+
+// Overpays warns exactly when the amount is above what the payer owes or
+// above what the receiver is owed (FR-S2), so a Settle-up Suggestion,
+// which never exceeds either, never warns.
+func FuzzOverpaysFollowsFRS2(f *testing.F) {
+	f.Add(int64(-300), int64(500), int64(300))
+	f.Add(int64(0), int64(0), int64(1))
+	f.Add(int64(200), int64(-200), int64(50))
+	f.Fuzz(func(t *testing.T, from, to, amount int64) {
+		if amount <= 0 || from < -1<<40 || from > 1<<40 || to < -1<<40 || to > 1<<40 {
+			t.Skip()
+		}
+		// A third Member keeps the Balances summing to zero.
+		balances := []ledger.Balance{{JoinSeq: 1, Amount: from}, {JoinSeq: 2, Amount: to}, {JoinSeq: 3, Amount: -from - to}}
+		got, err := ledger.Overpays(balances, 1, 2, amount)
+		if err != nil {
+			t.Fatal(err)
+		}
+		owes, owed := max(-from, 0), max(to, 0)
+		if want := amount > owes || amount > owed; got != want {
+			t.Errorf("Overpays(from %d, to %d, amount %d) = %v; want %v", from, to, amount, got, want)
+		}
+	})
+}

@@ -168,10 +168,11 @@ func TestTheCreatorWithdrawsASettlementAndItStopsCounting(t *testing.T) {
 	if b := tr.balances(t, tr.alice.AccessToken); b.of(t, tr.bobID) != -300 {
 		t.Errorf("Bob's Balance = %d; want -300 again", b.of(t, tr.bobID))
 	}
-	var n int
+	var types string
 	if err := connect(t, tr.srv).QueryRow(context.Background(),
-		"SELECT count(*) FROM activity_events WHERE subject_id = $1", s.ID).Scan(&n); err != nil || n != 2 {
-		t.Errorf("activity events for the Settlement = %d, %v; want recorded + withdrawn", n, err)
+		"SELECT string_agg(type, ',' ORDER BY id) FROM activity_events WHERE subject_id = $1", s.ID).Scan(&types); err != nil ||
+		types != "settlement_recorded,settlement_withdrawn" {
+		t.Errorf("activity events for the Settlement = %q, %v; want settlement_recorded,settlement_withdrawn", types, err)
 	}
 }
 

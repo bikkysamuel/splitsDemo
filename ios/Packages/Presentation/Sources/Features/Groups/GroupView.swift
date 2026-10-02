@@ -30,7 +30,7 @@ struct GroupView: View {
             }
           }
         }
-        if let group = viewModel.state.value {
+        if let group = viewModel.state.value, group.state != .closed {
           ToolbarItem(placement: .secondaryAction) {
             Button {
               recordSettlement = RecordSettlementViewModel(group: group, repository: viewModel.settlementsRepository)
@@ -130,10 +130,14 @@ struct GroupView: View {
           }
         }
         if let balances = viewModel.balances {
-          BalancesSection(group: group, balances: balances) { suggestion in
-            recordSettlement = RecordSettlementViewModel(
-              group: group, repository: viewModel.settlementsRepository, suggestion: suggestion)
-          }
+          BalancesSection(
+            group: group, balances: balances,
+            onSettle: group.state == .closed
+              ? nil
+              : { suggestion in
+                recordSettlement = RecordSettlementViewModel(
+                  group: group, repository: viewModel.settlementsRepository, suggestion: suggestion)
+              })
         }
         if let key = viewModel.balancesError {
           Section {
@@ -172,6 +176,13 @@ struct GroupView: View {
           }
         } header: {
           Text(LocalizedStringKey(Self.expenses), bundle: .module)
+        }
+        if let key = viewModel.settlementsError {
+          Section {
+            FieldErrorText(key: key)
+          } header: {
+            Text(LocalizedStringKey(Self.settlements), bundle: .module)
+          }
         }
         if !viewModel.settlements.isEmpty {
           Section {
