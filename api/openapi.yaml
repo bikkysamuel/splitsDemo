@@ -29,6 +29,8 @@ tags:
     description: The signed-in User's own account
   - name: groups
     description: Groups and their Members (FR-G*, FR-M*)
+  - name: expenses
+    description: Expenses and their Shares (FR-E*)
 security: []
 
 paths:
@@ -624,6 +626,232 @@ paths:
           $ref: "#/components/responses/IdempotencyKeyReused"
         "500":
           $ref: "#/components/responses/InternalError"
+  /v1/groups/{groupId}/expenses/preview:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    post:
+      operationId: previewExpense
+      summary: Preview an Expense's Shares
+      description: |
+        Computes the exact Shares an Expense would get, without saving it
+        (FR-E4, ADR-0006). The same code computes them on save, so the
+        preview always matches. Reads only, so it takes no Idempotency-Key.
+        Refuses the input exactly as creating would.
+      x-splits-read-only: true
+      tags: [expenses]
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: The Expense as it would be saved.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseInput"
+            example:
+              payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+              amount: {minor: 100001, currency: INR}
+              category: food_drink
+              note: Dinner at the beach shack
+              spent_on: "2026-10-01"
+              split:
+                method: equal
+                members:
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d3
+      responses:
+        "200":
+          description: The Shares the Expense would get.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpensePreview"
+              example:
+                amount: {minor: 100001, currency: INR}
+                shares:
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                    share: {minor: 33334, currency: INR}
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                    share: {minor: 33334, currency: INR}
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d3
+                    share: {minor: 33333, currency: INR}
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/groups/{groupId}/expenses:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      operationId: listExpenses
+      summary: A Group's Expenses
+      description: Newest first by date, then by when they were recorded, a page at a time.
+      tags: [expenses]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: One page of Expenses.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpensePage"
+              example:
+                items:
+                  - id: 0190b6c4-0000-7000-8000-0000000000e1
+                    payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                    amount: {minor: 100001, currency: INR}
+                    category: food_drink
+                    note: Dinner at the beach shack
+                    spent_on: "2026-10-01"
+                    state: accepted
+                next_cursor: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createExpense
+      summary: Record an Expense
+      description: |
+        Any active Member records an Expense, for any payer (FR-E1, FR-E3).
+        In M1 it is accepted at once (D9). The Expense, its Shares and its
+        Activity History event are saved in one transaction (NFR-R2). Once
+        a Group has an Expense its Group Currency can't change (D3).
+      tags: [expenses]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        description: The new Expense.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseInput"
+            example:
+              payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+              amount: {minor: 100001, currency: INR}
+              category: food_drink
+              note: Dinner at the beach shack
+              spent_on: "2026-10-01"
+              split:
+                method: equal
+                members:
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d3
+      responses:
+        "201":
+          description: The Expense was recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000e1
+                group_id: 0190b6c4-0000-7000-8000-0000000000c1
+                payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                created_by_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                amount: {minor: 100001, currency: INR}
+                category: food_drink
+                note: Dinner at the beach shack
+                spent_on: "2026-10-01"
+                split_method: equal
+                state: accepted
+                version: 1
+                created_at: "2026-10-01T19:30:00Z"
+                shares:
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                    share: {minor: 33334, currency: INR}
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                    share: {minor: 33334, currency: INR}
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d3
+                    share: {minor: 33333, currency: INR}
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "422":
+          $ref: "#/components/responses/IdempotencyKeyReused"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/expenses/{expenseId}:
+    parameters:
+      - $ref: "#/components/parameters/ExpenseId"
+    get:
+      operationId: getExpense
+      summary: An Expense
+      description: The Expense with its Shares. `404` unless the User is an active Member of its Group.
+      tags: [expenses]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The Expense.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000e1
+                group_id: 0190b6c4-0000-7000-8000-0000000000c1
+                payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                created_by_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                amount: {minor: 100001, currency: INR}
+                category: food_drink
+                note: Dinner at the beach shack
+                spent_on: "2026-10-01"
+                split_method: equal
+                state: accepted
+                version: 1
+                created_at: "2026-10-01T19:30:00Z"
+                shares:
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                    share: {minor: 33334, currency: INR}
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                    share: {minor: 33334, currency: INR}
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d3
+                    share: {minor: 33333, currency: INR}
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /v1/me:
     get:
       operationId: getMe
@@ -665,6 +893,14 @@ components:
       in: path
       required: true
       description: The Group's ID.
+      schema:
+        type: string
+        format: uuid
+    ExpenseId:
+      name: expenseId
+      in: path
+      required: true
+      description: The Expense's ID.
       schema:
         type: string
         format: uuid
@@ -758,6 +994,11 @@ components:
         - `member-limit-reached`: the Group already has 50 Members (409).
         - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
         - `group-closed`: the Group is Closed and read-only (409).
+
+        Field error codes of an Expense (`errors[].code`): `required`,
+        `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+        `not_a_member` (payer or Split Member isn't an active Member),
+        `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
         - `internal`: an unexpected server failure (500).
       type: object
       required: [type, title, status]
@@ -1133,6 +1374,215 @@ components:
           type: integer
           format: int32
           examples: [1]
+
+    Category:
+      description: The fixed Category list (D7); the app localizes the names.
+      type: string
+      enum: [food_drink, groceries, transport, accommodation, rent, utilities, entertainment, shopping, health, travel, other]
+      examples: ["food_drink"]
+
+    SplitMethod:
+      description: |
+        How the Expense is divided (FR-E2). Equal only for now; exact,
+        percentage and ratio follow (#18).
+      type: string
+      enum: [equal]
+      examples: ["equal"]
+
+    ExpenseState:
+      description: |
+        Where the Expense is in its life (doc 06). In M1 every Expense is
+        accepted at once (D9); the agreement states arrive with M2.
+      type: string
+      enum: [pending, accepted, disputed, withdrawal_pending, withdrawn]
+      examples: ["accepted"]
+
+    SplitInput:
+      description: Who shares the Expense, and how.
+      type: object
+      required: [method, members]
+      additionalProperties: false
+      properties:
+        method:
+          $ref: "#/components/schemas/SplitMethod"
+        members:
+          description: 1–50 distinct active Members.
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            required: [member_id]
+            additionalProperties: false
+            properties:
+              member_id:
+                type: string
+                format: uuid
+          examples:
+            - - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+
+    ExpenseInput:
+      description: An Expense as entered (FR-E1). Previews and creates take the same input.
+      type: object
+      required: [payer_member_id, amount, category, spent_on, split]
+      additionalProperties: false
+      properties:
+        payer_member_id:
+          description: Any active Member, Placeholders included (FR-E3).
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        amount:
+          description: "> 0, in the Group Currency for now (foreign currencies: #19)."
+          $ref: "#/components/schemas/Money"
+          examples:
+            - {minor: 100001, currency: INR}
+        category:
+          $ref: "#/components/schemas/Category"
+        note:
+          description: Optional, at most 500 characters after trimming (D1).
+          type: string
+          maxLength: 2000
+          examples: ["Dinner at the beach shack"]
+        spent_on:
+          description: The day the money was spent.
+          type: string
+          format: date
+          examples: ["2026-10-01"]
+        split:
+          $ref: "#/components/schemas/SplitInput"
+
+    ShareLine:
+      description: One Member's Share.
+      type: object
+      required: [member_id, share]
+      additionalProperties: false
+      properties:
+        member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        share:
+          $ref: "#/components/schemas/Money"
+
+    ExpensePreview:
+      description: The Shares an Expense would get, in the Split's order.
+      type: object
+      required: [amount, shares]
+      additionalProperties: false
+      properties:
+        amount:
+          $ref: "#/components/schemas/Money"
+        shares:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShareLine"
+          examples:
+            - - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                share: {minor: 100001, currency: INR}
+
+    ExpenseSummary:
+      description: An Expense in a list.
+      type: object
+      required: [id, payer_member_id, amount, category, spent_on, state]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000e1"]
+        payer_member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        amount:
+          $ref: "#/components/schemas/Money"
+        category:
+          $ref: "#/components/schemas/Category"
+        note:
+          type: string
+          examples: ["Dinner at the beach shack"]
+        spent_on:
+          type: string
+          format: date
+          examples: ["2026-10-01"]
+        state:
+          $ref: "#/components/schemas/ExpenseState"
+
+    ExpensePage:
+      description: One page of a Group's Expenses.
+      type: object
+      required: [items, next_cursor]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpenseSummary"
+          examples:
+            - - id: 0190b6c4-0000-7000-8000-0000000000e1
+                payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                amount: {minor: 100001, currency: INR}
+                category: food_drink
+                spent_on: "2026-10-01"
+                state: accepted
+        next_cursor:
+          description: The cursor of the next page of Expenses; null on the last page.
+          type: [string, "null"]
+          examples: [null]
+
+    Expense:
+      description: An Expense with its Shares (FR-E1).
+      type: object
+      required: [id, group_id, payer_member_id, created_by_member_id, amount, category, spent_on, split_method, state, version, created_at, shares]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000e1"]
+        group_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000c1"]
+        payer_member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        created_by_member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        amount:
+          $ref: "#/components/schemas/Money"
+        category:
+          $ref: "#/components/schemas/Category"
+        note:
+          type: string
+          examples: ["Dinner at the beach shack"]
+        spent_on:
+          type: string
+          format: date
+          examples: ["2026-10-01"]
+        split_method:
+          $ref: "#/components/schemas/SplitMethod"
+        state:
+          $ref: "#/components/schemas/ExpenseState"
+        version:
+          type: integer
+          format: int32
+          examples: [1]
+        created_at:
+          type: string
+          format: date-time
+          examples: ["2026-10-01T19:30:00Z"]
+        shares:
+          description: Every Member in the Split, in joining order.
+          type: array
+          items:
+            $ref: "#/components/schemas/ShareLine"
+          examples:
+            - - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                share: {minor: 100001, currency: INR}
 
     Money:
       description: |

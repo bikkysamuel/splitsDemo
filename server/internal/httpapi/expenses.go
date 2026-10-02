@@ -1,0 +1,201 @@
+package httpapi
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/binary"
+	"errors"
+	"net/http"
+	"time"
+
+	openapi_types "github.com/oapi-codegen/runtime/types"
+
+	"github.com/bikkysamuel/splitsDemo/server/internal/expenses"
+	"github.com/bikkysamuel/splitsDemo/server/internal/groups"
+	"github.com/bikkysamuel/splitsDemo/server/internal/httpapi/apigen"
+	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
+)
+
+// PreviewExpense returns the Shares an Expense would get (FR-E4).
+func (s *Server) PreviewExpense(ctx context.Context, req apigen.PreviewExpenseRequestObject) (apigen.PreviewExpenseResponseObject, error) {
+	p, err := mustPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	c, err := s.deps.Expenses.Preview(ctx, p.UserID, platform.ID(req.GroupId), expenseInput(*req.Body))
+	if err == nil {
+		resp := apigen.PreviewExpense200JSONResponse{Amount: money(c.Amount, c.Currency), Shares: shareLines(c.Shares, c.Currency)}
+		return resp, nil
+	}
+	prob, ok := expensesProblem(err)
+	if !ok {
+		return nil, err
+	}
+	switch prob.Status {
+	case http.StatusBadRequest:
+		return apigen.PreviewExpense400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: apigen.BadRequestApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusNotFound:
+		return apigen.PreviewExpense404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: apigen.NotFoundApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusConflict:
+		return apigen.PreviewExpense409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: apigen.ConflictApplicationProblemPlusJSONResponse(prob)}, nil
+	}
+	return nil, err
+}
+
+// CreateExpense records an Expense (FR-E1).
+func (s *Server) CreateExpense(ctx context.Context, req apigen.CreateExpenseRequestObject) (apigen.CreateExpenseResponseObject, error) {
+	p, err := mustPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	e, err := s.deps.Expenses.Create(ctx, p.UserID, platform.ID(req.GroupId), expenseInput(*req.Body))
+	if err == nil {
+		return apigen.CreateExpense201JSONResponse(apiExpense(e)), nil
+	}
+	prob, ok := expensesProblem(err)
+	if !ok {
+		return nil, err
+	}
+	switch prob.Status {
+	case http.StatusBadRequest:
+		return apigen.CreateExpense400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: apigen.BadRequestApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusNotFound:
+		return apigen.CreateExpense404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: apigen.NotFoundApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusConflict:
+		return apigen.CreateExpense409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: apigen.ConflictApplicationProblemPlusJSONResponse(prob)}, nil
+	}
+	return nil, err
+}
+
+// ListExpenses returns one page of a Group's Expenses, newest first.
+func (s *Server) ListExpenses(ctx context.Context, req apigen.ListExpensesRequestObject) (apigen.ListExpensesResponseObject, error) {
+	p, err := mustPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	bad := func(k problemKind, detail string) (apigen.ListExpensesResponseObject, error) {
+		return apigen.ListExpenses400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: apigen.BadRequestApplicationProblemPlusJSONResponse(k.problem(detail))}, nil
+	}
+	var after *expenses.Cursor
+	if req.Params.Cursor != nil {
+		c, ok := decodeExpenseCursor(*req.Params.Cursor)
+		if !ok {
+			return bad(problemInvalidCursor, "")
+		}
+		after = &c
+	}
+	limit := defaultPageSize
+	if req.Params.Limit != nil {
+		limit = *req.Params.Limit
+	}
+	if limit < 1 || limit > maxPageSize {
+		return bad(problemInvalidRequest, "limit must be 1–200")
+	}
+	page, err := s.deps.Expenses.List(ctx, p.UserID, platform.ID(req.GroupId), after, limit)
+	if errors.Is(err, groups.ErrNotFound) {
+		return apigen.ListExpenses404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: apigen.NotFoundApplicationProblemPlusJSONResponse(problemNotFound.problem(""))}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	resp := apigen.ListExpenses200JSONResponse{Items: make([]apigen.ExpenseSummary, len(page.Items))}
+	for i, e := range page.Items {
+		resp.Items[i] = apigen.ExpenseSummary{
+			Id: openapi_types.UUID(e.ID), PayerMemberId: openapi_types.UUID(e.PayerID), Amount: money(e.Amount, e.Currency),
+			Category: apigen.Category(e.Category), Note: e.Note, SpentOn: openapi_types.Date{Time: e.SpentOn},
+			State: apigen.ExpenseState(e.State),
+		}
+	}
+	if page.Next != nil {
+		c := encodeExpenseCursor(*page.Next)
+		resp.NextCursor = &c
+	}
+	return resp, nil
+}
+
+// GetExpense returns an Expense with its Shares; 404 unless the User is in
+// its Group.
+func (s *Server) GetExpense(ctx context.Context, req apigen.GetExpenseRequestObject) (apigen.GetExpenseResponseObject, error) {
+	p, err := mustPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	e, err := s.deps.Expenses.Get(ctx, p.UserID, platform.ID(req.ExpenseId))
+	if errors.Is(err, expenses.ErrNotFound) {
+		return apigen.GetExpense404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: apigen.NotFoundApplicationProblemPlusJSONResponse(problemNotFound.problem(""))}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return apigen.GetExpense200JSONResponse(apiExpense(e)), nil
+}
+
+// expensesProblem maps an expected Expense error to its problem.
+func expensesProblem(err error) (apigen.Problem, bool) {
+	var invalid *expenses.ValidationError
+	switch {
+	case errors.As(err, &invalid):
+		p := problemValidationFailed.problem("")
+		errs := make([]apigen.FieldError, len(invalid.Fields))
+		for i, f := range invalid.Fields {
+			errs[i] = apigen.FieldError{Field: "/" + f.Field, Code: f.Code}
+		}
+		p.Errors = &errs
+		return p, true
+	case errors.Is(err, expenses.ErrGroupClosed):
+		return problemGroupClosed.problem(""), true
+	}
+	return groupsProblem(err)
+}
+
+func expenseInput(b apigen.ExpenseInput) expenses.Input {
+	in := expenses.Input{
+		PayerID: platform.ID(b.PayerMemberId), Amount: b.Amount.Minor, Currency: b.Amount.Currency,
+		Category: string(b.Category), Note: b.Note, SpentOn: b.SpentOn.Time, Method: string(b.Split.Method),
+	}
+	for _, m := range b.Split.Members {
+		in.Members = append(in.Members, platform.ID(m.MemberId))
+	}
+	return in
+}
+
+func apiExpense(e expenses.Expense) apigen.Expense {
+	return apigen.Expense{
+		Id: openapi_types.UUID(e.ID), GroupId: openapi_types.UUID(e.GroupID),
+		PayerMemberId: openapi_types.UUID(e.PayerID), CreatedByMemberId: openapi_types.UUID(e.CreatedBy),
+		Amount: money(e.Amount, e.Currency), Category: apigen.Category(e.Category), Note: e.Note,
+		SpentOn: openapi_types.Date{Time: e.SpentOn}, SplitMethod: apigen.SplitMethod(e.Method),
+		State: apigen.ExpenseState(e.State), Version: int32(e.Version), //nolint:gosec // a version
+		CreatedAt: e.CreatedAt, Shares: shareLines(e.Shares, e.Currency),
+	}
+}
+
+func money(minor int64, currency string) apigen.Money {
+	return apigen.Money{Minor: minor, Currency: currency}
+}
+
+func shareLines(shares []expenses.Share, currency string) []apigen.ShareLine {
+	lines := make([]apigen.ShareLine, len(shares))
+	for i, s := range shares {
+		lines[i] = apigen.ShareLine{MemberId: openapi_types.UUID(s.MemberID), Share: money(s.Amount, currency)}
+	}
+	return lines
+}
+
+// Expense cursors: base64url of the last Expense's day (days since the
+// Unix epoch, 4 bytes) and ID (16 bytes).
+func encodeExpenseCursor(c expenses.Cursor) string {
+	var b [20]byte
+	binary.BigEndian.PutUint32(b[:4], uint32(c.SpentOn.Unix()/86400)) //nolint:gosec // dates after 1970
+	copy(b[4:], c.ID[:])
+	return base64.RawURLEncoding.EncodeToString(b[:])
+}
+
+func decodeExpenseCursor(s string) (expenses.Cursor, bool) {
+	b, err := base64.RawURLEncoding.DecodeString(s)
+	if err != nil || len(b) != 20 {
+		return expenses.Cursor{}, false
+	}
+	days := int64(binary.BigEndian.Uint32(b[:4]))
+	return expenses.Cursor{SpentOn: time.Unix(days*86400, 0).UTC(), ID: platform.ID(b[4:])}, true
+}

@@ -68,7 +68,7 @@ func newIdempotencyFixture(t *testing.T) *idempotencyFixture {
 		f.users = append(f.users, auth.Principal{UserID: u.ID, EmailVerified: true})
 	}
 
-	f.server = &Server{deps: Deps{
+	f.server = &Server{mux: http.NewServeMux(), deps: Deps{
 		Logger:      platform.NewLogger(t.Output()),
 		Idempotency: idempotency.NewService(db.Idempotency(), f.clock),
 	}}

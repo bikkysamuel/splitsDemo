@@ -21,7 +21,8 @@ import (
 func (s *Server) idempotent(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p, signedIn := principalFrom(r.Context())
-		if !signedIn || !isWrite(r.Method) {
+		_, pattern := s.mux.Handler(r)
+		if !signedIn || !isWrite(r.Method) || readOnlyRoutes[pattern] {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -80,6 +81,13 @@ func (s *Server) idempotent(next http.Handler) http.Handler {
 		}
 		completed = true
 	})
+}
+
+// readOnlyRoutes are POSTs that change nothing, marked
+// `x-splits-read-only` in the contract, so they take no Idempotency-Key
+// (TestReadOnlyOperationsTakeNoIdempotencyKey keeps the two in step).
+var readOnlyRoutes = map[string]bool{
+	"POST /v1/groups/{groupId}/expenses/preview": true,
 }
 
 func isWrite(method string) bool {

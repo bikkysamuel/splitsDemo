@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "amount": {
+        "currency": "INR",
+        "minor": 100001
+      },
+      "category": "food_drink",
+      "id": "01a0faca-a073-778e-aa29-5e4621c0afa3",
+      "note": "Dinner",
+      "payer_member_id": "01a0faca-9e5d-7fa8-8b88-5ff7b2916763",
+      "spent_on": "2026-10-01",
+      "state": "accepted"
+    }
+  ],
+  "next_cursor": null
+}

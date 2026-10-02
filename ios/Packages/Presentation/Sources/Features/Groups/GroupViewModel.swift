@@ -9,26 +9,59 @@ import Observation
 public final class GroupViewModel {
   public let groupID: UUID
   private(set) var state: LoadState<Domain.Group> = .loading
+  /// The Group's Expenses loaded so far, newest first.
+  private(set) var expenses: [ExpenseSummary] = []
+  private var nextCursor: String?
+  private(set) var expensesError: String?
   /// A failed change's message key (rename, grant Admin).
   private(set) var changeError: String?
   public private(set) var isRenaming = false
 
   let repository: any GroupsRepository
+  let expensesRepository: any ExpensesRepository
   private var renameKeys = WriteKeys<[String]>()
   private var adminKeys = WriteKeys<[String]>()
 
-  public init(groupID: UUID, repository: any GroupsRepository) {
+  public init(groupID: UUID, repository: any GroupsRepository, expenses: any ExpensesRepository) {
     self.groupID = groupID
     self.repository = repository
+    self.expensesRepository = expenses
   }
 
+  /// Loads the Group and the first page of its Expenses.
   public func load() async {
     if state.value == nil { state = .loading }
     do {
       state = .loaded(try await repository.group(id: groupID))
     } catch {
       state = .failed(ServiceErrorMessage.key(for: error))
+      return
     }
+    await loadExpenses(after: nil)
+  }
+
+  var hasMoreExpenses: Bool { nextCursor != nil }
+
+  /// Appends the next page of Expenses.
+  public func loadMoreExpenses() async {
+    guard let nextCursor else { return }
+    await loadExpenses(after: nextCursor)
+  }
+
+  private func loadExpenses(after cursor: String?) async {
+    do {
+      let page = try await expensesRepository.expenses(groupID: groupID, cursor: cursor)
+      expenses = cursor == nil ? page.items : expenses + page.items
+      nextCursor = page.nextCursor
+      expensesError = nil
+    } catch {
+      expensesError = ServiceErrorMessage.key(for: error)
+    }
+  }
+
+  /// Reloads after an Expense was recorded.
+  func expenseAdded() async {
+    await loadExpenses(after: nil)
   }
 
   var canRename: Bool { state.value?.isAdmin == true }

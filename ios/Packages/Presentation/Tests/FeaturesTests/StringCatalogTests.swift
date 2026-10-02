@@ -27,6 +27,13 @@ struct StringCatalogTests {
     #expect(isInCatalog(key))
   }
 
+  @Test(
+    arguments: AddExpenseView.allKeys + ExpenseDetailView.allKeys + [ExpenseRow.paidOnFormat]
+      + Domain.Category.allCases.map(CategoryLabel.nameKey))
+  func everyExpenseScreenStringIsInTheCatalog(key: String) {
+    #expect(isInCatalog(key))
+  }
+
   @Test(arguments: MainTabView.allKeys)
   func everyTabStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))

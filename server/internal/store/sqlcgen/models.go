@@ -8,6 +8,46 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ActivityEvent struct {
+	ID                 int64
+	GroupID            pgtype.UUID
+	ActorMemberID      pgtype.UUID
+	OnBehalfOfMemberID pgtype.UUID
+	Type               string
+	SubjectType        string
+	SubjectID          pgtype.UUID
+	Payload            []byte
+	OccurredAt         pgtype.Timestamptz
+}
+
+type Expense struct {
+	ID               pgtype.UUID
+	GroupID          pgtype.UUID
+	CreatedBy        pgtype.UUID
+	PayerID          pgtype.UUID
+	Category         string
+	Note             pgtype.Text
+	SpentOn          pgtype.Date
+	OriginalMinor    int64
+	OriginalCurrency string
+	ExchangeRate     pgtype.Numeric
+	AmountMinor      int64
+	SplitMethod      string
+	State            string
+	Revision         int32
+	PendingSince     pgtype.Timestamptz
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+	Version          int32
+}
+
+type ExpenseShare struct {
+	ExpenseID  pgtype.UUID
+	MemberID   pgtype.UUID
+	Input      pgtype.Numeric
+	ShareMinor int64
+}
+
 type Group struct {
 	ID            pgtype.UUID
 	ParentGroupID pgtype.UUID
