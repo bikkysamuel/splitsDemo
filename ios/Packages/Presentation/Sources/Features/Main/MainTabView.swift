@@ -9,6 +9,7 @@ struct MainTabView: View {
   let dependencies: AppDependencies
   @State private var home: HomeViewModel
   @State private var settings: SettingsViewModel
+  @State private var report: ReportViewModel
 
   init(user: User, session: AppSession, dependencies: AppDependencies) {
     self.user = user
@@ -16,6 +17,9 @@ struct MainTabView: View {
     self.dependencies = dependencies
     _home = State(initialValue: HomeViewModel(repository: dependencies.groups))
     _settings = State(initialValue: SettingsViewModel(preferences: dependencies.preferences))
+    _report = State(
+      initialValue: ReportViewModel(
+        groups: dependencies.groups, balances: dependencies.balances, preferences: dependencies.preferences))
   }
 
   var body: some View {
@@ -31,8 +35,7 @@ struct MainTabView: View {
       }
       Tab {
         NavigationStack {
-          EmptyTab(
-            titleKey: Self.report, messageKey: Self.reportEmpty, detailKey: Self.reportEmptyDetail, symbol: "chart.bar")
+          ReportView(viewModel: report)
         }
       } label: {
         Label {
@@ -66,25 +69,4 @@ struct MainTabView: View {
   nonisolated static let allKeys = [
     home, homeEmpty, homeEmptyDetail, report, reportEmpty, reportEmptyDetail, settings,
   ]
-}
-
-/// A tab's placeholder until its content exists.
-private struct EmptyTab: View {
-  let titleKey: String
-  let messageKey: String
-  let detailKey: String
-  let symbol: String
-
-  var body: some View {
-    ContentUnavailableView {
-      Label {
-        Text(LocalizedStringKey(messageKey), bundle: .module)
-      } icon: {
-        Image(systemName: symbol).accessibilityHidden(true)
-      }
-    } description: {
-      Text(LocalizedStringKey(detailKey), bundle: .module)
-    }
-    .navigationTitle(Text(LocalizedStringKey(titleKey), bundle: .module))
-  }
 }

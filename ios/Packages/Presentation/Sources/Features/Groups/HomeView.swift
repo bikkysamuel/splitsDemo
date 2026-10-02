@@ -28,7 +28,9 @@ struct HomeView: View {
         }
         .navigationDestination(for: UUID.self) { id in
           GroupView(
-            viewModel: GroupViewModel(groupID: id, repository: dependencies.groups, expenses: dependencies.expenses))
+            viewModel: GroupViewModel(
+              groupID: id, repository: dependencies.groups, expenses: dependencies.expenses,
+              balances: dependencies.balances))
         }
         .sheet(item: $createGroup) { model in
           NavigationStack {

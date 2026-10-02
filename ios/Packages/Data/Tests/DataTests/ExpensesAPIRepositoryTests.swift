@@ -103,3 +103,28 @@ struct ExpensesAPIRepositoryTests {
         tokens: InMemoryTokenStore(.sample)))
   }
 }
+
+/// Balances come from the server as signed Money (FR-B1).
+struct BalancesAPIRepositoryTests {
+  @Test func mapsBalancesAndSuggestions() async throws {
+    let me = try #require(UUID(uuidString: "01a0faca-9e5d-7fa8-8b88-5ff7b2916763"))
+    let grandma = try #require(UUID(uuidString: "01a0faca-9f91-73ea-8b78-6946f276b876"))
+    let transport = try PathTransport([
+      "GET /v1/groups/01a0faca-9e5d-7e8a-b077-b767aee674ff/balances": .fixture("balances-200")
+    ])
+    let repository = BalancesAPIRepository(
+      api: APISession(
+        serverURL: try #require(URL(string: "http://localhost:8080")), transport: transport,
+        tokens: InMemoryTokenStore(.sample)))
+
+    let b = try await repository.balances(
+      groupID: try #require(UUID(uuidString: "01a0faca-9e5d-7e8a-b077-b767aee674ff")))
+
+    #expect(b.balances.map(\.direction) == [.owed, .owes])
+    #expect(b.balances.map(\.balance.minorUnits) == [66667, -66667])
+    #expect(
+      b.suggestions == [
+        SettleUpSuggestion(fromMemberID: grandma, toMemberID: me, amount: Money(minorUnits: 66667, currency: "INR"))
+      ])
+  }
+}

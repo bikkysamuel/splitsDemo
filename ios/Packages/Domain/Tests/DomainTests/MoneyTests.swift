@@ -14,6 +14,13 @@ struct MoneyTests {
     #expect(money.formatted(locale: Locale(identifier: locale)) == expected)
   }
 
+  @Test func anUnsignedNegativeAmountDropsTheMinus() {
+    let money = Money(minorUnits: -5000, currency: "INR")
+
+    #expect(money.formatted(locale: Locale(identifier: "en_IN"), signed: false) == "₹50.00")
+    #expect(money.formatted(locale: Locale(identifier: "en_IN")) == "-₹50.00")
+  }
+
   // Three decimal places for the fils (the label's spacing varies by OS).
   @Test func formatsThreeDecimalPlacesForKWD() {
     #expect(Money(minorUnits: 1234, currency: "KWD").formatted(locale: Locale(identifier: "en_US")).hasSuffix("1.234"))

@@ -111,6 +111,9 @@ struct GroupView: View {
             Text(LocalizedStringKey(GroupKeys.currency), bundle: .module)
           }
         }
+        if let balances = viewModel.balances {
+          BalancesSection(group: group, balances: balances)
+        }
         Section {
           if viewModel.expenses.isEmpty {
             Text(LocalizedStringKey(Self.noExpenses), bundle: .module).foregroundStyle(.secondary)
