@@ -91,6 +91,11 @@ extension Components {
         /// - `request-too-large`: the request body is over 64 KB (413).
         /// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
         /// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+        /// - `admin-required`: only an Admin of the Group may do this (403).
+        /// - `not-found`: no such resource, or one the User can't see (404).
+        /// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+        /// - `group-limit-reached`: the User is already in 200 Groups (409).
+        /// - `invalid-cursor`: the `cursor` is not one the server gave (400).
         /// - `internal`: an unexpected server failure (500).
         ///
         ///
@@ -501,6 +506,426 @@ extension Components {
                     "access_expires_at",
                     "refresh_token",
                     "refresh_expires_at"
+                ])
+            }
+        }
+        /// A Group's lifecycle state (FR-G6). Closing and Closed come with M3.
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/GroupState`.
+        @frozen public enum GroupState: String, Codable, Hashable, Sendable, CaseIterable {
+            case active = "active"
+            case closing = "closing"
+            case closed = "closed"
+        }
+        /// An Admin or an ordinary Member (FR-G3).
+        ///
+        /// - Remark: Generated from `#/components/schemas/MemberRole`.
+        @frozen public enum MemberRole: String, Codable, Hashable, Sendable, CaseIterable {
+            case admin = "admin"
+            case member = "member"
+        }
+        /// Active, or a Former Member who left or was removed (FR-M7).
+        ///
+        /// - Remark: Generated from `#/components/schemas/MemberStatus`.
+        @frozen public enum MemberStatus: String, Codable, Hashable, Sendable, CaseIterable {
+            case active = "active"
+            case former = "former"
+        }
+        /// A Member's name in one Group: 1–50 characters after trimming,
+        /// unique within the Group ignoring case (FR-M4). Field error codes:
+        /// `required`, `too_long`, `taken`.
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/DisplayName`.
+        public typealias DisplayName = Swift.String
+        /// 1–100 characters after trimming. Field error codes: `required`, `too_long`.
+        ///
+        /// - Remark: Generated from `#/components/schemas/GroupName`.
+        public typealias GroupName = Swift.String
+        /// A Group in the User's list.
+        ///
+        /// - Remark: Generated from `#/components/schemas/GroupSummary`.
+        public struct GroupSummary: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/GroupSummary/id`.
+            public var id: Swift.String
+            /// - Remark: Generated from `#/components/schemas/GroupSummary/name`.
+            public var name: Swift.String
+            /// - Remark: Generated from `#/components/schemas/GroupSummary/currency`.
+            public var currency: Components.Schemas.CurrencyCode
+            /// - Remark: Generated from `#/components/schemas/GroupSummary/state`.
+            public var state: Components.Schemas.GroupState
+            /// Creates a new `GroupSummary`.
+            ///
+            /// - Parameters:
+            ///   - id:
+            ///   - name:
+            ///   - currency:
+            ///   - state:
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                currency: Components.Schemas.CurrencyCode,
+                state: Components.Schemas.GroupState
+            ) {
+                self.id = id
+                self.name = name
+                self.currency = currency
+                self.state = state
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case currency
+                case state
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.id = try container.decode(
+                    Swift.String.self,
+                    forKey: .id
+                )
+                self.name = try container.decode(
+                    Swift.String.self,
+                    forKey: .name
+                )
+                self.currency = try container.decode(
+                    Components.Schemas.CurrencyCode.self,
+                    forKey: .currency
+                )
+                self.state = try container.decode(
+                    Components.Schemas.GroupState.self,
+                    forKey: .state
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "id",
+                    "name",
+                    "currency",
+                    "state"
+                ])
+            }
+        }
+        /// One page of the User's Groups.
+        ///
+        /// - Remark: Generated from `#/components/schemas/GroupPage`.
+        public struct GroupPage: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/GroupPage/items`.
+            public var items: [Components.Schemas.GroupSummary]
+            /// Pass as `cursor` for the next page; null on the last page.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupPage/next_cursor`.
+            public var nextCursor: Swift.String?
+            /// Creates a new `GroupPage`.
+            ///
+            /// - Parameters:
+            ///   - items:
+            ///   - nextCursor: Pass as `cursor` for the next page; null on the last page.
+            public init(
+                items: [Components.Schemas.GroupSummary],
+                nextCursor: Swift.String? = nil
+            ) {
+                self.items = items
+                self.nextCursor = nextCursor
+            }
+            public enum CodingKeys: String, CodingKey {
+                case items
+                case nextCursor = "next_cursor"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.items = try container.decode(
+                    [Components.Schemas.GroupSummary].self,
+                    forKey: .items
+                )
+                self.nextCursor = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .nextCursor
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "items",
+                    "next_cursor"
+                ])
+            }
+        }
+        /// A person's place in one Group (GLOSSARY: Member). `placeholder` is
+        /// true for a Placeholder Member, not yet linked to a User.
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/Member`.
+        public struct Member: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Member/id`.
+            public var id: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Member/display_name`.
+            public var displayName: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Member/role`.
+            public var role: Components.Schemas.MemberRole
+            /// - Remark: Generated from `#/components/schemas/Member/status`.
+            public var status: Components.Schemas.MemberStatus
+            /// - Remark: Generated from `#/components/schemas/Member/placeholder`.
+            public var placeholder: Swift.Bool
+            /// Order of joining; breaks rounding ties (ADR-0010).
+            ///
+            /// - Remark: Generated from `#/components/schemas/Member/join_seq`.
+            public var joinSeq: Swift.Int32
+            /// Creates a new `Member`.
+            ///
+            /// - Parameters:
+            ///   - id:
+            ///   - displayName:
+            ///   - role:
+            ///   - status:
+            ///   - placeholder:
+            ///   - joinSeq: Order of joining; breaks rounding ties (ADR-0010).
+            public init(
+                id: Swift.String,
+                displayName: Swift.String,
+                role: Components.Schemas.MemberRole,
+                status: Components.Schemas.MemberStatus,
+                placeholder: Swift.Bool,
+                joinSeq: Swift.Int32
+            ) {
+                self.id = id
+                self.displayName = displayName
+                self.role = role
+                self.status = status
+                self.placeholder = placeholder
+                self.joinSeq = joinSeq
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case displayName = "display_name"
+                case role
+                case status
+                case placeholder
+                case joinSeq = "join_seq"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.id = try container.decode(
+                    Swift.String.self,
+                    forKey: .id
+                )
+                self.displayName = try container.decode(
+                    Swift.String.self,
+                    forKey: .displayName
+                )
+                self.role = try container.decode(
+                    Components.Schemas.MemberRole.self,
+                    forKey: .role
+                )
+                self.status = try container.decode(
+                    Components.Schemas.MemberStatus.self,
+                    forKey: .status
+                )
+                self.placeholder = try container.decode(
+                    Swift.Bool.self,
+                    forKey: .placeholder
+                )
+                self.joinSeq = try container.decode(
+                    Swift.Int32.self,
+                    forKey: .joinSeq
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "id",
+                    "display_name",
+                    "role",
+                    "status",
+                    "placeholder",
+                    "join_seq"
+                ])
+            }
+        }
+        /// A Group with its Members, as one of its Members sees it.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Group`.
+        public struct Group: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Group/id`.
+            public var id: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Group/name`.
+            public var name: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Group/currency`.
+            public var currency: Components.Schemas.CurrencyCode
+            /// - Remark: Generated from `#/components/schemas/Group/state`.
+            public var state: Components.Schemas.GroupState
+            /// Send it back when changing the Group (NFR-R4).
+            ///
+            /// - Remark: Generated from `#/components/schemas/Group/version`.
+            public var version: Swift.Int32
+            /// The signed-in User's Member in this Group.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Group/my_member_id`.
+            public var myMemberId: Swift.String
+            /// Every Member, Former ones included, in joining order.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Group/members`.
+            public var members: [Components.Schemas.Member]
+            /// Creates a new `Group`.
+            ///
+            /// - Parameters:
+            ///   - id:
+            ///   - name:
+            ///   - currency:
+            ///   - state:
+            ///   - version: Send it back when changing the Group (NFR-R4).
+            ///   - myMemberId: The signed-in User's Member in this Group.
+            ///   - members: Every Member, Former ones included, in joining order.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                currency: Components.Schemas.CurrencyCode,
+                state: Components.Schemas.GroupState,
+                version: Swift.Int32,
+                myMemberId: Swift.String,
+                members: [Components.Schemas.Member]
+            ) {
+                self.id = id
+                self.name = name
+                self.currency = currency
+                self.state = state
+                self.version = version
+                self.myMemberId = myMemberId
+                self.members = members
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case currency
+                case state
+                case version
+                case myMemberId = "my_member_id"
+                case members
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.id = try container.decode(
+                    Swift.String.self,
+                    forKey: .id
+                )
+                self.name = try container.decode(
+                    Swift.String.self,
+                    forKey: .name
+                )
+                self.currency = try container.decode(
+                    Components.Schemas.CurrencyCode.self,
+                    forKey: .currency
+                )
+                self.state = try container.decode(
+                    Components.Schemas.GroupState.self,
+                    forKey: .state
+                )
+                self.version = try container.decode(
+                    Swift.Int32.self,
+                    forKey: .version
+                )
+                self.myMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .myMemberId
+                )
+                self.members = try container.decode(
+                    [Components.Schemas.Member].self,
+                    forKey: .members
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "id",
+                    "name",
+                    "currency",
+                    "state",
+                    "version",
+                    "my_member_id",
+                    "members"
+                ])
+            }
+        }
+        /// Create-Group input (FR-G1).
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreateGroupRequest`.
+        public struct CreateGroupRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/CreateGroupRequest/name`.
+            public var name: Components.Schemas.GroupName
+            /// An active ISO 4217 code. Field error code: `invalid`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupRequest/currency`.
+            public var currency: Swift.String
+            /// - Remark: Generated from `#/components/schemas/CreateGroupRequest/display_name`.
+            public var displayName: Components.Schemas.DisplayName
+            /// Creates a new `CreateGroupRequest`.
+            ///
+            /// - Parameters:
+            ///   - name:
+            ///   - currency: An active ISO 4217 code. Field error code: `invalid`.
+            ///   - displayName:
+            public init(
+                name: Components.Schemas.GroupName,
+                currency: Swift.String,
+                displayName: Components.Schemas.DisplayName
+            ) {
+                self.name = name
+                self.currency = currency
+                self.displayName = displayName
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case currency
+                case displayName = "display_name"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.name = try container.decode(
+                    Components.Schemas.GroupName.self,
+                    forKey: .name
+                )
+                self.currency = try container.decode(
+                    Swift.String.self,
+                    forKey: .currency
+                )
+                self.displayName = try container.decode(
+                    Components.Schemas.DisplayName.self,
+                    forKey: .displayName
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "name",
+                    "currency",
+                    "display_name"
+                ])
+            }
+        }
+        /// Rename input (FR-G3).
+        ///
+        /// - Remark: Generated from `#/components/schemas/RenameGroupRequest`.
+        public struct RenameGroupRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/RenameGroupRequest/name`.
+            public var name: Components.Schemas.GroupName
+            /// - Remark: Generated from `#/components/schemas/RenameGroupRequest/version`.
+            public var version: Swift.Int32
+            /// Creates a new `RenameGroupRequest`.
+            ///
+            /// - Parameters:
+            ///   - name:
+            ///   - version:
+            public init(
+                name: Components.Schemas.GroupName,
+                version: Swift.Int32
+            ) {
+                self.name = name
+                self.version = version
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case version
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.name = try container.decode(
+                    Components.Schemas.GroupName.self,
+                    forKey: .name
+                )
+                self.version = try container.decode(
+                    Swift.Int32.self,
+                    forKey: .version
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "name",
+                    "version"
                 ])
             }
         }

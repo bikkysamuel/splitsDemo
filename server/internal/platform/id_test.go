@@ -73,3 +73,19 @@ func TestParseIDRefusesNonUUIDs(t *testing.T) {
 		}
 	}
 }
+
+// IDs order by creation even within one millisecond (RFC 9562 §6.2,
+// method 3: the random part is incremented), so lists ordered by ID are in
+// creation order.
+func TestNewIDsIncreaseWithinOneMillisecond(t *testing.T) {
+	ids := platform.NewIDGenerator(platform.NewFakeClock(time.Unix(1_700_000_000, 0)))
+
+	prev := ids.New()
+	for range 10_000 {
+		next := ids.New()
+		if next.String() <= prev.String() {
+			t.Fatalf("ID %s after %s; want strictly increasing", next, prev)
+		}
+		prev = next
+	}
+}

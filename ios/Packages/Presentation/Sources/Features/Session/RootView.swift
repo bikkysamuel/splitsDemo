@@ -3,13 +3,15 @@ import SwiftUI
 /// The app's root: the session state picks the screen (doc 05, FR-U1).
 public struct RootView: View {
   let session: AppSession
+  let dependencies: AppDependencies
 
-  public init(session: AppSession) {
+  public init(session: AppSession, dependencies: AppDependencies) {
     self.session = session
+    self.dependencies = dependencies
   }
 
   public var body: some View {
-    Group {
+    SwiftUI.Group {
       switch session.state {
       case .launching:
         SplashView(session: session)
@@ -22,7 +24,9 @@ public struct RootView: View {
         // A new User gets a fresh screen, not the previous one's code.
         .id(user.id)
       case .signedIn(let user):
-        MainTabView(user: user, session: session)
+        MainTabView(user: user, session: session, dependencies: dependencies)
+          // Another User signing in gets fresh screens.
+          .id(user.id)
       }
     }
     .task { await session.start() }

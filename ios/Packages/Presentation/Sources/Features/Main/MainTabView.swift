@@ -6,13 +6,22 @@ import SwiftUI
 struct MainTabView: View {
   let user: User
   let session: AppSession
+  let dependencies: AppDependencies
+  @State private var home: HomeViewModel
+  @State private var settings: SettingsViewModel
+
+  init(user: User, session: AppSession, dependencies: AppDependencies) {
+    self.user = user
+    self.session = session
+    self.dependencies = dependencies
+    _home = State(initialValue: HomeViewModel(repository: dependencies.groups))
+    _settings = State(initialValue: SettingsViewModel(preferences: dependencies.preferences))
+  }
 
   var body: some View {
     TabView {
       Tab {
-        NavigationStack {
-          EmptyTab(titleKey: Self.home, messageKey: Self.homeEmpty, detailKey: Self.homeEmptyDetail, symbol: "person.3")
-        }
+        HomeView(viewModel: home, dependencies: dependencies)
       } label: {
         Label {
           Text(LocalizedStringKey(Self.home), bundle: .module)
@@ -34,7 +43,7 @@ struct MainTabView: View {
       }
       Tab {
         NavigationStack {
-          SettingsView(user: user, session: session)
+          SettingsView(user: user, session: session, viewModel: settings)
         }
       } label: {
         Label {

@@ -97,6 +97,45 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/auth/signout`.
     /// - Remark: Generated from `#/paths//v1/auth/signout/post(signOut)`.
     func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output
+    /// My Groups
+    ///
+    /// The Groups where the User is an active Member, oldest first, a page
+    /// at a time (doc 07 list convention).
+    ///
+    ///
+    /// - Remark: HTTP `GET /v1/groups`.
+    /// - Remark: Generated from `#/paths//v1/groups/get(listGroups)`.
+    func listGroups(_ input: Operations.ListGroups.Input) async throws -> Operations.ListGroups.Output
+    /// Create a Group
+    ///
+    /// Creates a Group in a Group Currency; the creator becomes its first
+    /// Admin under the display name they give (FR-G1). A User can be an
+    /// active Member of at most 200 Groups (FR-G2): the next one answers
+    /// `group-limit-reached`.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups`.
+    /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)`.
+    func createGroup(_ input: Operations.CreateGroup.Input) async throws -> Operations.CreateGroup.Output
+    /// A Group
+    ///
+    /// The Group with its Members. A Group the User isn't an active Member
+    /// of answers `404`, exactly like one that doesn't exist (doc 07).
+    ///
+    ///
+    /// - Remark: HTTP `GET /v1/groups/{groupId}`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/get(getGroup)`.
+    func getGroup(_ input: Operations.GetGroup.Input) async throws -> Operations.GetGroup.Output
+    /// Rename a Group
+    ///
+    /// Admins only (FR-G3): other Members get `admin-required`. Send the
+    /// `version` you last read; a stale one answers `version-conflict`
+    /// (NFR-R4).
+    ///
+    ///
+    /// - Remark: HTTP `PATCH /v1/groups/{groupId}`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)`.
+    func renameGroup(_ input: Operations.RenameGroup.Input) async throws -> Operations.RenameGroup.Output
     /// The signed-in User
     ///
     /// The app's launch check (FR-U1). Works for unverified Users too.
@@ -239,6 +278,79 @@ extension APIProtocol {
     /// - Remark: Generated from `#/paths//v1/auth/signout/post(signOut)`.
     public func signOut(headers: Operations.SignOut.Input.Headers) async throws -> Operations.SignOut.Output {
         try await signOut(Operations.SignOut.Input(headers: headers))
+    }
+    /// My Groups
+    ///
+    /// The Groups where the User is an active Member, oldest first, a page
+    /// at a time (doc 07 list convention).
+    ///
+    ///
+    /// - Remark: HTTP `GET /v1/groups`.
+    /// - Remark: Generated from `#/paths//v1/groups/get(listGroups)`.
+    public func listGroups(
+        query: Operations.ListGroups.Input.Query = .init(),
+        headers: Operations.ListGroups.Input.Headers = .init()
+    ) async throws -> Operations.ListGroups.Output {
+        try await listGroups(Operations.ListGroups.Input(
+            query: query,
+            headers: headers
+        ))
+    }
+    /// Create a Group
+    ///
+    /// Creates a Group in a Group Currency; the creator becomes its first
+    /// Admin under the display name they give (FR-G1). A User can be an
+    /// active Member of at most 200 Groups (FR-G2): the next one answers
+    /// `group-limit-reached`.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups`.
+    /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)`.
+    public func createGroup(
+        headers: Operations.CreateGroup.Input.Headers,
+        body: Operations.CreateGroup.Input.Body
+    ) async throws -> Operations.CreateGroup.Output {
+        try await createGroup(Operations.CreateGroup.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// A Group
+    ///
+    /// The Group with its Members. A Group the User isn't an active Member
+    /// of answers `404`, exactly like one that doesn't exist (doc 07).
+    ///
+    ///
+    /// - Remark: HTTP `GET /v1/groups/{groupId}`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/get(getGroup)`.
+    public func getGroup(
+        path: Operations.GetGroup.Input.Path,
+        headers: Operations.GetGroup.Input.Headers = .init()
+    ) async throws -> Operations.GetGroup.Output {
+        try await getGroup(Operations.GetGroup.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Rename a Group
+    ///
+    /// Admins only (FR-G3): other Members get `admin-required`. Send the
+    /// `version` you last read; a stale one answers `version-conflict`
+    /// (NFR-R4).
+    ///
+    ///
+    /// - Remark: HTTP `PATCH /v1/groups/{groupId}`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)`.
+    public func renameGroup(
+        path: Operations.RenameGroup.Input.Path,
+        headers: Operations.RenameGroup.Input.Headers,
+        body: Operations.RenameGroup.Input.Body
+    ) async throws -> Operations.RenameGroup.Output {
+        try await renameGroup(Operations.RenameGroup.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
     }
     /// The signed-in User
     ///

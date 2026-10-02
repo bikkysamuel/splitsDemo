@@ -27,8 +27,12 @@ enum ServiceErrorMessage {
     case .emailNotVerified: "Verify your email first."
     case .requestTooLarge: "That's too much text to send."
     case .tooManyAttempts: "Too many attempts. Wait a moment, then try again."
+    case .adminRequired: "Only an Admin of this Group can do this."
+    case .notFound: "This isn't available to you."
+    case .versionConflict: "Someone else changed this just now. Reload and try again."
+    case .groupLimitReached: "You're already in 200 Groups, the most allowed."
     case .invalidRequest, .idempotencyKeyRequired, .idempotencyKeyInProgress, .idempotencyKeyReused, .notReady,
-      .internal:
+      .internal, .invalidCursor:
       generic
     }
   }
@@ -42,6 +46,12 @@ enum ServiceErrorMessage {
     case ("password", .tooShort): "Use at least 10 characters."
     case ("password", .tooLong): "Use at most 128 characters."
     case ("password", .tooCommon): "This password is too common. Choose another."
+    case ("name", .required): "Enter a name."
+    case ("name", .tooLong): "Use at most 100 characters."
+    case ("display_name", .required): "Enter your name in this Group."
+    case ("display_name", .tooLong): "Use at most 50 characters."
+    case ("display_name", .taken): "Someone in this Group already has this name."
+    case ("currency", _): "Choose a currency."
     default: "This field is invalid."
     }
   }
@@ -49,8 +59,8 @@ enum ServiceErrorMessage {
   /// Every key the catalog must hold, for StringCatalogTests.
   static var allKeys: [String] {
     var keys = [generic, unreachable, checkFields] + ProblemKind.allCases.map(key(for:))
-    let reasons: [FieldIssue.Reason] = [.required, .invalid, .tooShort, .tooLong, .tooCommon, .other("x")]
-    for field in ["email", "password", "other"] {
+    let reasons: [FieldIssue.Reason] = [.required, .invalid, .tooShort, .tooLong, .tooCommon, .taken, .other("x")]
+    for field in ["email", "password", "name", "display_name", "currency", "other"] {
       keys += reasons.map { key(for: FieldIssue(field: field, reason: $0)) }
     }
     return Array(Set(keys)).sorted()

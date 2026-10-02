@@ -1,10 +1,12 @@
 package platform
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"sync"
 )
 
 // ID is a server-generated UUIDv7 (RFC 9562, doc 06): time-ordered, so new
@@ -26,16 +28,21 @@ func (id ID) String() string {
 	return string(b[:])
 }
 
-// IDGenerator makes UUIDv7s from its clock and crypto/rand.
+// IDGenerator makes UUIDv7s from its clock and crypto/rand. It is safe for
+// concurrent use, and its IDs strictly increase.
 type IDGenerator struct {
 	clock Clock
+	mu    sync.Mutex
+	last  ID
 }
 
 // NewIDGenerator returns a generator stamping IDs with clock's time.
 func NewIDGenerator(clock Clock) *IDGenerator { return &IDGenerator{clock: clock} }
 
 // New returns a fresh UUIDv7: 48 bits of Unix milliseconds, then 74 random
-// bits around the version and variant fields.
+// bits around the version and variant fields. When the clock hasn't moved
+// past the previous ID's millisecond, the previous ID plus one is returned
+// instead (RFC 9562 §6.2, method 3), so IDs always increase.
 func (g *IDGenerator) New() ID {
 	var id ID
 	// crypto/rand.Read never returns an error (Go 1.24+).
@@ -47,6 +54,47 @@ func (g *IDGenerator) New() ID {
 
 	id[6] = id[6]&0x0f | 0x70 // version 7
 	id[8] = id[8]&0x3f | 0x80 // variant 10
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if bytes.Compare(id[:], g.last[:]) <= 0 {
+		id = g.last.next()
+	}
+	g.last = id
+	return id
+}
+
+// next is the following UUIDv7 in order: the 74 random bits plus one,
+// carrying into the timestamp only on overflow, version and variant kept.
+func (id ID) next() ID {
+	// Random bits: id[6] low nibble, id[7], id[8] low 6 bits, id[9..15].
+	for i := 15; i >= 9; i-- {
+		id[i]++
+		if id[i] != 0 {
+			return id
+		}
+	}
+	if low := (id[8] + 1) & 0x3f; low != 0 {
+		id[8] = id[8]&0xc0 | low
+		return id
+	}
+	id[8] &= 0xc0
+	id[7]++
+	if id[7] != 0 {
+		return id
+	}
+	if low := (id[6] + 1) & 0x0f; low != 0 {
+		id[6] = id[6]&0xf0 | low
+		return id
+	}
+	id[6] &= 0xf0
+	// 2^74 IDs in one millisecond: move to the next millisecond.
+	for i := 5; i >= 0; i-- {
+		id[i]++
+		if id[i] != 0 {
+			break
+		}
+	}
 	return id
 }
 

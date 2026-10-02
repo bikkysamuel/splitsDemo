@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -16,6 +17,27 @@ import (
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for GroupState.
+const (
+	GroupStateActive  GroupState = "active"
+	GroupStateClosed  GroupState = "closed"
+	GroupStateClosing GroupState = "closing"
+)
+
+// Valid indicates whether the value is a known member of the GroupState enum.
+func (e GroupState) Valid() bool {
+	switch e {
+	case GroupStateActive:
+		return true
+	case GroupStateClosed:
+		return true
+	case GroupStateClosing:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for HealthStatusStatus.
 const (
@@ -26,6 +48,42 @@ const (
 func (e HealthStatusStatus) Valid() bool {
 	switch e {
 	case HealthStatusStatusOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MemberRole.
+const (
+	MemberRoleAdmin  MemberRole = "admin"
+	MemberRoleMember MemberRole = "member"
+)
+
+// Valid indicates whether the value is a known member of the MemberRole enum.
+func (e MemberRole) Valid() bool {
+	switch e {
+	case MemberRoleAdmin:
+		return true
+	case MemberRoleMember:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MemberStatus.
+const (
+	MemberStatusActive MemberStatus = "active"
+	MemberStatusFormer MemberStatus = "former"
+)
+
+// Valid indicates whether the value is a known member of the MemberStatus enum.
+func (e MemberStatus) Valid() bool {
+	switch e {
+	case MemberStatusActive:
+		return true
+	case MemberStatusFormer:
 		return true
 	default:
 		return false
@@ -68,10 +126,38 @@ type AuthSession struct {
 	User User `json:"user"`
 }
 
+// CreateGroupRequest Create-Group input (FR-G1).
+type CreateGroupRequest struct {
+	// Currency An active ISO 4217 code. Field error code: `invalid`.
+	//
+	// Examples: INR
+	Currency string `json:"currency"`
+
+	// DisplayName A Member's name in one Group: 1–50 characters after trimming,
+	// unique within the Group ignoring case (FR-M4). Field error codes:
+	// `required`, `too_long`, `taken`.
+	//
+	//
+	// Examples: Alice
+	DisplayName DisplayName `json:"display_name"`
+
+	// Name 1–100 characters after trimming. Field error codes: `required`, `too_long`.
+	//
+	// Examples: Goa trip
+	Name GroupName `json:"name"`
+}
+
 // CurrencyCode ISO 4217 alphabetic currency code.
 //
 // Examples: INR
 type CurrencyCode = string
+
+// DisplayName A Member's name in one Group: 1–50 characters after trimming,
+// unique within the Group ignoring case (FR-M4). Field error codes:
+// `required`, `too_long`, `taken`.
+//
+// Examples: Alice
+type DisplayName = string
 
 // Email An email address. The server trims surrounding whitespace and compares
 // addresses ignoring case (FR-A1).
@@ -97,6 +183,82 @@ type FieldError struct {
 	Field string `json:"field"`
 }
 
+// Group A Group with its Members, as one of its Members sees it.
+type Group struct {
+	// Currency ISO 4217 alphabetic currency code.
+	//
+	// Examples: INR
+	Currency CurrencyCode `json:"currency"`
+
+	// Id Examples: 0190b6c4-0000-7000-8000-0000000000c1
+	Id openapi_types.UUID `json:"id"`
+
+	// Members Every Member, Former ones included, in joining order.
+	//
+	// Examples: [{"display_name":"Alice","id":"0190b6c4-0000-7000-8000-0000000000d1","join_seq":1,"placeholder":false,"role":"admin","status":"active"}]
+	Members []Member `json:"members"`
+
+	// MyMemberId The signed-in User's Member in this Group.
+	//
+	// Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	MyMemberId openapi_types.UUID `json:"my_member_id"`
+
+	// Name Examples: Goa trip
+	Name string `json:"name"`
+
+	// State A Group's lifecycle state (FR-G6). Closing and Closed come with M3.
+	//
+	//
+	// Examples: active
+	State GroupState `json:"state"`
+
+	// Version Send it back when changing the Group (NFR-R4).
+	//
+	// Examples: 1
+	Version int32 `json:"version"`
+}
+
+// GroupName 1–100 characters after trimming. Field error codes: `required`, `too_long`.
+//
+// Examples: Goa trip
+type GroupName = string
+
+// GroupPage One page of the User's Groups.
+type GroupPage struct {
+	// Items Examples: [{"currency":"INR","id":"0190b6c4-0000-7000-8000-0000000000c1","name":"Goa trip","state":"active"}]
+	Items []GroupSummary `json:"items"`
+
+	// NextCursor Pass as `cursor` for the next page; null on the last page.
+	//
+	// Examples: null
+	NextCursor *string `json:"next_cursor"`
+}
+
+// GroupState A Group's lifecycle state (FR-G6). Closing and Closed come with M3.
+//
+// Examples: active
+type GroupState string
+
+// GroupSummary A Group in the User's list.
+type GroupSummary struct {
+	// Currency ISO 4217 alphabetic currency code.
+	//
+	// Examples: INR
+	Currency CurrencyCode `json:"currency"`
+
+	// Id Examples: 0190b6c4-0000-7000-8000-0000000000c1
+	Id openapi_types.UUID `json:"id"`
+
+	// Name Examples: Goa trip
+	Name string `json:"name"`
+
+	// State A Group's lifecycle state (FR-G6). Closing and Closed come with M3.
+	//
+	//
+	// Examples: active
+	State GroupState `json:"state"`
+}
+
 // HealthStatus Liveness answer.
 type HealthStatus struct {
 	Status HealthStatusStatus `json:"status"`
@@ -104,6 +266,44 @@ type HealthStatus struct {
 
 // HealthStatusStatus defines model for HealthStatus.Status.
 type HealthStatusStatus string
+
+// Member A person's place in one Group (GLOSSARY: Member). `placeholder` is
+// true for a Placeholder Member, not yet linked to a User.
+type Member struct {
+	// DisplayName Examples: Alice
+	DisplayName string `json:"display_name"`
+
+	// Id Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	Id openapi_types.UUID `json:"id"`
+
+	// JoinSeq Order of joining; breaks rounding ties (ADR-0010).
+	//
+	// Examples: 1
+	JoinSeq int32 `json:"join_seq"`
+
+	// Placeholder Examples: false
+	Placeholder bool `json:"placeholder"`
+
+	// Role An Admin or an ordinary Member (FR-G3).
+	//
+	// Examples: admin
+	Role MemberRole `json:"role"`
+
+	// Status Active, or a Former Member who left or was removed (FR-M7).
+	//
+	// Examples: active
+	Status MemberStatus `json:"status"`
+}
+
+// MemberRole An Admin or an ordinary Member (FR-G3).
+//
+// Examples: admin
+type MemberRole string
+
+// MemberStatus Active, or a Former Member who left or was removed (FR-M7).
+//
+// Examples: active
+type MemberStatus string
 
 // Money An amount in integer minor units of an ISO 4217 currency (ADR-0002).
 // Never a floating-point number.
@@ -146,6 +346,11 @@ type Password = string
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type Problem struct {
 	// Detail Explanation of this occurrence; not for display.
@@ -182,6 +387,17 @@ type ReadinessStatusStatus string
 type RefreshSessionRequest struct {
 	// RefreshToken Examples: vu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 	RefreshToken string `json:"refresh_token"`
+}
+
+// RenameGroupRequest Rename input (FR-G3).
+type RenameGroupRequest struct {
+	// Name 1–100 characters after trimming. Field error codes: `required`, `too_long`.
+	//
+	// Examples: Goa trip
+	Name GroupName `json:"name"`
+
+	// Version Examples: 1
+	Version int32 `json:"version"`
 }
 
 // ResendVerificationCodeRequest Asks for a new verification code (FR-A2).
@@ -253,8 +469,17 @@ type VerifyEmailRequest struct {
 	Email Email `json:"email"`
 }
 
+// Cursor defines model for Cursor.
+type Cursor = string
+
+// GroupId defines model for GroupId.
+type GroupId = openapi_types.UUID
+
 // IdempotencyKey defines model for IdempotencyKey.
 type IdempotencyKey = openapi_types.UUID
+
+// Limit defines model for Limit.
+type Limit = int
 
 // BadRequest RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
@@ -273,8 +498,38 @@ type IdempotencyKey = openapi_types.UUID
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type BadRequest = Problem
+
+// Conflict RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `internal`: an unexpected server failure (500).
+type Conflict = Problem
 
 // EmailNotVerified RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
@@ -293,6 +548,11 @@ type BadRequest = Problem
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type EmailNotVerified = Problem
 
@@ -313,8 +573,38 @@ type EmailNotVerified = Problem
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type EmailTaken = Problem
+
+// Forbidden RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `internal`: an unexpected server failure (500).
+type Forbidden = Problem
 
 // IdempotencyKeyInProgress RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
@@ -333,6 +623,11 @@ type EmailTaken = Problem
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type IdempotencyKeyInProgress = Problem
 
@@ -353,6 +648,11 @@ type IdempotencyKeyInProgress = Problem
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type IdempotencyKeyReused = Problem
 
@@ -373,6 +673,11 @@ type IdempotencyKeyReused = Problem
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type InternalError = Problem
 
@@ -393,8 +698,38 @@ type InternalError = Problem
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type InvalidCredentials = Problem
+
+// NotFound RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `internal`: an unexpected server failure (500).
+type NotFound = Problem
 
 // NotReady RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
@@ -413,6 +748,11 @@ type InvalidCredentials = Problem
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type NotReady = Problem
 
@@ -433,6 +773,11 @@ type NotReady = Problem
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type RequestTooLarge = Problem
 
@@ -453,6 +798,11 @@ type RequestTooLarge = Problem
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type TooManyAttempts = Problem
 
@@ -473,11 +823,49 @@ type TooManyAttempts = Problem
 // - `request-too-large`: the request body is over 64 KB (413).
 // - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
 // - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
 // - `internal`: an unexpected server failure (500).
 type Unauthenticated = Problem
 
 // SignOutParams defines parameters for SignOut.
 type SignOutParams struct {
+	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
+	// (NFR-R1). Repeating a request with the same key within 24 hours
+	// returns the original response; reusing a key for a different request
+	// answers `idempotency-key-reused`, and repeating it while the first is
+	// still running answers `idempotency-key-in-progress`. Responses with a
+	// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+	// it: their responses carry tokens, which are never stored (ADR-0011).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// ListGroupsParams defines parameters for ListGroups.
+type ListGroupsParams struct {
+	// Cursor The `next_cursor` of the previous page; omit for the first page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size, 1–200 (default 50).
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CreateGroupParams defines parameters for CreateGroup.
+type CreateGroupParams struct {
+	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
+	// (NFR-R1). Repeating a request with the same key within 24 hours
+	// returns the original response; reusing a key for a different request
+	// answers `idempotency-key-reused`, and repeating it while the first is
+	// still running answers `idempotency-key-in-progress`. Responses with a
+	// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+	// it: their responses carry tokens, which are never stored (ADR-0011).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// RenameGroupParams defines parameters for RenameGroup.
+type RenameGroupParams struct {
 	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
 	// (NFR-R1). Repeating a request with the same key within 24 hours
 	// returns the original response; reusing a key for a different request
@@ -502,6 +890,12 @@ type VerifyEmailJSONRequestBody = VerifyEmailRequest
 
 // ResendVerificationCodeJSONRequestBody defines body for ResendVerificationCode for application/json ContentType.
 type ResendVerificationCodeJSONRequestBody = ResendVerificationCodeRequest
+
+// CreateGroupJSONRequestBody defines body for CreateGroup for application/json ContentType.
+type CreateGroupJSONRequestBody = CreateGroupRequest
+
+// RenameGroupJSONRequestBody defines body for RenameGroup for application/json ContentType.
+type RenameGroupJSONRequestBody = RenameGroupRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -529,6 +923,18 @@ type ServerInterface interface {
 	// ResendVerificationCode Send a new verification code
 	// (POST /v1/auth/verify-email/resend)
 	ResendVerificationCode(w http.ResponseWriter, r *http.Request)
+	// ListGroups My Groups
+	// (GET /v1/groups)
+	ListGroups(w http.ResponseWriter, r *http.Request, params ListGroupsParams)
+	// CreateGroup Create a Group
+	// (POST /v1/groups)
+	CreateGroup(w http.ResponseWriter, r *http.Request, params CreateGroupParams)
+	// GetGroup A Group
+	// (GET /v1/groups/{groupId})
+	GetGroup(w http.ResponseWriter, r *http.Request, groupId GroupId)
+	// RenameGroup Rename a Group
+	// (PATCH /v1/groups/{groupId})
+	RenameGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params RenameGroupParams)
 	// GetMe The signed-in User
 	// (GET /v1/me)
 	GetMe(w http.ResponseWriter, r *http.Request)
@@ -686,6 +1092,177 @@ func (siw *ServerInterfaceWrapper) ResendVerificationCode(w http.ResponseWriter,
 	handler.ServeHTTP(w, r)
 }
 
+// ListGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGroupsParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGroups(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateGroup operation middleware
+func (siw *ServerInterfaceWrapper) CreateGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateGroupParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateGroup(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGroup operation middleware
+func (siw *ServerInterfaceWrapper) GetGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGroup(w, r, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RenameGroup operation middleware
+func (siw *ServerInterfaceWrapper) RenameGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RenameGroupParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RenameGroup(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMe operation middleware
 func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
 
@@ -828,6 +1405,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/signin", wrapper.SignIn)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/refresh", wrapper.RefreshSession)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/auth/signout", wrapper.SignOut)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/groups", wrapper.ListGroups)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/groups", wrapper.CreateGroup)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/groups/{groupId}", wrapper.GetGroup)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/v1/groups/{groupId}", wrapper.RenameGroup)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
 
 	return m
@@ -835,9 +1416,13 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 type BadRequestApplicationProblemPlusJSONResponse Problem
 
+type ConflictApplicationProblemPlusJSONResponse Problem
+
 type EmailNotVerifiedApplicationProblemPlusJSONResponse Problem
 
 type EmailTakenApplicationProblemPlusJSONResponse Problem
+
+type ForbiddenApplicationProblemPlusJSONResponse Problem
 
 type IdempotencyKeyInProgressApplicationProblemPlusJSONResponse Problem
 
@@ -846,6 +1431,8 @@ type IdempotencyKeyReusedApplicationProblemPlusJSONResponse Problem
 type InternalErrorApplicationProblemPlusJSONResponse Problem
 
 type InvalidCredentialsApplicationProblemPlusJSONResponse Problem
+
+type NotFoundApplicationProblemPlusJSONResponse Problem
 
 type NotReadyApplicationProblemPlusJSONResponse Problem
 
@@ -1473,6 +2060,481 @@ func (response ResendVerificationCode500ApplicationProblemPlusJSONResponse) Visi
 	return err
 }
 
+type ListGroupsRequestObject struct {
+	Params ListGroupsParams
+}
+
+type ListGroupsResponseObject interface {
+	VisitListGroupsResponse(w http.ResponseWriter) error
+}
+
+type ListGroups200JSONResponse GroupPage
+
+func (response ListGroups200JSONResponse) VisitListGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListGroups400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListGroups400ApplicationProblemPlusJSONResponse) VisitListGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListGroups401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response ListGroups401ApplicationProblemPlusJSONResponse) VisitListGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListGroups403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListGroups403ApplicationProblemPlusJSONResponse) VisitListGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListGroups500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response ListGroups500ApplicationProblemPlusJSONResponse) VisitListGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateGroupRequestObject struct {
+	Params CreateGroupParams
+	Body   *CreateGroupJSONRequestBody
+}
+
+type CreateGroupResponseObject interface {
+	VisitCreateGroupResponse(w http.ResponseWriter) error
+}
+
+type CreateGroup201JSONResponse Group
+
+func (response CreateGroup201JSONResponse) VisitCreateGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateGroup400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGroup400ApplicationProblemPlusJSONResponse) VisitCreateGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateGroup401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGroup401ApplicationProblemPlusJSONResponse) VisitCreateGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateGroup403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGroup403ApplicationProblemPlusJSONResponse) VisitCreateGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateGroup409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGroup409ApplicationProblemPlusJSONResponse) VisitCreateGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateGroup413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGroup413ApplicationProblemPlusJSONResponse) VisitCreateGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateGroup422ApplicationProblemPlusJSONResponse struct {
+	IdempotencyKeyReusedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGroup422ApplicationProblemPlusJSONResponse) VisitCreateGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateGroup500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response CreateGroup500ApplicationProblemPlusJSONResponse) VisitCreateGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetGroupRequestObject struct {
+	GroupId GroupId `json:"groupId"`
+}
+
+type GetGroupResponseObject interface {
+	VisitGetGroupResponse(w http.ResponseWriter) error
+}
+
+type GetGroup200JSONResponse Group
+
+func (response GetGroup200JSONResponse) VisitGetGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetGroup400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetGroup400ApplicationProblemPlusJSONResponse) VisitGetGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetGroup401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response GetGroup401ApplicationProblemPlusJSONResponse) VisitGetGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetGroup403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetGroup403ApplicationProblemPlusJSONResponse) VisitGetGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetGroup404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetGroup404ApplicationProblemPlusJSONResponse) VisitGetGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetGroup500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response GetGroup500ApplicationProblemPlusJSONResponse) VisitGetGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenameGroupRequestObject struct {
+	GroupId GroupId `json:"groupId"`
+	Params  RenameGroupParams
+	Body    *RenameGroupJSONRequestBody
+}
+
+type RenameGroupResponseObject interface {
+	VisitRenameGroupResponse(w http.ResponseWriter) error
+}
+
+type RenameGroup200JSONResponse Group
+
+func (response RenameGroup200JSONResponse) VisitRenameGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenameGroup400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response RenameGroup400ApplicationProblemPlusJSONResponse) VisitRenameGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenameGroup401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response RenameGroup401ApplicationProblemPlusJSONResponse) VisitRenameGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenameGroup403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response RenameGroup403ApplicationProblemPlusJSONResponse) VisitRenameGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenameGroup404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response RenameGroup404ApplicationProblemPlusJSONResponse) VisitRenameGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenameGroup409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response RenameGroup409ApplicationProblemPlusJSONResponse) VisitRenameGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenameGroup413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response RenameGroup413ApplicationProblemPlusJSONResponse) VisitRenameGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenameGroup422ApplicationProblemPlusJSONResponse struct {
+	IdempotencyKeyReusedApplicationProblemPlusJSONResponse
+}
+
+func (response RenameGroup422ApplicationProblemPlusJSONResponse) VisitRenameGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenameGroup500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response RenameGroup500ApplicationProblemPlusJSONResponse) VisitRenameGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetMeRequestObject struct {
 }
 
@@ -1552,6 +2614,18 @@ type StrictServerInterface interface {
 	// ResendVerificationCode Send a new verification code
 	// (POST /v1/auth/verify-email/resend)
 	ResendVerificationCode(ctx context.Context, request ResendVerificationCodeRequestObject) (ResendVerificationCodeResponseObject, error)
+	// ListGroups My Groups
+	// (GET /v1/groups)
+	ListGroups(ctx context.Context, request ListGroupsRequestObject) (ListGroupsResponseObject, error)
+	// CreateGroup Create a Group
+	// (POST /v1/groups)
+	CreateGroup(ctx context.Context, request CreateGroupRequestObject) (CreateGroupResponseObject, error)
+	// GetGroup A Group
+	// (GET /v1/groups/{groupId})
+	GetGroup(ctx context.Context, request GetGroupRequestObject) (GetGroupResponseObject, error)
+	// RenameGroup Rename a Group
+	// (PATCH /v1/groups/{groupId})
+	RenameGroup(ctx context.Context, request RenameGroupRequestObject) (RenameGroupResponseObject, error)
 	// GetMe The signed-in User
 	// (GET /v1/me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
@@ -1818,6 +2892,125 @@ func (sh *strictHandler) ResendVerificationCode(w http.ResponseWriter, r *http.R
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ResendVerificationCodeResponseObject); ok {
 		if err := validResponse.VisitResendVerificationCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListGroups operation middleware
+func (sh *strictHandler) ListGroups(w http.ResponseWriter, r *http.Request, params ListGroupsParams) {
+	var request ListGroupsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListGroups(ctx, request.(ListGroupsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListGroups")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListGroupsResponseObject); ok {
+		if err := validResponse.VisitListGroupsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateGroup operation middleware
+func (sh *strictHandler) CreateGroup(w http.ResponseWriter, r *http.Request, params CreateGroupParams) {
+	var request CreateGroupRequestObject
+
+	request.Params = params
+
+	var body CreateGroupJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateGroup(ctx, request.(CreateGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateGroupResponseObject); ok {
+		if err := validResponse.VisitCreateGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetGroup operation middleware
+func (sh *strictHandler) GetGroup(w http.ResponseWriter, r *http.Request, groupId GroupId) {
+	var request GetGroupRequestObject
+
+	request.GroupId = groupId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetGroup(ctx, request.(GetGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetGroupResponseObject); ok {
+		if err := validResponse.VisitGetGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RenameGroup operation middleware
+func (sh *strictHandler) RenameGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params RenameGroupParams) {
+	var request RenameGroupRequestObject
+
+	request.GroupId = groupId
+	request.Params = params
+
+	var body RenameGroupJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RenameGroup(ctx, request.(RenameGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RenameGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RenameGroupResponseObject); ok {
+		if err := validResponse.VisitRenameGroupResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

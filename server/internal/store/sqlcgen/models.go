@@ -8,6 +8,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Group struct {
+	ID            pgtype.UUID
+	ParentGroupID pgtype.UUID
+	Name          string
+	Currency      string
+	State         string
+	ClosingSince  pgtype.Timestamptz
+	ClosedAt      pgtype.Timestamptz
+	CreatedAt     pgtype.Timestamptz
+	UpdatedAt     pgtype.Timestamptz
+	Version       int32
+}
+
 type IdempotencyKey struct {
 	UserID              pgtype.UUID
 	Key                 pgtype.UUID
@@ -25,6 +38,21 @@ type LoginThrottle struct {
 	Failures      int32
 	LastFailureAt pgtype.Timestamptz
 	NextAllowedAt pgtype.Timestamptz
+}
+
+type Member struct {
+	ID             pgtype.UUID
+	GroupID        pgtype.UUID
+	UserID         pgtype.UUID
+	DisplayName    string
+	Email          pgtype.Text
+	Role           string
+	Status         string
+	JoinSeq        int32
+	ParentMemberID pgtype.UUID
+	CreatedAt      pgtype.Timestamptz
+	UpdatedAt      pgtype.Timestamptz
+	Version        int32
 }
 
 type OneTimeCode struct {
