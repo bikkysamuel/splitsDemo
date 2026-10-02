@@ -1,5 +1,5 @@
 -- name: LedgerMembers :many
-SELECT join_seq FROM members WHERE group_id = @group_id ORDER BY join_seq;
+SELECT id, join_seq FROM members WHERE group_id = @group_id ORDER BY join_seq;
 
 -- name: LedgerExpenses :many
 SELECT e.id, e.state, p.join_seq AS payer_join_seq, e.amount_minor

@@ -14,6 +14,7 @@ public final class GroupViewModel {
   private var nextCursor: String?
   private(set) var expensesError: String?
   private(set) var balances: GroupBalances?
+  private(set) var balancesError: String?
   /// A failed change's message key (rename, grant Admin).
   private(set) var changeError: String?
   public private(set) var isRenaming = false
@@ -49,7 +50,12 @@ public final class GroupViewModel {
 
   /// Balances are derived on read; reload them after anything changes.
   func loadBalances() async {
-    balances = try? await balancesRepository.balances(groupID: groupID)
+    do {
+      balances = try await balancesRepository.balances(groupID: groupID)
+      balancesError = nil
+    } catch {
+      balancesError = ServiceErrorMessage.key(for: error)
+    }
   }
 
   var hasMoreExpenses: Bool { nextCursor != nil }

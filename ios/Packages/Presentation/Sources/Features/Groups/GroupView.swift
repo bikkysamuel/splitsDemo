@@ -114,6 +114,18 @@ struct GroupView: View {
         if let balances = viewModel.balances {
           BalancesSection(group: group, balances: balances)
         }
+        if let key = viewModel.balancesError {
+          Section {
+            FieldErrorText(key: key)
+            Button {
+              Task { await viewModel.loadBalances() }
+            } label: {
+              Text(LocalizedStringKey(CommonKeys.tryAgain), bundle: .module).frame(minHeight: 44)
+            }
+          } header: {
+            Text(LocalizedStringKey(BalancesSection.balancesHeader), bundle: .module)
+          }
+        }
         Section {
           if viewModel.expenses.isEmpty {
             Text(LocalizedStringKey(Self.noExpenses), bundle: .module).foregroundStyle(.secondary)

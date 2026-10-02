@@ -13,13 +13,20 @@ import (
 	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
 )
 
-// Items are everything Balances are computed from: every Member's
-// join_seq (Former Members included), every Expense with its Shares, every
-// Settlement. ledger decides which states count (ADR-0009).
+// Items are everything Balances are computed from, read from one
+// snapshot: every Member (Former Members included), every Expense with its
+// Shares and, once they exist (#23), every Settlement. ledger decides
+// which states count (ADR-0009).
 type Items struct {
-	Members     []int
+	Members     []MemberRef
 	Expenses    []ledger.Expense
 	Settlements []ledger.Settlement
+}
+
+// MemberRef pairs a Member with the join_seq ledger knows them by.
+type MemberRef struct {
+	ID      platform.ID
+	JoinSeq int
 }
 
 // Repository loads a Group's ledger items.
@@ -81,17 +88,21 @@ func (s *Service) Group(ctx context.Context, userID, groupID platform.ID) (Resul
 	if err != nil {
 		return Result{}, fmt.Errorf("balances: load items of group %s: %w", groupID, err)
 	}
-	balances, err := ledger.Balances(items.Members, items.Expenses, items.Settlements)
+	// Members come from the same snapshot as the items, so every join_seq
+	// ledger returns has its Member.
+	seqs := make([]int, len(items.Members))
+	byJoinSeq := make(map[int]platform.ID, len(items.Members))
+	for i, m := range items.Members {
+		seqs[i] = m.JoinSeq
+		byJoinSeq[m.JoinSeq] = m.ID
+	}
+	balances, err := ledger.Balances(seqs, items.Expenses, items.Settlements)
 	if err != nil {
 		return Result{}, fmt.Errorf("%w: group %s: %w", ErrInconsistent, groupID, err)
 	}
 	suggestions, err := ledger.SettleUpSuggestions(balances)
 	if err != nil {
 		return Result{}, fmt.Errorf("%w: group %s: %w", ErrInconsistent, groupID, err)
-	}
-	byJoinSeq := make(map[int]platform.ID, len(g.Members))
-	for _, m := range g.Members {
-		byJoinSeq[m.JoinSeq] = m.ID
 	}
 	r := Result{Currency: g.Currency, Balances: make([]Balance, len(balances)), Suggestions: make([]Suggestion, len(suggestions))}
 	for i, b := range balances {

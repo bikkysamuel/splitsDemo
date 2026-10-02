@@ -118,4 +118,15 @@ struct GroupBalancesTests {
     await viewModel.expenseAdded()
     #expect(await balances.requested.count == 2)
   }
+
+  @Test func aFailedLoadIsShown() async {
+    let viewModel = GroupViewModel(
+      groupID: Group.trip.id, repository: FakeGroupsRepository(), expenses: FakeExpensesRepository(),
+      balances: FakeBalancesRepository())
+
+    await viewModel.load()
+
+    #expect(viewModel.balances == nil)
+    #expect(viewModel.balancesError == ServiceErrorMessage.key(for: .notFound))
+  }
 }

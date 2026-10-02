@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/bikkysamuel/splitsDemo/server/internal/balances"
+	"github.com/bikkysamuel/splitsDemo/server/internal/expenses"
 	"github.com/bikkysamuel/splitsDemo/server/internal/ledger"
 	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
 	"github.com/bikkysamuel/splitsDemo/server/internal/store/sqlcgen"
@@ -26,12 +27,12 @@ var _ balances.Repository = (*BalancesRepository)(nil)
 func (r *BalancesRepository) Items(ctx context.Context, groupID platform.ID) (balances.Items, error) {
 	var items balances.Items
 	err := r.db.inSnapshot(ctx, func(q *sqlcgen.Queries) error {
-		seqs, err := q.LedgerMembers(ctx, uuid(groupID))
+		members, err := q.LedgerMembers(ctx, uuid(groupID))
 		if err != nil {
 			return fmt.Errorf("select members: %w", err)
 		}
-		for _, s := range seqs {
-			items.Members = append(items.Members, int(s))
+		for _, m := range members {
+			items.Members = append(items.Members, balances.MemberRef{ID: id(m.ID), JoinSeq: int(m.JoinSeq)})
 		}
 		exps, err := q.LedgerExpenses(ctx, uuid(groupID))
 		if err != nil {
@@ -45,6 +46,7 @@ func (r *BalancesRepository) Items(ctx context.Context, groupID platform.ID) (ba
 		for _, s := range shares {
 			byExpense[s.ExpenseID] = append(byExpense[s.ExpenseID], ledger.Share{JoinSeq: int(s.JoinSeq), Amount: s.ShareMinor})
 		}
+		// Settlements join the items with #23.
 		for _, e := range exps {
 			items.Expenses = append(items.Expenses, ledger.Expense{
 				State: itemState(e.State), Payer: int(e.PayerJoinSeq), Amount: e.AmountMinor, Shares: byExpense[e.ID],
@@ -59,15 +61,15 @@ func (r *BalancesRepository) Items(ctx context.Context, groupID platform.ID) (ba
 // refuses as inconsistent.
 func itemState(s string) ledger.ItemState {
 	switch s {
-	case "pending":
+	case expenses.StatePending:
 		return ledger.Pending
-	case "accepted":
+	case expenses.StateAccepted:
 		return ledger.Accepted
-	case "disputed":
+	case expenses.StateDisputed:
 		return ledger.Disputed
-	case "withdrawal_pending":
+	case expenses.StateWithdrawalPending:
 		return ledger.WithdrawalPending
-	case "withdrawn":
+	case expenses.StateWithdrawn:
 		return ledger.Withdrawn
 	}
 	return 0

@@ -8,7 +8,10 @@ struct ReportView: View {
   var body: some View {
     content
       .navigationTitle(Text(LocalizedStringKey(MainTabView.report), bundle: .module))
-      .task { await viewModel.load() }
+      .task {
+        viewModel.observesSelection = true
+        await viewModel.load()
+      }
       .onChange(of: viewModel.selectedGroupID) {
         Task { await viewModel.loadReport() }
       }

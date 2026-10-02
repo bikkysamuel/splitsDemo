@@ -21,6 +21,9 @@ public final class ReportViewModel {
     let balances: GroupBalances
   }
 
+  /// Set by the view, which reloads the report when the selection changes.
+  var observesSelection = false
+
   private let groupsRepository: any GroupsRepository
   private let balancesRepository: any BalancesRepository
   private let preferences: any PreferencesRepository
@@ -40,10 +43,13 @@ public final class ReportViewModel {
       let list = try await groupsRepository.groups()
       groups = .loaded(list)
       let remembered = preferences.lastReportGroupID()
+      let before = selectedGroupID
       if selectedGroupID == nil || !list.contains(where: { $0.id == selectedGroupID }) {
         selectedGroupID = list.first(where: { $0.id == remembered })?.id ?? list.first?.id
       }
-      await loadReport()
+      // A changed selection loads through the view's onChange; an unchanged
+      // one (a refresh) loads here.
+      if selectedGroupID == before || !observesSelection { await loadReport() }
     } catch {
       groups = .failed(ServiceErrorMessage.key(for: error))
     }

@@ -29,13 +29,15 @@ func (tr trip) balances(t *testing.T, token string) groupBalances {
 	return b
 }
 
-func (b groupBalances) of(memberID string) int64 {
+func (b groupBalances) of(t *testing.T, memberID string) int64 {
+	t.Helper()
 	for _, x := range b.Balances {
 		if x.MemberID == memberID {
 			return x.Balance.Minor
 		}
 	}
-	return -1 << 62
+	t.Fatalf("no Balance for member %s in %+v", memberID, b.Balances)
+	return 0
 }
 
 func TestANewGroupIsSettled(t *testing.T) {
@@ -81,25 +83,27 @@ func TestBalancesFollowTheExpensesAndSumToZero(t *testing.T) {
 }
 
 // ADR-0009: only Accepted (and WithdrawalPending) items count. Withdrawing
-// comes with #20, so the state is set in the database here.
-func TestWithdrawnAndPendingExpensesDoNotCount(t *testing.T) {
+// comes with #20 and Disputes with M2, so the states are set in the
+// database here; switch to the API as those land.
+func TestOnlyAcceptedAndWithdrawalPendingExpensesCount(t *testing.T) {
 	tr := newTrip(t)
-	counted := tr.mustCreate(t, tr.input(900, tr.aliceID, tr.everyone()...))
+	tr.mustCreate(t, tr.input(900, tr.aliceID, tr.everyone()...))
 	withdrawn := tr.mustCreate(t, tr.input(5000, tr.bobID, tr.everyone()...))
 	pending := tr.mustCreate(t, tr.input(7000, tr.grandma, tr.everyone()...))
 	stillCounts := tr.mustCreate(t, tr.input(300, tr.aliceID, tr.aliceID, tr.bobID, tr.grandma))
 	conn := connect(t, tr.srv)
-	for id, state := range map[string]string{withdrawn.ID: "withdrawn", pending.ID: "pending", stillCounts.ID: "withdrawal_pending"} {
+	disputed := tr.mustCreate(t, tr.input(1100, tr.bobID, tr.everyone()...))
+	for id, state := range map[string]string{
+		withdrawn.ID: "withdrawn", pending.ID: "pending", disputed.ID: "disputed", stillCounts.ID: "withdrawal_pending",
+	} {
 		if _, err := conn.Exec(context.Background(), "UPDATE expenses SET state = $1 WHERE id = $2", state, id); err != nil {
 			t.Fatalf("set state: %v", err)
 		}
 	}
-	_ = counted
-
 	b := tr.balances(t, tr.alice.AccessToken)
 
 	// 900 → 300 each; 300 → 100 each; both paid by Alice.
-	if b.of(tr.aliceID) != 1200-400 || b.of(tr.bobID) != -400 || b.of(tr.grandma) != -400 {
+	if b.of(t, tr.aliceID) != 1200-400 || b.of(t, tr.bobID) != -400 || b.of(t, tr.grandma) != -400 {
 		t.Errorf("balances = %+v; want Alice 800, Bob -400, Grandma -400", b.Balances)
 	}
 }

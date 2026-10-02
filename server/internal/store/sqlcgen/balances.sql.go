@@ -50,22 +50,27 @@ func (q *Queries) LedgerExpenses(ctx context.Context, groupID pgtype.UUID) ([]Le
 }
 
 const ledgerMembers = `-- name: LedgerMembers :many
-SELECT join_seq FROM members WHERE group_id = $1 ORDER BY join_seq
+SELECT id, join_seq FROM members WHERE group_id = $1 ORDER BY join_seq
 `
 
-func (q *Queries) LedgerMembers(ctx context.Context, groupID pgtype.UUID) ([]int32, error) {
+type LedgerMembersRow struct {
+	ID      pgtype.UUID
+	JoinSeq int32
+}
+
+func (q *Queries) LedgerMembers(ctx context.Context, groupID pgtype.UUID) ([]LedgerMembersRow, error) {
 	rows, err := q.db.Query(ctx, ledgerMembers, groupID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int32{}
+	items := []LedgerMembersRow{}
 	for rows.Next() {
-		var join_seq int32
-		if err := rows.Scan(&join_seq); err != nil {
+		var i LedgerMembersRow
+		if err := rows.Scan(&i.ID, &i.JoinSeq); err != nil {
 			return nil, err
 		}
-		items = append(items, join_seq)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
