@@ -47,12 +47,11 @@ actor SessionRefresher: AccessTokenProvider {
     switch output {
     case .ok(let ok):
       let session = try ok.body.json
-      try await tokens.save(
-        StoredTokens(
-          accessToken: session.accessToken, accessExpiresAt: session.accessExpiresAt,
-          refreshToken: session.refreshToken, refreshExpiresAt: session.refreshExpiresAt))
+      try await tokens.save(StoredTokens(session))
       return session.accessToken
     case .unauthorized, .badRequest:
+      // 400: the saved refresh token isn't one the server can read, so it
+      // can never work either.
       await tokens.clear()
       expirationsContinuation.yield()
       return nil

@@ -96,6 +96,23 @@ struct SessionRefreshTests {
     #expect(UUID(uuidString: key) != nil)
   }
 
+  // A mid-session 401 on a write: refresh, then retry with the same
+  // Idempotency-Key, so the server can replay instead of acting twice.
+  @Test func aRetriedWriteKeepsItsIdempotencyKey() async throws {
+    let tokens = InMemoryTokenStore(.sample)
+    let server = RoutingServer(
+      me: .unauthorizedUnless("never"), refresh: .fixture("signin-200"),
+      signOut: .unauthorizedUnless("Bearer fixture-access-token"))
+    let repository = try makeRepository(server, tokens)
+
+    await repository.signOut()
+
+    let sent = await server.signOuts
+    #expect(sent.map { $0.headerFields[.authorization] } == ["Bearer saved-access", "Bearer fixture-access-token"])
+    let keys = sent.map { $0.headerFields[HTTPField.Name("Idempotency-Key")!] }
+    #expect(keys.count == 2 && keys[0] != nil && keys[0] == keys[1])
+  }
+
   @Test func signOutForgetsTheTokensEvenWhenTheServerIsUnreachable() async throws {
     let tokens = InMemoryTokenStore(.sample)
     let server = RoutingServer(

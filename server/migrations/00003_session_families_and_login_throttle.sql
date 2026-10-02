@@ -1,4 +1,4 @@
--- Refresh-token rotation (ADR-0011) and login throttling (FR-A4, Q34).
+-- Refresh-token rotation (ADR-0011) and login throttling (FR-A4, Q34, Q90).
 --
 -- A Session is a family of rows: each refresh adds a row with a new token
 -- pair and marks the old row replaced. Presenting a replaced refresh token
@@ -10,12 +10,13 @@ UPDATE sessions SET family_id = id;
 ALTER TABLE sessions ALTER COLUMN family_id SET NOT NULL;
 CREATE INDEX sessions_family_id_idx ON sessions (family_id);
 
--- Failed sign-ins per account (SHA-256 of the lowercased email, so unknown
--- emails are throttled alike and no address is stored) and per client IP.
+-- Sign-in attempts per account (SHA-256 of the email, so unknown emails are
+-- throttled alike and no address is stored) and per client IP. An attempt
+-- is counted, under the row lock, before the password is checked.
 CREATE TABLE login_throttle (
     scope           text NOT NULL CHECK (scope IN ('account', 'ip')),
     key             bytea NOT NULL CHECK (length(key) = 32),
-    failures        integer NOT NULL CHECK (failures > 0),
+    failures        integer NOT NULL CHECK (failures >= 0),
     last_failure_at timestamptz NOT NULL,
     next_allowed_at timestamptz NOT NULL,
     PRIMARY KEY (scope, key)

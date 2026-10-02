@@ -75,6 +75,22 @@ func (q *Queries) DeleteUserCodes(ctx context.Context, arg DeleteUserCodesParams
 	return err
 }
 
+const ensureLoginThrottle = `-- name: EnsureLoginThrottle :exec
+INSERT INTO login_throttle (scope, key, failures, last_failure_at, next_allowed_at)
+VALUES ($1, $2, 0, '-infinity', '-infinity')
+ON CONFLICT (scope, key) DO NOTHING
+`
+
+type EnsureLoginThrottleParams struct {
+	Scope string
+	Key   []byte
+}
+
+func (q *Queries) EnsureLoginThrottle(ctx context.Context, arg EnsureLoginThrottleParams) error {
+	_, err := q.db.Exec(ctx, ensureLoginThrottle, arg.Scope, arg.Key)
+	return err
+}
+
 const insertCode = `-- name: InsertCode :exec
 INSERT INTO one_time_codes (id, user_id, purpose, code_hash, expires_at, created_at)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -160,25 +176,26 @@ func (q *Queries) LiveCode(ctx context.Context, arg LiveCodeParams) (LiveCodeRow
 	return i, err
 }
 
-const loginThrottle = `-- name: LoginThrottle :one
+const loginThrottleForUpdate = `-- name: LoginThrottleForUpdate :one
 SELECT failures, last_failure_at, next_allowed_at FROM login_throttle
 WHERE scope = $1 AND key = $2
+FOR UPDATE
 `
 
-type LoginThrottleParams struct {
+type LoginThrottleForUpdateParams struct {
 	Scope string
 	Key   []byte
 }
 
-type LoginThrottleRow struct {
+type LoginThrottleForUpdateRow struct {
 	Failures      int32
 	LastFailureAt pgtype.Timestamptz
 	NextAllowedAt pgtype.Timestamptz
 }
 
-func (q *Queries) LoginThrottle(ctx context.Context, arg LoginThrottleParams) (LoginThrottleRow, error) {
-	row := q.db.QueryRow(ctx, loginThrottle, arg.Scope, arg.Key)
-	var i LoginThrottleRow
+func (q *Queries) LoginThrottleForUpdate(ctx context.Context, arg LoginThrottleForUpdateParams) (LoginThrottleForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, loginThrottleForUpdate, arg.Scope, arg.Key)
+	var i LoginThrottleForUpdateRow
 	err := row.Scan(&i.Failures, &i.LastFailureAt, &i.NextAllowedAt)
 	return i, err
 }
@@ -212,37 +229,6 @@ type MarkSessionReplacedParams struct {
 func (q *Queries) MarkSessionReplaced(ctx context.Context, arg MarkSessionReplacedParams) error {
 	_, err := q.db.Exec(ctx, markSessionReplaced, arg.ReplacedBy, arg.Now, arg.ID)
 	return err
-}
-
-const recordLoginFailure = `-- name: RecordLoginFailure :one
-INSERT INTO login_throttle (scope, key, failures, last_failure_at, next_allowed_at)
-VALUES ($1, $2, 1, $3, $3)
-ON CONFLICT (scope, key) DO UPDATE
-    SET failures = CASE WHEN login_throttle.last_failure_at <= $4 THEN 1
-                        ELSE login_throttle.failures + 1 END,
-        last_failure_at = excluded.last_failure_at
-RETURNING failures
-`
-
-type RecordLoginFailureParams struct {
-	Scope       string
-	Key         []byte
-	Now         pgtype.Timestamptz
-	StaleBefore pgtype.Timestamptz
-}
-
-// Counts a failure; a count whose last failure is at or before @stale_before
-// starts again at 1.
-func (q *Queries) RecordLoginFailure(ctx context.Context, arg RecordLoginFailureParams) (int32, error) {
-	row := q.db.QueryRow(ctx, recordLoginFailure,
-		arg.Scope,
-		arg.Key,
-		arg.Now,
-		arg.StaleBefore,
-	)
-	var failures int32
-	err := row.Scan(&failures)
-	return failures, err
 }
 
 const revokeSessionFamily = `-- name: RevokeSessionFamily :exec
@@ -339,19 +325,28 @@ func (q *Queries) SessionByRefreshHashForUpdate(ctx context.Context, refreshHash
 	return i, err
 }
 
-const setLoginNextAllowed = `-- name: SetLoginNextAllowed :exec
-UPDATE login_throttle SET next_allowed_at = $1
-WHERE scope = $2 AND key = $3
+const updateLoginThrottle = `-- name: UpdateLoginThrottle :exec
+UPDATE login_throttle
+SET failures = $1, last_failure_at = $2, next_allowed_at = $3
+WHERE scope = $4 AND key = $5
 `
 
-type SetLoginNextAllowedParams struct {
+type UpdateLoginThrottleParams struct {
+	Failures      int32
+	LastFailureAt pgtype.Timestamptz
 	NextAllowedAt pgtype.Timestamptz
 	Scope         string
 	Key           []byte
 }
 
-func (q *Queries) SetLoginNextAllowed(ctx context.Context, arg SetLoginNextAllowedParams) error {
-	_, err := q.db.Exec(ctx, setLoginNextAllowed, arg.NextAllowedAt, arg.Scope, arg.Key)
+func (q *Queries) UpdateLoginThrottle(ctx context.Context, arg UpdateLoginThrottleParams) error {
+	_, err := q.db.Exec(ctx, updateLoginThrottle,
+		arg.Failures,
+		arg.LastFailureAt,
+		arg.NextAllowedAt,
+		arg.Scope,
+		arg.Key,
+	)
 	return err
 }
 

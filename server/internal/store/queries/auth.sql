@@ -68,23 +68,19 @@ WHERE id = @id;
 UPDATE sessions SET revoked_at = @now
 WHERE family_id = @family_id AND revoked_at IS NULL;
 
--- name: LoginThrottle :one
-SELECT failures, last_failure_at, next_allowed_at FROM login_throttle
-WHERE scope = @scope AND key = @key;
-
--- name: RecordLoginFailure :one
--- Counts a failure; a count whose last failure is at or before @stale_before
--- starts again at 1.
+-- name: EnsureLoginThrottle :exec
 INSERT INTO login_throttle (scope, key, failures, last_failure_at, next_allowed_at)
-VALUES (@scope, @key, 1, @now, @now)
-ON CONFLICT (scope, key) DO UPDATE
-    SET failures = CASE WHEN login_throttle.last_failure_at <= @stale_before THEN 1
-                        ELSE login_throttle.failures + 1 END,
-        last_failure_at = excluded.last_failure_at
-RETURNING failures;
+VALUES (@scope, @key, 0, '-infinity', '-infinity')
+ON CONFLICT (scope, key) DO NOTHING;
 
--- name: SetLoginNextAllowed :exec
-UPDATE login_throttle SET next_allowed_at = @next_allowed_at
+-- name: LoginThrottleForUpdate :one
+SELECT failures, last_failure_at, next_allowed_at FROM login_throttle
+WHERE scope = @scope AND key = @key
+FOR UPDATE;
+
+-- name: UpdateLoginThrottle :exec
+UPDATE login_throttle
+SET failures = @failures, last_failure_at = @last_failure_at, next_allowed_at = @next_allowed_at
 WHERE scope = @scope AND key = @key;
 
 -- name: ClearLoginThrottle :exec

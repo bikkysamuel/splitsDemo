@@ -164,25 +164,29 @@ func (s *Service) ResendVerificationCode(ctx context.Context, rawEmail string) e
 // clientIP is the address the request came from, for throttling. Too many
 // failures return a *ThrottledError without checking the password.
 func (s *Service) SignIn(ctx context.Context, rawEmail, password, clientIP string) (Session, error) {
-	throttles := []throttleKey{
-		{ThrottleAccount, throttleHash(strings.ToLower(strings.TrimSpace(rawEmail)))},
-		{ThrottleIP, throttleHash(clientIP)},
+	account := ThrottleKey{ThrottleAccount, accountThrottleKey(rawEmail)}
+	ip := ThrottleKey{ThrottleIP, throttleHash(clientIP)}
+	// Each attempt is counted as a failure before the password is checked,
+	// so a burst of parallel guesses can't slip past the wait; a success
+	// takes it back.
+	if err := s.claimAttempt(ctx, account); err != nil {
+		return Session{}, err
 	}
-	if err := s.checkThrottles(ctx, throttles); err != nil {
+	if err := s.claimAttempt(ctx, ip); err != nil {
+		if rerr := s.releaseAttempt(ctx, account); rerr != nil {
+			return Session{}, rerr
+		}
 		return Session{}, err
 	}
 	user, err := s.checkCredentials(ctx, rawEmail, password)
-	if errors.Is(err, ErrInvalidCredentials) {
-		if err := s.recordFailure(ctx, throttles); err != nil {
-			return Session{}, err
-		}
-		return Session{}, ErrInvalidCredentials
-	}
 	if err != nil {
 		return Session{}, err
 	}
-	if err := s.deps.Repository.ClearLoginThrottle(ctx, ThrottleAccount, throttles[0].key); err != nil {
+	if err := s.deps.Repository.ClearLoginThrottle(ctx, account); err != nil {
 		return Session{}, fmt.Errorf("auth: clear login throttle: %w", err)
+	}
+	if err := s.releaseAttempt(ctx, ip); err != nil {
+		return Session{}, err
 	}
 	session, stored, err := s.newSession(user.ID)
 	if err != nil {
@@ -225,34 +229,39 @@ func (s *Service) checkCredentials(ctx context.Context, rawEmail, password strin
 	return user.User, nil
 }
 
-type throttleKey struct {
-	scope ThrottleScope
-	key   []byte
+// accountThrottleKey keys an account's count by its email as the database
+// compares it: trimmed, ignoring case (FR-A1). It hashes even a malformed
+// email, so every attempt is counted.
+func accountThrottleKey(rawEmail string) []byte {
+	return throttleHash(strings.ToLower(strings.TrimSpace(rawEmail)))
 }
 
-// throttleHash keys a throttle without storing the email or IP.
+// throttleHash keys a count without storing the email or IP.
 func throttleHash(v string) []byte {
 	sum := sha256.Sum256([]byte(v))
 	return sum[:]
 }
 
-// checkThrottles returns a *ThrottledError if any count asks the attempt to
-// wait.
-func (s *Service) checkThrottles(ctx context.Context, keys []throttleKey) error {
+// claimAttempt counts one attempt against k, or returns a *ThrottledError
+// while k's wait runs.
+func (s *Service) claimAttempt(ctx context.Context, k ThrottleKey) error {
 	now := s.deps.Clock.Now()
 	var wait time.Duration
-	for _, k := range keys {
-		rec, err := s.deps.Repository.LoginThrottle(ctx, k.scope, k.key)
-		if errors.Is(err, ErrNotFound) {
-			continue
+	err := s.deps.Repository.UpdateLoginThrottle(ctx, k, func(r ThrottleRecord) ThrottleRecord {
+		if !r.LastFailureAt.After(now.Add(-LoginFailureMemory)) {
+			r = ThrottleRecord{} // forgotten
 		}
-		if err != nil {
-			return fmt.Errorf("auth: read login throttle: %w", err)
+		if now.Before(r.NextAllowedAt) {
+			wait = r.NextAllowedAt.Sub(now)
+			return r
 		}
-		if !rec.LastFailureAt.After(now.Add(-LoginFailureMemory)) {
-			continue // forgotten
-		}
-		wait = max(wait, rec.NextAllowedAt.Sub(now))
+		r.Failures++
+		r.LastFailureAt = now
+		r.NextAllowedAt = now.Add(LoginDelay(r.Failures))
+		return r
+	})
+	if err != nil {
+		return fmt.Errorf("auth: count sign-in attempt: %w", err)
 	}
 	if wait > 0 {
 		return &ThrottledError{RetryAfter: wait}
@@ -260,18 +269,16 @@ func (s *Service) checkThrottles(ctx context.Context, keys []throttleKey) error 
 	return nil
 }
 
-func (s *Service) recordFailure(ctx context.Context, keys []throttleKey) error {
+// releaseAttempt takes back an attempt that didn't fail.
+func (s *Service) releaseAttempt(ctx context.Context, k ThrottleKey) error {
 	now := s.deps.Clock.Now()
-	for _, k := range keys {
-		failures, err := s.deps.Repository.RecordLoginFailure(ctx, k.scope, k.key, now, now.Add(-LoginFailureMemory))
-		if err != nil {
-			return fmt.Errorf("auth: record login failure: %w", err)
-		}
-		if delay := LoginDelay(failures); delay > 0 {
-			if err := s.deps.Repository.SetLoginNextAllowed(ctx, k.scope, k.key, now.Add(delay)); err != nil {
-				return fmt.Errorf("auth: set login delay: %w", err)
-			}
-		}
+	err := s.deps.Repository.UpdateLoginThrottle(ctx, k, func(r ThrottleRecord) ThrottleRecord {
+		r.Failures = max(r.Failures-1, 0)
+		r.NextAllowedAt = now
+		return r
+	})
+	if err != nil {
+		return fmt.Errorf("auth: release sign-in attempt: %w", err)
 	}
 	return nil
 }

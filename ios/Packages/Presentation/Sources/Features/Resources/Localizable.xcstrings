@@ -337,6 +337,18 @@
         }
       }
     },
+    "Signing out…": {
+      "comment": "VoiceOver label of the progress indicator while signing out",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signing out…"
+          }
+        }
+      }
+    },
     "Something went wrong. Try again.": {
       "comment": "Error message when a request failed for an unexpected reason",
       "extractionState": "manual",

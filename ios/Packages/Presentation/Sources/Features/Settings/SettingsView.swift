@@ -25,7 +25,7 @@ struct SettingsView: View {
             if isSigningOut {
               Spacer()
               ProgressView()
-                .accessibilityLabel(Text(LocalizedStringKey(Self.signOut), bundle: .module))
+                .accessibilityLabel(Text(LocalizedStringKey(Self.signingOut), bundle: .module))
             }
           }
           .frame(minHeight: 44)
@@ -56,5 +56,6 @@ struct SettingsView: View {
   nonisolated static let signedInAs = "Signed in as"
   nonisolated static let signOut = "Sign out"
   nonisolated static let confirmTitle = "Sign out of Splits on this iPhone?"
-  nonisolated static let allKeys = [account, signedInAs, signOut, confirmTitle]
+  nonisolated static let signingOut = "Signing out…"
+  nonisolated static let allKeys = [account, signedInAs, signOut, confirmTitle, signingOut]
 }

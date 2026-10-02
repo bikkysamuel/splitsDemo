@@ -12,7 +12,8 @@ struct SplitsApp: App {
   @State private var session: AppSession
 
   init() {
-    let repository = AuthAPIRepository(configuration: Self.apiConfiguration(), tokens: KeychainTokenStore())
+    let api = APISession(configuration: Self.apiConfiguration(), tokens: KeychainTokenStore())
+    let repository = AuthAPIRepository(api: api)
     _session = State(initialValue: AppSession(repository: repository))
   }
 

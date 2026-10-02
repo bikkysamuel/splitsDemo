@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -342,5 +343,28 @@ func TestThrottlingLeavesExistingSessionsAlone(t *testing.T) {
 
 	if got := srv.Get(t, "/v1/me", bearer(s.AccessToken)...); got.StatusCode != http.StatusOK {
 		t.Errorf("GET /v1/me while throttled = %d; want 200", got.StatusCode)
+	}
+}
+
+// A burst of parallel guesses can't slip past the wait: each attempt is
+// counted before its password is checked.
+func TestParallelFailuresAreThrottledLikeSequentialOnes(t *testing.T) {
+	srv := apptest.Start(t)
+	signUpVerified(t, srv, "alice@example.com")
+
+	statuses := make(chan int, 20)
+	var wg sync.WaitGroup
+	for range 20 {
+		wg.Go(func() { statuses <- signIn(t, srv, "alice@example.com", "wrong password!").StatusCode })
+	}
+	wg.Wait()
+	close(statuses)
+
+	counts := map[int]int{}
+	for status := range statuses {
+		counts[status]++
+	}
+	if counts[http.StatusUnauthorized] != 5 || counts[http.StatusTooManyRequests] != 15 {
+		t.Errorf("statuses = %v; want 5 × 401 and 15 × 429", counts)
 	}
 }

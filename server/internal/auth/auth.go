@@ -184,7 +184,15 @@ const (
 	ThrottleIP      ThrottleScope = "ip"
 )
 
-// ThrottleRecord is a stored count of failed sign-ins.
+// ThrottleKey names one count: an account (SHA-256 of the email) or a
+// client IP (SHA-256 of the address).
+type ThrottleKey struct {
+	Scope ThrottleScope
+	Key   []byte
+}
+
+// ThrottleRecord is a stored count of sign-in attempts that failed or are
+// still being checked.
 type ThrottleRecord struct {
 	Failures      int
 	LastFailureAt time.Time
@@ -232,13 +240,10 @@ type Repository interface {
 	// RevokeSession revokes every row of the Session family.
 	RevokeSession(ctx context.Context, familyID platform.ID, now time.Time) error
 
-	// LoginThrottle returns the failure count, or ErrNotFound.
-	LoginThrottle(ctx context.Context, scope ThrottleScope, key []byte) (ThrottleRecord, error)
-	// RecordLoginFailure counts a failure, starting over at 1 when the last
-	// one was at or before staleBefore, and returns the new count.
-	RecordLoginFailure(ctx context.Context, scope ThrottleScope, key []byte, now, staleBefore time.Time) (int, error)
-	// SetLoginNextAllowed sets when the next attempt may come.
-	SetLoginNextAllowed(ctx context.Context, scope ThrottleScope, key []byte, at time.Time) error
+	// UpdateLoginThrottle runs update on the count under a row lock (a
+	// count never seen starts at zero) and stores what it returns, in one
+	// transaction, so concurrent sign-ins are counted one at a time.
+	UpdateLoginThrottle(ctx context.Context, k ThrottleKey, update func(ThrottleRecord) ThrottleRecord) error
 	// ClearLoginThrottle forgets the count.
-	ClearLoginThrottle(ctx context.Context, scope ThrottleScope, key []byte) error
+	ClearLoginThrottle(ctx context.Context, k ThrottleKey) error
 }

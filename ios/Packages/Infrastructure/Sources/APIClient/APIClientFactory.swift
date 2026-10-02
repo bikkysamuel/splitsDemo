@@ -4,16 +4,6 @@ import OpenAPIURLSession
 /// Builds the generated API client (ADR-0012) on the app's cache-less
 /// `URLSession` (ADR-0005).
 public enum APIClientFactory {
-  /// - Parameter tokens: supplies and refreshes the access token of
-  ///   protected requests.
-  public static func makeClient(configuration: APIConfiguration, tokens: any AccessTokenProvider) -> Client {
-    Client(
-      serverURL: configuration.baseURL,
-      configuration: clientConfiguration,
-      transport: makeTransport(),
-      middlewares: [AuthenticationMiddleware(tokens: tokens)])
-  }
-
   /// A client without the auth middleware, for anonymous operations only
   /// (health checks).
   public static func makeAnonymousClient(configuration: APIConfiguration) -> Client {

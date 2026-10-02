@@ -9,27 +9,20 @@ import OpenAPIRuntime
 /// requests and refreshes it on a 401 through `SessionRefresher`. Generated
 /// types never leave this layer (ADR-0015).
 public struct AuthAPIRepository: AuthRepository {
-  private let client: Client
-  private let tokens: any TokenStore
-  private let refresher: SessionRefresher
+  private let api: APISession
+  private var client: Client { api.client }
+  private var tokens: any TokenStore { api.tokens }
 
-  public init(configuration: APIConfiguration, tokens: any TokenStore) {
-    self.init(serverURL: configuration.baseURL, transport: APIClientFactory.makeTransport(), tokens: tokens)
+  public init(api: APISession) {
+    self.api = api
   }
 
-  /// For tests: the same clients over another transport.
+  /// For tests: a fresh APISession over another transport.
   init(serverURL: URL, transport: any ClientTransport, tokens: any TokenStore) {
-    let refresher = SessionRefresher(serverURL: serverURL, transport: transport, tokens: tokens)
-    self.client = Client(
-      serverURL: serverURL,
-      configuration: APIClientFactory.clientConfiguration,
-      transport: transport,
-      middlewares: [AuthenticationMiddleware(tokens: refresher)])
-    self.tokens = tokens
-    self.refresher = refresher
+    self.init(api: APISession(serverURL: serverURL, transport: transport, tokens: tokens))
   }
 
-  public var sessionExpirations: AsyncStream<Void> { refresher.expirations }
+  public var sessionExpirations: AsyncStream<Void> { api.refresher.expirations }
 
   public func signUp(email: String, password: String) async throws(ServiceError) -> User {
     let output = try await send { try await client.signUp(body: .json(.init(email: email, password: password))) }
@@ -104,10 +97,7 @@ public struct AuthAPIRepository: AuthRepository {
   private func start(_ session: Components.Schemas.AuthSession) async throws(ServiceError) -> User {
     let user = try UserMapper.user(session.user)
     do {
-      try await tokens.save(
-        StoredTokens(
-          accessToken: session.accessToken, accessExpiresAt: session.accessExpiresAt,
-          refreshToken: session.refreshToken, refreshExpiresAt: session.refreshExpiresAt))
+      try await tokens.save(StoredTokens(session))
     } catch {
       throw .unexpected(status: nil)
     }

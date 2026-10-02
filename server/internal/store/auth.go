@@ -200,45 +200,36 @@ func (r *AuthRepository) RevokeSession(ctx context.Context, familyID platform.ID
 	return nil
 }
 
-// LoginThrottle implements auth.Repository.
-func (r *AuthRepository) LoginThrottle(ctx context.Context, scope auth.ThrottleScope, key []byte) (auth.ThrottleRecord, error) {
-	row, err := sqlcgen.New(r.db.pool).LoginThrottle(ctx, sqlcgen.LoginThrottleParams{Scope: string(scope), Key: key})
-	if isNoRows(err) {
-		return auth.ThrottleRecord{}, auth.ErrNotFound
-	}
-	if err != nil {
-		return auth.ThrottleRecord{}, fmt.Errorf("select login throttle: %w", err)
-	}
-	return auth.ThrottleRecord{
-		Failures: int(row.Failures), LastFailureAt: row.LastFailureAt.Time, NextAllowedAt: row.NextAllowedAt.Time,
-	}, nil
-}
-
-// RecordLoginFailure implements auth.Repository.
-func (r *AuthRepository) RecordLoginFailure(ctx context.Context, scope auth.ThrottleScope, key []byte, now, staleBefore time.Time) (int, error) {
-	n, err := sqlcgen.New(r.db.pool).RecordLoginFailure(ctx, sqlcgen.RecordLoginFailureParams{
-		Scope: string(scope), Key: key, Now: timestamptz(now), StaleBefore: timestamptz(staleBefore),
+// UpdateLoginThrottle implements auth.Repository.
+func (r *AuthRepository) UpdateLoginThrottle(ctx context.Context, k auth.ThrottleKey, update func(auth.ThrottleRecord) auth.ThrottleRecord) error {
+	return r.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		if err := q.EnsureLoginThrottle(ctx, sqlcgen.EnsureLoginThrottleParams{Scope: string(k.Scope), Key: k.Key}); err != nil {
+			return fmt.Errorf("ensure login throttle: %w", err)
+		}
+		row, err := q.LoginThrottleForUpdate(ctx, sqlcgen.LoginThrottleForUpdateParams{Scope: string(k.Scope), Key: k.Key})
+		if err != nil {
+			return fmt.Errorf("lock login throttle: %w", err)
+		}
+		next := update(auth.ThrottleRecord{
+			Failures: int(row.Failures), LastFailureAt: row.LastFailureAt.Time, NextAllowedAt: row.NextAllowedAt.Time,
+		})
+		err = q.UpdateLoginThrottle(ctx, sqlcgen.UpdateLoginThrottleParams{
+			Failures:      int32(next.Failures), //nolint:gosec // a small count
+			LastFailureAt: timestamptz(next.LastFailureAt),
+			NextAllowedAt: timestamptz(next.NextAllowedAt),
+			Scope:         string(k.Scope),
+			Key:           k.Key,
+		})
+		if err != nil {
+			return fmt.Errorf("update login throttle: %w", err)
+		}
+		return nil
 	})
-	if err != nil {
-		return 0, fmt.Errorf("record login failure: %w", err)
-	}
-	return int(n), nil
-}
-
-// SetLoginNextAllowed implements auth.Repository.
-func (r *AuthRepository) SetLoginNextAllowed(ctx context.Context, scope auth.ThrottleScope, key []byte, at time.Time) error {
-	err := sqlcgen.New(r.db.pool).SetLoginNextAllowed(ctx, sqlcgen.SetLoginNextAllowedParams{
-		NextAllowedAt: timestamptz(at), Scope: string(scope), Key: key,
-	})
-	if err != nil {
-		return fmt.Errorf("set login next allowed: %w", err)
-	}
-	return nil
 }
 
 // ClearLoginThrottle implements auth.Repository.
-func (r *AuthRepository) ClearLoginThrottle(ctx context.Context, scope auth.ThrottleScope, key []byte) error {
-	err := sqlcgen.New(r.db.pool).ClearLoginThrottle(ctx, sqlcgen.ClearLoginThrottleParams{Scope: string(scope), Key: key})
+func (r *AuthRepository) ClearLoginThrottle(ctx context.Context, k auth.ThrottleKey) error {
+	err := sqlcgen.New(r.db.pool).ClearLoginThrottle(ctx, sqlcgen.ClearLoginThrottleParams{Scope: string(k.Scope), Key: k.Key})
 	if err != nil {
 		return fmt.Errorf("clear login throttle: %w", err)
 	}
