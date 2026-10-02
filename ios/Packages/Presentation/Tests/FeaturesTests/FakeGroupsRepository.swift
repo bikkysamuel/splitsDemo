@@ -8,6 +8,7 @@ actor FakeGroupsRepository: GroupsRepository {
   var groupResult: Result<Group, ServiceError> = .success(.trip)
   var renameResults: [Result<Group, ServiceError>] = []
   private(set) var created: [(name: String, currency: String, displayName: String)] = []
+  private(set) var keys: [WriteKey] = []
   private(set) var renames: [(name: String, version: Int)] = []
 
   func set(groups: Result<[GroupSummary], ServiceError>) { groupsResult = groups }
@@ -17,15 +18,21 @@ actor FakeGroupsRepository: GroupsRepository {
 
   func groups() async throws(ServiceError) -> [GroupSummary] { try groupsResult.get() }
 
-  func createGroup(name: String, currency: String, displayName: String) async throws(ServiceError) -> Group {
+  func createGroup(
+    name: String, currency: String, displayName: String, key: WriteKey
+  ) async throws(ServiceError)
+    -> Group
+  {
     created.append((name, currency, displayName))
+    keys.append(key)
     return try createResult.get()
   }
 
   func group(id: UUID) async throws(ServiceError) -> Group { try groupResult.get() }
 
-  func renameGroup(id: UUID, name: String, version: Int) async throws(ServiceError) -> Group {
+  func renameGroup(id: UUID, name: String, version: Int, key: WriteKey) async throws(ServiceError) -> Group {
     renames.append((name, version))
+    keys.append(key)
     return try renameResults.isEmpty ? groupResult.get() : renameResults.removeFirst().get()
   }
 }

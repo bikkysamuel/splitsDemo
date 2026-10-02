@@ -40,7 +40,7 @@ users ─1───*─ sessions
 | Table | Key columns | Notes |
 |---|---|---|
 | `groups` | `id`, `parent_group_id null`, `name`, `currency char(3)`, `state (active \| closing \| closed)`, `closing_since null`, `closed_at null` | Trigger: a parent must have `parent_group_id IS NULL` (one level). `currency` is immutable once an Expense exists. |
-| `members` | `id`, `group_id`, `user_id null`, `display_name`, `email citext null`, `role (admin \| member)`, `status (active \| former)`, `join_seq int`, `parent_member_id null` | Placeholder ⇔ `user_id IS NULL`. `UNIQUE(group_id, display_name)`, `UNIQUE(group_id, email)`, `UNIQUE(group_id, user_id)`. `join_seq` breaks rounding ties (ADR-0010). In a Sub-Group, `parent_member_id` points at the same person in the Parent Group. |
+| `members` | `id`, `group_id`, `user_id null`, `display_name`, `email citext null`, `role (admin \| member)`, `status (active \| former)`, `join_seq int`, `parent_member_id null` | Placeholder ⇔ `user_id IS NULL`. `UNIQUE(group_id, lower(display_name))` (FR-M4: unique ignoring case), `UNIQUE(group_id, email)`, `UNIQUE(group_id, user_id)`. `join_seq` breaks rounding ties (ADR-0010). In a Sub-Group, `parent_member_id` points at the same person in the Parent Group. |
 | `invite_links` | `id`, `group_id`, `token_hash`, `target_member_id null`, `created_by`, `expires_at`, `revoked_at null` | Built now; opens the app once a domain exists (ADR-0017). |
 | `claim_requests` | `id`, `group_id`, `user_id`, `placeholder_member_id`, `status (open \| approved \| rejected)`, `decided_by null` | For the "pick a Placeholder + Admin confirms" path (FR-M5c). |
 

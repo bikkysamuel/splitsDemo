@@ -1,8 +1,9 @@
+import Domain
 import Foundation
 import SwiftUI
 
-/// Picks an ISO 4217 currency, shown as "INR · Indian Rupee" in the User's
-/// language. The server accepts active codes only (Q91).
+/// Picks one of the active ISO 4217 currencies the server accepts (Q91),
+/// shown as "INR · Indian Rupee" in the User's language.
 struct CurrencyPicker: View {
   let titleKey: String
   @Binding var selection: String
@@ -18,9 +19,10 @@ struct CurrencyPicker: View {
     .navigationLinkPickerStyle()
   }
 
-  /// Common codes sorted by name, plus the current one if it's unusual.
+  /// The active codes sorted by name, plus the current one if it's
+  /// unusual.
   static func codes(including current: String) -> [String] {
-    var codes = Set(Locale.commonISOCurrencyCodes)
+    var codes = Set(Currency.activeCodes)
     codes.insert(current)
     return codes.sorted { label($0) < label($1) }
   }

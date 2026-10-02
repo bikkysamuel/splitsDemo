@@ -13,18 +13,19 @@ struct GroupsAPIRepositoryTests {
     let transport = try PathTransport(["POST /v1/groups": .fixture("group-create-201", status: .created)])
     let repository = try makeRepository(transport)
 
-    let group = try await repository.createGroup(name: "Goa trip", currency: "INR", displayName: "Alice")
+    let key = WriteKey()
+    let group = try await repository.createGroup(name: "Goa trip", currency: "INR", displayName: "Alice", key: key)
 
     #expect(group.name == "Goa trip")
     #expect(group.currency == "INR")
     #expect(group.state == .active)
     #expect(group.version == 1)
     #expect(group.members.count == 1)
-    #expect(group.me?.displayName == "Alice")
-    #expect(group.iAmAdmin)
+    #expect(group.myMember?.displayName == "Alice")
+    #expect(group.isAdmin)
     let sent = try #require(await transport.sent.first)
     #expect(sent.request.headerFields[.authorization] == "Bearer saved-access")
-    #expect(UUID(uuidString: sent.request.headerFields[HTTPField.Name("Idempotency-Key")!] ?? "") != nil)
+    #expect(sent.request.headerFields[HTTPField.Name("Idempotency-Key")!] == key.value.uuidString)
     let body = try JSONSerialization.jsonObject(with: sent.body) as? [String: String]
     #expect(body == ["name": "Goa trip", "currency": "INR", "display_name": "Alice"])
   }
@@ -53,7 +54,7 @@ struct GroupsAPIRepositoryTests {
         FieldIssue(field: "name", reason: .required), FieldIssue(field: "currency", reason: .invalid),
       ])
     ) {
-      try await repository.createGroup(name: "", currency: "ZZZ", displayName: "Alice")
+      try await repository.createGroup(name: "", currency: "ZZZ", displayName: "Alice", key: WriteKey())
     }
   }
 
@@ -76,7 +77,7 @@ struct GroupsAPIRepositoryTests {
     ])
     let repository = try makeRepository(transport)
 
-    let group = try await repository.renameGroup(id: id, name: "Goa 2026", version: 1)
+    let group = try await repository.renameGroup(id: id, name: "Goa 2026", version: 1, key: WriteKey())
 
     #expect(group.name == "Goa 2026")
     #expect(group.version == 2)
@@ -93,7 +94,7 @@ struct GroupsAPIRepositoryTests {
     let repository = try makeRepository(transport)
 
     await #expect(throws: ServiceError.problem(.versionConflict)) {
-      try await repository.renameGroup(id: id, name: "Goa x", version: 1)
+      try await repository.renameGroup(id: id, name: "Goa x", version: 1, key: WriteKey())
     }
   }
 
@@ -115,6 +116,15 @@ struct UserDefaultsPreferencesTests {
     #expect(preferences.defaultCurrency() == "INR")
     preferences.setDefaultCurrency("EUR")
     #expect(preferences.defaultCurrency() == "EUR")
+  }
+
+  @Test func aStoredCodeTheServerRefusesFallsBackToTheRegion() throws {
+    let suite = "dev.splits.tests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    defaults.set("XAU", forKey: "defaultCurrency")
+
+    #expect(UserDefaultsPreferences(defaults: defaults, locale: Locale(identifier: "ja_JP")).defaultCurrency() == "JPY")
   }
 
   @Test func aLocaleWithoutACurrencyFallsBackToUSD() throws {

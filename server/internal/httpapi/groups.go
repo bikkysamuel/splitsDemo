@@ -7,6 +7,7 @@ import (
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
+	"github.com/bikkysamuel/splitsDemo/server/internal/auth"
 	"github.com/bikkysamuel/splitsDemo/server/internal/groups"
 	"github.com/bikkysamuel/splitsDemo/server/internal/httpapi/apigen"
 	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
@@ -128,10 +129,10 @@ func (s *Server) RenameGroup(ctx context.Context, req apigen.RenameGroupRequestO
 
 // mustPrincipal returns the signed-in User of a protected route; the auth
 // middleware guarantees one.
-func mustPrincipal(ctx context.Context) (principal, error) {
+func mustPrincipal(ctx context.Context) (auth.Principal, error) {
 	p, ok := principalFrom(ctx)
 	if !ok {
-		return principal{}, errors.New("protected route reached without a principal")
+		return auth.Principal{}, errors.New("protected route reached without a principal")
 	}
 	return p, nil
 }

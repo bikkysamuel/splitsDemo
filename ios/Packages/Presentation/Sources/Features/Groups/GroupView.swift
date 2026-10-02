@@ -24,15 +24,15 @@ struct GroupView: View {
         }
       }
       .alert(Text(LocalizedStringKey(Self.renameTitle), bundle: .module), isPresented: $renaming) {
-        TextField(text: $newName) { Text(LocalizedStringKey(CreateGroupView.name), bundle: .module) }
+        TextField(text: $newName) { Text(LocalizedStringKey(GroupKeys.name), bundle: .module) }
         Button {
           Task { await viewModel.rename(to: newName) }
         } label: {
-          Text(LocalizedStringKey(Self.save), bundle: .module)
+          Text(LocalizedStringKey(CommonKeys.save), bundle: .module)
         }
         Button(role: .cancel) {
         } label: {
-          Text(LocalizedStringKey(CreateGroupView.cancel), bundle: .module)
+          Text(LocalizedStringKey(CommonKeys.cancel), bundle: .module)
         }
       }
       .alert(
@@ -42,7 +42,7 @@ struct GroupView: View {
         Button {
           viewModel.dismissRenameError()
         } label: {
-          Text(LocalizedStringKey(RootView.okKey), bundle: .module)
+          Text(LocalizedStringKey(CommonKeys.ok), bundle: .module)
         }
       } message: {
         Text(LocalizedStringKey(viewModel.renameError ?? ""), bundle: .module)
@@ -53,23 +53,16 @@ struct GroupView: View {
   @ViewBuilder private var content: some View {
     switch viewModel.state {
     case .loading:
-      ProgressView()
-        .accessibilityLabel(Text(LocalizedStringKey(HomeView.loading), bundle: .module))
+      LoadingView()
     case .failed(let key):
-      ContentUnavailableView {
-        Label {
-          Text(LocalizedStringKey(key), bundle: .module)
-        } icon: {
-          Image(systemName: "exclamationmark.triangle").accessibilityHidden(true)
-        }
-      }
+      FailedView(messageKey: key) { await viewModel.load() }
     case .loaded(let group):
       List {
         Section {
           LabeledContent {
             Text(verbatim: CurrencyPicker.label(group.currency))
           } label: {
-            Text(LocalizedStringKey(CreateGroupView.currency), bundle: .module)
+            Text(LocalizedStringKey(GroupKeys.currency), bundle: .module)
           }
         }
         Section {
@@ -87,9 +80,8 @@ struct GroupView: View {
   nonisolated static let rename = "Rename"
   nonisolated static let renameTitle = "Rename Group"
   nonisolated static let renameFailed = "Couldn't rename"
-  nonisolated static let save = "Save"
   nonisolated static let members = "Members"
-  nonisolated static let allKeys = [rename, renameTitle, renameFailed, save, members] + MemberRow.allKeys
+  nonisolated static let allKeys = [rename, renameTitle, renameFailed, members] + MemberRow.allKeys
 }
 
 /// One Member, with Admin, Placeholder and "you" badges.

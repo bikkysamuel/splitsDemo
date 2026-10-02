@@ -40,10 +40,10 @@ public struct Group: Equatable, Hashable, Identifiable, Sendable {
   }
 
   /// The signed-in User's Member.
-  public var me: Member? { members.first { $0.id == myMemberID } }
+  public var myMember: Member? { members.first { $0.id == myMemberID } }
 
-  /// Whether the signed-in User is an Admin (FR-G3).
-  public var iAmAdmin: Bool { me?.role == .admin }
+  /// Whether the signed-in User is an Admin of this Group (FR-G3).
+  public var isAdmin: Bool { myMember?.role == .admin }
 
   public var summary: GroupSummary { GroupSummary(id: id, name: name, currency: currency, state: state) }
 }

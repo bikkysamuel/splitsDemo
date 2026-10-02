@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/bikkysamuel/splitsDemo/server/internal/apptest"
@@ -336,4 +337,33 @@ func TestRenameValidatesTheName(t *testing.T) {
 	g := createGroup(t, srv, alice.AccessToken, "Trip")
 
 	wantProblem(t, rename(t, srv, alice.AccessToken, g.ID, "  ", g.Version), http.StatusBadRequest, "validation-failed")
+}
+
+// FR-G2 under concurrency: parallel creations can't pass the limit
+// together.
+func TestParallelCreationsStopAtTheLimit(t *testing.T) {
+	srv := apptest.Start(t)
+	alice := signUpVerified(t, srv, "alice@example.com")
+	for i := range 198 {
+		createGroup(t, srv, alice.AccessToken, fmt.Sprintf("Group %d", i))
+	}
+
+	statuses := make(chan int, 5)
+	var wg sync.WaitGroup
+	for i := range 5 {
+		wg.Go(func() {
+			statuses <- write(t, srv, http.MethodPost, "/v1/groups", alice.AccessToken,
+				map[string]string{"name": fmt.Sprintf("Race %d", i), "currency": "INR", "display_name": "Alice"}).StatusCode
+		})
+	}
+	wg.Wait()
+	close(statuses)
+
+	counts := map[int]int{}
+	for s := range statuses {
+		counts[s]++
+	}
+	if counts[http.StatusCreated] != 2 || counts[http.StatusConflict] != 3 {
+		t.Errorf("statuses = %v; want 2 × 201 and 3 × 409", counts)
+	}
 }

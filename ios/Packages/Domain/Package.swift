@@ -10,7 +10,8 @@ let package = Package(
     .library(name: "Domain", targets: ["Domain"])
   ],
   targets: [
-    .target(name: "Domain")
+    .target(name: "Domain"),
+    .testTarget(name: "DomainTests", dependencies: ["Domain"]),
   ],
   swiftLanguageModes: [.v6]
 )

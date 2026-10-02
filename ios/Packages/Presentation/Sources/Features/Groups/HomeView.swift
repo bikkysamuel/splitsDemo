@@ -19,7 +19,7 @@ struct HomeView: View {
               startCreating()
             } label: {
               Label {
-                Text(LocalizedStringKey(Self.createGroup), bundle: .module)
+                Text(LocalizedStringKey(GroupKeys.createGroup), bundle: .module)
               } icon: {
                 Image(systemName: "plus")
               }
@@ -45,23 +45,9 @@ struct HomeView: View {
   @ViewBuilder private var content: some View {
     switch viewModel.state {
     case .loading:
-      ProgressView()
-        .accessibilityLabel(Text(LocalizedStringKey(Self.loading), bundle: .module))
+      LoadingView()
     case .failed(let key):
-      ContentUnavailableView {
-        Label {
-          Text(LocalizedStringKey(key), bundle: .module)
-        } icon: {
-          Image(systemName: "exclamationmark.triangle").accessibilityHidden(true)
-        }
-      } actions: {
-        Button {
-          Task { await viewModel.load() }
-        } label: {
-          Text(LocalizedStringKey(SplashView.retryKey), bundle: .module).frame(minHeight: 44)
-        }
-        .buttonStyle(.bordered)
-      }
+      FailedView(messageKey: key) { await viewModel.load() }
     case .loaded(let groups) where groups.isEmpty:
       ContentUnavailableView {
         Label {
@@ -75,7 +61,7 @@ struct HomeView: View {
         Button {
           startCreating()
         } label: {
-          Text(LocalizedStringKey(Self.createGroup), bundle: .module).frame(minHeight: 44)
+          Text(LocalizedStringKey(GroupKeys.createGroup), bundle: .module).frame(minHeight: 44)
         }
         .buttonStyle(.borderedProminent)
       }
@@ -97,9 +83,14 @@ struct HomeView: View {
     createGroup = CreateGroupViewModel(repository: dependencies.groups, preferences: dependencies.preferences)
   }
 
-  nonisolated static let createGroup = "Create Group"
-  nonisolated static let loading = "Loading…"
-  nonisolated static let allKeys = [createGroup, loading]
+}
+
+/// String Catalog keys shared by the Group screens.
+enum GroupKeys {
+  static let createGroup = "Create Group"
+  static let name = "Group name"
+  static let currency = "Group Currency"
+  static let all = [createGroup, name, currency]
 }
 
 extension CreateGroupViewModel: Identifiable {}

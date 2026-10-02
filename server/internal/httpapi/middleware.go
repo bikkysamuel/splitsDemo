@@ -180,8 +180,6 @@ func remoteIP(r *http.Request) string {
 	return host
 }
 
-type principal = auth.Principal
-
 type principalKey struct{}
 
 func withPrincipal(ctx context.Context, p auth.Principal) context.Context {

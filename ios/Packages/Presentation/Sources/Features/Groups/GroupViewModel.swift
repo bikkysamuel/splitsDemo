@@ -14,6 +14,7 @@ public final class GroupViewModel {
   public private(set) var isRenaming = false
 
   private let repository: any GroupsRepository
+  private var renameKeys = WriteKeys<[String]>()
 
   public init(groupID: UUID, repository: any GroupsRepository) {
     self.groupID = groupID
@@ -29,7 +30,7 @@ public final class GroupViewModel {
     }
   }
 
-  var canRename: Bool { state.value?.iAmAdmin == true }
+  var canRename: Bool { state.value?.isAdmin == true }
 
   /// Renames the Group (Admins only). On a version conflict the Group is
   /// reloaded, so the next try uses the current version.
@@ -37,8 +38,10 @@ public final class GroupViewModel {
     guard let group = state.value, !isRenaming else { return }
     isRenaming = true
     defer { isRenaming = false }
+    let key = renameKeys.key(for: [name, String(group.version)])
     do {
-      state = .loaded(try await repository.renameGroup(id: group.id, name: name, version: group.version))
+      state = .loaded(try await repository.renameGroup(id: group.id, name: name, version: group.version, key: key))
+      renameKeys.succeeded()
       renameError = nil
     } catch {
       renameError = ServiceErrorMessage.key(for: error)

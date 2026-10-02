@@ -94,6 +94,24 @@ struct CreateGroupViewModelTests {
     #expect(viewModel.errors["currency"] == "Choose a currency.")
   }
 
+  // NFR-R1: retrying the same submission reuses its key; edited input and
+  // a new submission after success get fresh ones.
+  @Test func aRetryReusesTheIdempotencyKey() async {
+    let repository = FakeGroupsRepository()
+    await repository.set(create: .failure(.unreachable))
+    let viewModel = CreateGroupViewModel(repository: repository, preferences: FakePreferences())
+    viewModel.name = "Trip"
+    viewModel.displayName = "Alice"
+
+    _ = await viewModel.submit()
+    _ = await viewModel.submit()
+    viewModel.name = "Trip 2"
+    _ = await viewModel.submit()
+
+    let keys = await repository.keys
+    #expect(keys.count == 3 && keys[0] == keys[1] && keys[2] != keys[1])
+  }
+
   @Test func theGroupLimitIsShown() async {
     let repository = FakeGroupsRepository()
     await repository.set(create: .failure(.problem(.groupLimitReached)))

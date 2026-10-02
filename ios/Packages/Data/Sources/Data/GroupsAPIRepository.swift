@@ -35,10 +35,14 @@ public struct GroupsAPIRepository: GroupsRepository {
     return all
   }
 
-  public func createGroup(name: String, currency: String, displayName: String) async throws(ServiceError) -> Group {
+  public func createGroup(
+    name: String, currency: String, displayName: String, key: WriteKey
+  )
+    async throws(ServiceError) -> Group
+  {
     let output = try await send {
       try await client.createGroup(
-        headers: .init(idempotencyKey: UUID().uuidString),
+        headers: .init(idempotencyKey: key.value.uuidString),
         body: .json(.init(name: name, currency: currency, displayName: displayName)))
     }
     switch output {
@@ -67,11 +71,11 @@ public struct GroupsAPIRepository: GroupsRepository {
     }
   }
 
-  public func renameGroup(id: UUID, name: String, version: Int) async throws(ServiceError) -> Group {
+  public func renameGroup(id: UUID, name: String, version: Int, key: WriteKey) async throws(ServiceError) -> Group {
     let output = try await send {
       try await client.renameGroup(
         path: .init(groupId: id.uuidString.lowercased()),
-        headers: .init(idempotencyKey: UUID().uuidString),
+        headers: .init(idempotencyKey: key.value.uuidString),
         body: .json(.init(name: name, version: Int32(clamping: version))))
     }
     switch output {

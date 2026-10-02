@@ -14,9 +14,12 @@ public struct UserDefaultsPreferences: PreferencesRepository, @unchecked Sendabl
     self.locale = locale
   }
 
-  /// The chosen currency, else the region's, else USD.
+  /// The chosen currency, else the region's if the server accepts it, else
+  /// USD.
   public func defaultCurrency() -> String {
-    defaults.string(forKey: Self.defaultCurrencyKey) ?? locale.currency?.identifier ?? "USD"
+    if let chosen = defaults.string(forKey: Self.defaultCurrencyKey), Currency.isActive(chosen) { return chosen }
+    if let regional = locale.currency?.identifier, Currency.isActive(regional) { return regional }
+    return "USD"
   }
 
   public func setDefaultCurrency(_ code: String) {

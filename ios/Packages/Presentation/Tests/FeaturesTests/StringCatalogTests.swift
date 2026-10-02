@@ -22,7 +22,7 @@ struct StringCatalogTests {
     #expect(isInCatalog(key))
   }
 
-  @Test(arguments: HomeView.allKeys + CreateGroupView.allKeys + GroupView.allKeys)
+  @Test(arguments: GroupKeys.all + CommonKeys.all + CreateGroupView.allKeys + GroupView.allKeys)
   func everyGroupScreenStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))
   }
@@ -33,7 +33,7 @@ struct StringCatalogTests {
   }
 
   @Test(arguments: [
-    SplashView.titleKey, SplashView.retryKey, SplashView.checkingKey, VerifyEmailViewModel.resentMessage,
+    SplashView.titleKey, SplashView.checkingKey, VerifyEmailViewModel.resentMessage,
   ])
   func everySplashAndVerificationStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))

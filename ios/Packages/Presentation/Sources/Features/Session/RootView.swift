@@ -38,7 +38,7 @@ public struct RootView: View {
       Button {
         session.dismissSessionExpired()
       } label: {
-        Text(LocalizedStringKey(Self.okKey), bundle: .module)
+        Text(LocalizedStringKey(CommonKeys.ok), bundle: .module)
       }
     } message: {
       Text(LocalizedStringKey(Self.expiredMessage), bundle: .module)
@@ -47,8 +47,7 @@ public struct RootView: View {
 
   nonisolated static let expiredTitle = "Session expired"
   nonisolated static let expiredMessage = "Sign in again to continue."
-  nonisolated static let okKey = "OK"
-  nonisolated static let allKeys = [expiredTitle, expiredMessage, okKey]
+  nonisolated static let allKeys = [expiredTitle, expiredMessage]
 }
 
 /// Shown while the saved Session is checked. A failed check stays here
@@ -68,7 +67,7 @@ struct SplashView: View {
         Button {
           Task { await session.start() }
         } label: {
-          Text(LocalizedStringKey(Self.retryKey), bundle: .module)
+          Text(LocalizedStringKey(CommonKeys.tryAgain), bundle: .module)
             .frame(minHeight: 44)  // NFR-A2: at least 44×44 pt
         }
         .buttonStyle(.borderedProminent)
@@ -81,7 +80,6 @@ struct SplashView: View {
   }
 
   nonisolated static let titleKey = "Splits"
-  nonisolated static let retryKey = "Try again"
   nonisolated static let checkingKey = "Checking your session…"
 }
 

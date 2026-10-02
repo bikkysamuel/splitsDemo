@@ -11,10 +11,10 @@ struct CreateGroupView: View {
     Form {
       Section {
         TextField(text: $viewModel.name, prompt: Text(LocalizedStringKey(Self.namePrompt), bundle: .module)) {
-          Text(LocalizedStringKey(Self.name), bundle: .module)
+          Text(LocalizedStringKey(GroupKeys.name), bundle: .module)
         }
         FieldErrorText(key: viewModel.errors["name"])
-        CurrencyPicker(titleKey: Self.currency, selection: $viewModel.currency)
+        CurrencyPicker(titleKey: GroupKeys.currency, selection: $viewModel.currency)
         FieldErrorText(key: viewModel.errors["currency"])
       } footer: {
         Text(LocalizedStringKey(Self.currencyFooter), bundle: .module)
@@ -31,31 +31,28 @@ struct CreateGroupView: View {
       Section {
         FormMessage(key: viewModel.errors.message)
         SubmitButton(
-          titleKey: HomeView.createGroup, isSubmitting: viewModel.isSubmitting, isEnabled: viewModel.canSubmit
+          titleKey: GroupKeys.createGroup, isSubmitting: viewModel.isSubmitting, isEnabled: viewModel.canSubmit
         ) {
           if let group = await viewModel.submit() { onCreated(group) }
         }
       }
     }
-    .navigationTitle(Text(LocalizedStringKey(HomeView.createGroup), bundle: .module))
+    .navigationTitle(Text(LocalizedStringKey(GroupKeys.createGroup), bundle: .module))
     .toolbar {
       ToolbarItem(placement: .cancellationAction) {
         Button {
           dismiss()
         } label: {
-          Text(LocalizedStringKey(Self.cancel), bundle: .module)
+          Text(LocalizedStringKey(CommonKeys.cancel), bundle: .module)
         }
       }
     }
   }
 
-  nonisolated static let name = "Group name"
   nonisolated static let namePrompt = "Goa trip"
-  nonisolated static let currency = "Group Currency"
   nonisolated static let currencyFooter =
     "Balances and Settlements are in this currency. It can't change once there are Expenses."
   nonisolated static let displayName = "Your name in this Group"
   nonisolated static let displayNameFooter = "Others in the Group see this name."
-  nonisolated static let cancel = "Cancel"
-  nonisolated static let allKeys = [name, namePrompt, currency, currencyFooter, displayName, displayNameFooter, cancel]
+  nonisolated static let allKeys = [namePrompt, currencyFooter, displayName, displayNameFooter]
 }
