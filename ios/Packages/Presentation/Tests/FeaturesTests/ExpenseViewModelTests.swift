@@ -33,7 +33,8 @@ struct AddExpenseViewModelTests {
     #expect(input?.amount == Money(minorUnits: 100001, currency: "INR"))
     #expect(input?.note == "Dinner")
     #expect(input?.spentOn == "2026-10-01")
-    #expect(input?.members == Group.withThree.activeMembers.map(\.id))
+    #expect(input?.method == .equal)
+    #expect(input?.members == Group.withThree.activeMembers.map { SplitEntry(memberID: $0.id) })
   }
 
   @Test func anUnreadableAmountIsFlaggedAndNotSent() {
@@ -98,6 +99,84 @@ struct AddExpenseViewModelTests {
     let keys = await repository.created.map(\.key)
     #expect(keys.count == 2 && keys[0] == keys[1])
     #expect(viewModel.errors.message == ServiceErrorMessage.unreachable)
+  }
+
+  // FR-E2: every sharing Member gets an entry, sent in the server's form.
+  @Test func aPercentageSplitSendsEachSharingMembersEntry() {
+    let viewModel = makeViewModel(FakeExpensesRepository())
+    viewModel.amountText = "100"
+    viewModel.method = .percentage
+    viewModel.toggle(Member.grandma.id)
+    viewModel.entryTexts = [Group.me: "66.67", Member.bob.id: "33.33", Member.grandma.id: "10"]
+
+    #expect(viewModel.input?.method == .percentage)
+    #expect(
+      viewModel.input?.members == [
+        SplitEntry(memberID: Group.me, input: "66.67"), SplitEntry(memberID: Member.bob.id, input: "33.33"),
+      ])
+  }
+
+  @Test func anExactSplitSendsMinorUnits() {
+    let viewModel = makeViewModel(FakeExpensesRepository())
+    viewModel.amountText = "10"
+    viewModel.method = .exact
+    viewModel.entryTexts = [Group.me: "2.50", Member.bob.id: "7", Member.grandma.id: "0.50"]
+
+    #expect(viewModel.input?.members.map(\.input) == ["250", "700", "50"])
+  }
+
+  // Form validation checks well-formedness only; sums are the server's.
+  @Test func aMissingOrMalformedEntryMeansNoInput() {
+    let viewModel = makeViewModel(FakeExpensesRepository())
+    viewModel.amountText = "10"
+    viewModel.method = .ratio
+    viewModel.entryTexts = [Group.me: "2", Member.bob.id: "1.5"]
+
+    #expect(viewModel.input == nil)
+    #expect(viewModel.entryIsInvalid(Member.bob.id))
+    #expect(!viewModel.entryIsInvalid(Member.grandma.id))  // blank, not wrong yet
+    #expect(!viewModel.entryIsInvalid(Group.me))
+  }
+
+  @Test func changingTheMethodClearsTheEntries() {
+    let viewModel = makeViewModel(FakeExpensesRepository())
+    viewModel.method = .ratio
+    viewModel.entryTexts = [Group.me: "2"]
+
+    viewModel.method = .percentage
+
+    #expect(viewModel.entryTexts.isEmpty)
+  }
+
+  @Test func aSplitThatDoesNotAddUpIsShownUnderTheSplit() async {
+    let repository = FakeExpensesRepository()
+    await repository.set(preview: .failure(.invalidFields([FieldIssue(field: "split", reason: .percentagesNot100)])))
+    let viewModel = makeViewModel(repository)
+    viewModel.amountText = "100"
+    viewModel.method = .percentage
+    viewModel.entryTexts = [Group.me: "50", Member.bob.id: "40", Member.grandma.id: "5"]
+
+    await viewModel.refreshPreview()
+
+    #expect(viewModel.splitError == "The percentages must add up to exactly 100.")
+    #expect(viewModel.previewError == nil)
+  }
+
+  @Test func aRefusedEntryIsShownForItsMember() async {
+    let repository = FakeExpensesRepository()
+    await repository.set(
+      preview: .failure(.invalidFields([FieldIssue(field: "split/members/1/input", reason: .tooManyDecimals)])))
+    let viewModel = makeViewModel(repository)
+    viewModel.amountText = "100"
+    viewModel.method = .ratio
+    viewModel.toggle(Group.me)
+    viewModel.entryTexts = [Member.bob.id: "1", Member.grandma.id: "1"]
+
+    await viewModel.refreshPreview()
+
+    // Index 1 of the Split is Grandma, since Alice isn't sharing.
+    #expect(viewModel.entryError(for: Member.grandma.id) == "Use at most 2 decimal places.")
+    #expect(viewModel.entryError(for: Member.bob.id) == nil)
   }
 
   @Test func refusedFieldsShowUnderTheField() async {

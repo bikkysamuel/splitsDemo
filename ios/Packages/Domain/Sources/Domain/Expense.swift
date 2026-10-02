@@ -14,12 +14,13 @@ public struct Expense: Equatable, Hashable, Identifiable, Sendable {
   public let spentOn: String
   public let state: ExpenseState
   public let version: Int
+  public let splitMethod: SplitMethod
   /// Every Member in the Split, in joining order.
   public let shares: [Share]
 
   public init(
     id: UUID, groupID: UUID, payerID: UUID, createdByID: UUID, amount: Money, category: Category, note: String?,
-    spentOn: String, state: ExpenseState, version: Int, shares: [Share]
+    spentOn: String, state: ExpenseState, version: Int, splitMethod: SplitMethod = .equal, shares: [Share]
   ) {
     self.id = id
     self.groupID = groupID
@@ -31,6 +32,7 @@ public struct Expense: Equatable, Hashable, Identifiable, Sendable {
     self.spentOn = spentOn
     self.state = state
     self.version = version
+    self.splitMethod = splitMethod
     self.shares = shares
   }
 }
@@ -62,10 +64,14 @@ public struct ExpenseSummary: Equatable, Hashable, Identifiable, Sendable {
 public struct Share: Equatable, Hashable, Sendable {
   public let memberID: UUID
   public let amount: Money
+  /// What was entered for the Member, in the server's form ("33.33" for a
+  /// percentage, "2" for a ratio part); nil for an equal Split.
+  public let input: String?
 
-  public init(memberID: UUID, amount: Money) {
+  public init(memberID: UUID, amount: Money, input: String? = nil) {
     self.memberID = memberID
     self.amount = amount
+    self.input = input
   }
 }
 
@@ -83,21 +89,27 @@ public enum ExpenseState: String, Sendable {
   case withdrawn
 }
 
-/// An Expense as entered (FR-E1): split equally among `members` for now.
+/// An Expense as entered (FR-E1, FR-E2): split by `method` among
+/// `members`, in joining order.
 public struct ExpenseInput: Equatable, Hashable, Sendable {
   public var payerID: UUID
   public var amount: Money
   public var category: Category
   public var note: String?
   public var spentOn: String
-  public var members: [UUID]
+  public var method: SplitMethod
+  public var members: [SplitEntry]
 
-  public init(payerID: UUID, amount: Money, category: Category, note: String?, spentOn: String, members: [UUID]) {
+  public init(
+    payerID: UUID, amount: Money, category: Category, note: String?, spentOn: String, method: SplitMethod = .equal,
+    members: [SplitEntry]
+  ) {
     self.payerID = payerID
     self.amount = amount
     self.category = category
     self.note = note
     self.spentOn = spentOn
+    self.method = method
     self.members = members
   }
 }

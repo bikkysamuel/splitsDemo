@@ -33,6 +33,11 @@ struct ExpenseDetailView: View {
           } label: {
             Text(LocalizedStringKey(AddExpenseView.date), bundle: .module)
           }
+          LabeledContent {
+            Text(LocalizedStringKey(AddExpenseView.methodName(e.splitMethod)), bundle: .module)
+          } label: {
+            Text(LocalizedStringKey(AddExpenseView.split), bundle: .module)
+          }
         }
         Section {
           ForEach(e.shares, id: \.memberID) { share in
@@ -40,6 +45,9 @@ struct ExpenseDetailView: View {
               Text(verbatim: share.amount.formatted()).monospacedDigit()
             } label: {
               MemberName(name: viewModel.name(share.memberID))
+              if let entry = Self.entryText(e.splitMethod, share.input) {
+                entry
+              }
             }
           }
         } header: {
@@ -49,9 +57,22 @@ struct ExpenseDetailView: View {
     }
   }
 
+  /// What was entered for a Member, under their name: "33.33%" or "Ratio
+  /// part 2". An exact amount is the Share itself, so it shows nothing.
+  static func entryText(_ method: SplitMethod, _ input: String?) -> Text? {
+    guard let input else { return nil }
+    switch method {
+    case .percentage: return Text(verbatim: method.displayInput(input))
+    case .ratio: return Text("Ratio part \(method.displayInput(input))", bundle: .module)
+    case .equal, .exact: return nil
+    }
+  }
+
   nonisolated static let title = "Expense"
   nonisolated static let shares = "Shares"
-  nonisolated static let allKeys = [title, shares, MemberName.unknown]
+  /// The catalog key `entryText` produces for a ratio part.
+  nonisolated static let ratioPartFormat = "Ratio part %@"
+  nonisolated static let allKeys = [title, shares, ratioPartFormat, MemberName.unknown]
 }
 
 /// A Member's display name, or "Unknown Member" if the Group no longer

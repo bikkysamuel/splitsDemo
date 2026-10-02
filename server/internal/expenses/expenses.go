@@ -30,9 +30,13 @@ var Categories = []string{
 	"health", "travel", "other",
 }
 
-// Split methods, as stored in expenses.split_method. Only Equal is
-// accepted for now; exact, percentage and ratio follow (#18).
-const MethodEqual = "equal"
+// Split methods, as stored in expenses.split_method (FR-E2).
+const (
+	MethodEqual      = "equal"
+	MethodExact      = "exact"
+	MethodPercentage = "percentage"
+	MethodRatio      = "ratio"
+)
 
 // States, as stored in expenses.state (doc 06).
 const (
@@ -52,13 +56,23 @@ type Input struct {
 	Note     *string
 	SpentOn  time.Time // a date; the time is ignored
 	Method   string
-	Members  []platform.ID
+	Members  []SplitEntry
 }
 
-// Share is one Member's Share in minor units of the Group Currency.
+// SplitEntry is one Member of a Split and what was entered for them: minor
+// units (exact), a percentage or a ratio weight, as a decimal string; nil
+// for an equal Split.
+type SplitEntry struct {
+	MemberID platform.ID
+	Input    *string
+}
+
+// Share is one Member's Share in minor units of the Group Currency, and
+// what was entered for them (nil for an equal Split).
 type Share struct {
 	MemberID platform.ID
 	Amount   int64
+	Input    *string
 }
 
 // Computed is what ledger makes of an Input: the amount in the Group

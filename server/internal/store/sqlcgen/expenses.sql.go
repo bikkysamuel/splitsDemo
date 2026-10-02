@@ -68,7 +68,7 @@ func (q *Queries) ExpenseForUser(ctx context.Context, arg ExpenseForUserParams) 
 }
 
 const expenseShares = `-- name: ExpenseShares :many
-SELECT s.member_id, s.share_minor
+SELECT s.member_id, s.share_minor, s.input
 FROM expense_shares s JOIN members m ON m.id = s.member_id
 WHERE s.expense_id = $1
 ORDER BY m.join_seq
@@ -77,6 +77,7 @@ ORDER BY m.join_seq
 type ExpenseSharesRow struct {
 	MemberID   pgtype.UUID
 	ShareMinor int64
+	Input      pgtype.Numeric
 }
 
 func (q *Queries) ExpenseShares(ctx context.Context, expenseID pgtype.UUID) ([]ExpenseSharesRow, error) {
@@ -88,7 +89,7 @@ func (q *Queries) ExpenseShares(ctx context.Context, expenseID pgtype.UUID) ([]E
 	items := []ExpenseSharesRow{}
 	for rows.Next() {
 		var i ExpenseSharesRow
-		if err := rows.Scan(&i.MemberID, &i.ShareMinor); err != nil {
+		if err := rows.Scan(&i.MemberID, &i.ShareMinor, &i.Input); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
