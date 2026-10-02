@@ -119,6 +119,23 @@ type Session struct {
 	FamilyID         pgtype.UUID
 }
 
+type Settlement struct {
+	ID           pgtype.UUID
+	GroupID      pgtype.UUID
+	FromMemberID pgtype.UUID
+	ToMemberID   pgtype.UUID
+	AmountMinor  int64
+	SettledOn    pgtype.Date
+	Note         pgtype.Text
+	CreatedBy    pgtype.UUID
+	State        string
+	PendingSince pgtype.Timestamptz
+	ConfirmedBy  pgtype.UUID
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+	Version      int32
+}
+
 type User struct {
 	ID              pgtype.UUID
 	Email           string

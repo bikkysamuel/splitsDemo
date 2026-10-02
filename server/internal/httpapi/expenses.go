@@ -2,11 +2,8 @@ package httpapi
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/binary"
 	"errors"
 	"net/http"
-	"time"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
@@ -78,11 +75,11 @@ func (s *Server) ListExpenses(ctx context.Context, req apigen.ListExpensesReques
 	}
 	var after *expenses.Cursor
 	if req.Params.Cursor != nil {
-		c, ok := decodeExpenseCursor(*req.Params.Cursor)
+		day, id, ok := decodeDatedCursor(*req.Params.Cursor)
 		if !ok {
 			return bad(problemInvalidCursor, "")
 		}
-		after = &c
+		after = &expenses.Cursor{SpentOn: day, ID: id}
 	}
 	limit := defaultPageSize
 	if req.Params.Limit != nil {
@@ -107,7 +104,7 @@ func (s *Server) ListExpenses(ctx context.Context, req apigen.ListExpensesReques
 		}
 	}
 	if page.Next != nil {
-		c := encodeExpenseCursor(*page.Next)
+		c := encodeDatedCursor(page.Next.SpentOn, page.Next.ID)
 		resp.NextCursor = &c
 	}
 	return resp, nil
@@ -180,22 +177,4 @@ func shareLines(shares []expenses.Share, currency string) []apigen.ShareLine {
 		lines[i] = apigen.ShareLine{MemberId: openapi_types.UUID(s.MemberID), Share: money(s.Amount, currency)}
 	}
 	return lines
-}
-
-// Expense cursors: base64url of the last Expense's day (days since the
-// Unix epoch, 4 bytes) and ID (16 bytes).
-func encodeExpenseCursor(c expenses.Cursor) string {
-	var b [20]byte
-	binary.BigEndian.PutUint32(b[:4], uint32(c.SpentOn.Unix()/86400)) //nolint:gosec // dates after 1970
-	copy(b[4:], c.ID[:])
-	return base64.RawURLEncoding.EncodeToString(b[:])
-}
-
-func decodeExpenseCursor(s string) (expenses.Cursor, bool) {
-	b, err := base64.RawURLEncoding.DecodeString(s)
-	if err != nil || len(b) != 20 {
-		return expenses.Cursor{}, false
-	}
-	days := int64(binary.BigEndian.Uint32(b[:4]))
-	return expenses.Cursor{SpentOn: time.Unix(days*86400, 0).UTC(), ID: platform.ID(b[4:])}, true
 }

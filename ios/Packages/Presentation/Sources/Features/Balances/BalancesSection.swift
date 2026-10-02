@@ -7,6 +7,8 @@ import SwiftUI
 struct BalancesSection: View {
   let group: Domain.Group
   let balances: GroupBalances
+  /// Starts recording a Settlement from a Suggestion; nil hides the action.
+  var onSettle: ((SettleUpSuggestion) -> Void)?
 
   var body: some View {
     Section {
@@ -25,7 +27,21 @@ struct BalancesSection: View {
         Text(LocalizedStringKey(Self.allSettled), bundle: .module).foregroundStyle(.secondary)
       }
       ForEach(balances.suggestions, id: \.self) { s in
-        Text(verbatim: Self.suggestion(s, from: name(s.fromMemberID), to: name(s.toMemberID)))
+        if let onSettle {
+          Button {
+            onSettle(s)
+          } label: {
+            HStack {
+              Text(verbatim: Self.suggestion(s, from: name(s.fromMemberID), to: name(s.toMemberID)))
+              Spacer()
+              Text(LocalizedStringKey(Self.record), bundle: .module).foregroundStyle(.tint)
+            }
+            .frame(minHeight: 44)
+          }
+          .foregroundStyle(.primary)
+        } else {
+          Text(verbatim: Self.suggestion(s, from: name(s.fromMemberID), to: name(s.toMemberID)))
+        }
       }
     } header: {
       Text(LocalizedStringKey(Self.suggestionsHeader), bundle: .module)
@@ -68,7 +84,8 @@ struct BalancesSection: View {
   nonisolated static let owesFormat = "%1$@ owes %2$@"
   nonisolated static let settledFormat = "%@ is settled up"
   nonisolated static let paysFormat = "%1$@ pays %2$@ %3$@"
+  nonisolated static let record = "Record"
   nonisolated static let allKeys = [
-    balancesHeader, suggestionsHeader, allSettled, owedFormat, owesFormat, settledFormat, paysFormat,
+    balancesHeader, suggestionsHeader, allSettled, owedFormat, owesFormat, settledFormat, paysFormat, record,
   ]
 }

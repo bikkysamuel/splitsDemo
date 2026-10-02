@@ -58,12 +58,15 @@ func write(t *testing.T, srv *apptest.Server, method, path, token string, body a
 
 func writeWithKey(t *testing.T, srv *apptest.Server, method, path, token, key string, body any) apptest.Response {
 	t.Helper()
+	if s, ok := body.(string); ok {
+		body = []byte(s)
+	}
 	if method == http.MethodPost {
 		return srv.Post(t, path, body, "Authorization", "Bearer "+token, "Idempotency-Key", key)
 	}
-	raw := []byte(fmt.Sprint(body))
-	if s, ok := body.(string); ok {
-		raw = []byte(s)
+	raw, ok := body.([]byte)
+	if !ok {
+		raw = []byte(fmt.Sprint(body))
 	}
 	return srv.Do(t, method, path, raw,
 		"Content-Type", "application/json", "Authorization", "Bearer "+token, "Idempotency-Key", key)

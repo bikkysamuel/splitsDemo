@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -53,21 +52,8 @@ func (r *ExpensesRepository) Create(ctx context.Context, e expenses.Expense) err
 				return fmt.Errorf("insert share: %w", err)
 			}
 		}
-		payload, err := json.Marshal(map[string]any{
-			"amount_minor": e.Amount, "currency": e.Currency, "category": e.Category,
-		})
-		if err != nil {
-			return fmt.Errorf("encode activity payload: %w", err)
-		}
-		err = q.InsertActivityEvent(ctx, sqlcgen.InsertActivityEventParams{
-			GroupID: uuid(e.GroupID), ActorMemberID: uuid(e.CreatedBy),
-			Type: "expense_created", SubjectType: "expense", SubjectID: uuid(e.ID),
-			Payload: payload, OccurredAt: timestamptz(e.CreatedAt),
-		})
-		if err != nil {
-			return fmt.Errorf("insert activity event: %w", err)
-		}
-		return nil
+		return insertEvent(ctx, q, e.GroupID, e.CreatedBy, "expense_created", "expense", e.ID,
+			map[string]any{"amount_minor": e.Amount, "currency": e.Currency, "category": e.Category}, e.CreatedAt)
 	})
 }
 

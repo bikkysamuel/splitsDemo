@@ -37,6 +37,9 @@ enum ServiceErrorMapper {
       return .invalidFields(issues)
     }
     guard let kind = ProblemKind(rawValue: slug) else { return .unexpected(status: status) }
+    if kind == .confirmationRequired {
+      return .needsConfirmation((problem.warnings ?? []).map(\.code))
+    }
     return .problem(kind)
   }
 

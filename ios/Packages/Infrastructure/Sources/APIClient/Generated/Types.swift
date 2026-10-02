@@ -203,6 +203,46 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/groups/{groupId}/balances`.
     /// - Remark: Generated from `#/paths//v1/groups/{groupId}/balances/get(getBalances)`.
     func getBalances(_ input: Operations.GetBalances.Input) async throws -> Operations.GetBalances.Output
+    /// A Group's Settlements
+    ///
+    /// Newest first by date, then by when they were recorded, a page at a time.
+    ///
+    /// - Remark: HTTP `GET /v1/groups/{groupId}/settlements`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/get(listSettlements)`.
+    func listSettlements(_ input: Operations.ListSettlements.Input) async throws -> Operations.ListSettlements.Output
+    /// Record a Settlement
+    ///
+    /// Any active Member records that one Member paid another back, in
+    /// the Group Currency (FR-S1). Any positive amount is allowed (FR-S2):
+    /// paying more than the payer owes, or more than the receiver is
+    /// owed, answers `422 confirmation-required` with `warnings`; resend
+    /// with `acknowledge_warnings: true` (and a new Idempotency-Key) to
+    /// save anyway. In M1 it counts at once (D9). The Settlement and its
+    /// Activity History event are saved together.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups/{groupId}/settlements`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)`.
+    func recordSettlement(_ input: Operations.RecordSettlement.Input) async throws -> Operations.RecordSettlement.Output
+    /// A Settlement
+    ///
+    /// `404` unless the User is an active Member of its Group.
+    ///
+    /// - Remark: HTTP `GET /v1/settlements/{settlementId}`.
+    /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/get(getSettlement)`.
+    func getSettlement(_ input: Operations.GetSettlement.Input) async throws -> Operations.GetSettlement.Output
+    /// Withdraw a Settlement
+    ///
+    /// Only its creator withdraws a Settlement (FR-S3, FR-E6); others get
+    /// `not-creator`. In M1 it is Withdrawn at once and stops counting;
+    /// with the agreement flow (M2) an accepted one becomes
+    /// WithdrawalPending first. Already withdrawn: `invalid-state`. Send
+    /// the `version` you last read (`version-conflict` if stale).
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/settlements/{settlementId}/withdraw`.
+    /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)`.
+    func withdrawSettlement(_ input: Operations.WithdrawSettlement.Input) async throws -> Operations.WithdrawSettlement.Output
     /// An Expense
     ///
     /// The Expense with its Shares. `404` unless the User is an active Member of its Group.
@@ -549,6 +589,84 @@ extension APIProtocol {
         try await getBalances(Operations.GetBalances.Input(
             path: path,
             headers: headers
+        ))
+    }
+    /// A Group's Settlements
+    ///
+    /// Newest first by date, then by when they were recorded, a page at a time.
+    ///
+    /// - Remark: HTTP `GET /v1/groups/{groupId}/settlements`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/get(listSettlements)`.
+    public func listSettlements(
+        path: Operations.ListSettlements.Input.Path,
+        query: Operations.ListSettlements.Input.Query = .init(),
+        headers: Operations.ListSettlements.Input.Headers = .init()
+    ) async throws -> Operations.ListSettlements.Output {
+        try await listSettlements(Operations.ListSettlements.Input(
+            path: path,
+            query: query,
+            headers: headers
+        ))
+    }
+    /// Record a Settlement
+    ///
+    /// Any active Member records that one Member paid another back, in
+    /// the Group Currency (FR-S1). Any positive amount is allowed (FR-S2):
+    /// paying more than the payer owes, or more than the receiver is
+    /// owed, answers `422 confirmation-required` with `warnings`; resend
+    /// with `acknowledge_warnings: true` (and a new Idempotency-Key) to
+    /// save anyway. In M1 it counts at once (D9). The Settlement and its
+    /// Activity History event are saved together.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups/{groupId}/settlements`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)`.
+    public func recordSettlement(
+        path: Operations.RecordSettlement.Input.Path,
+        headers: Operations.RecordSettlement.Input.Headers,
+        body: Operations.RecordSettlement.Input.Body
+    ) async throws -> Operations.RecordSettlement.Output {
+        try await recordSettlement(Operations.RecordSettlement.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// A Settlement
+    ///
+    /// `404` unless the User is an active Member of its Group.
+    ///
+    /// - Remark: HTTP `GET /v1/settlements/{settlementId}`.
+    /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/get(getSettlement)`.
+    public func getSettlement(
+        path: Operations.GetSettlement.Input.Path,
+        headers: Operations.GetSettlement.Input.Headers = .init()
+    ) async throws -> Operations.GetSettlement.Output {
+        try await getSettlement(Operations.GetSettlement.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Withdraw a Settlement
+    ///
+    /// Only its creator withdraws a Settlement (FR-S3, FR-E6); others get
+    /// `not-creator`. In M1 it is Withdrawn at once and stops counting;
+    /// with the agreement flow (M2) an accepted one becomes
+    /// WithdrawalPending first. Already withdrawn: `invalid-state`. Send
+    /// the `version` you last read (`version-conflict` if stale).
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/settlements/{settlementId}/withdraw`.
+    /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)`.
+    public func withdrawSettlement(
+        path: Operations.WithdrawSettlement.Input.Path,
+        headers: Operations.WithdrawSettlement.Input.Headers,
+        body: Operations.WithdrawSettlement.Input.Body
+    ) async throws -> Operations.WithdrawSettlement.Output {
+        try await withdrawSettlement(Operations.WithdrawSettlement.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
     /// An Expense

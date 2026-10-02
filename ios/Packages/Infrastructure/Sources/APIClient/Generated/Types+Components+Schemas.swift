@@ -99,6 +99,9 @@ extension Components {
         /// - `member-limit-reached`: the Group already has 50 Members (409).
         /// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
         /// - `group-closed`: the Group is Closed and read-only (409).
+        /// - `not-creator`: only the item's creator may do this (403).
+        /// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+        /// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
         ///
         /// Field error codes of an Expense (`errors[].code`): `required`,
         /// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -125,6 +128,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Problem/errors`.
             public var errors: [Components.Schemas.FieldError]?
+            /// With `confirmation-required`, what the request would cause.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Problem/warnings`.
+            public var warnings: [Components.Schemas.Warning]?
             /// Creates a new `Problem`.
             ///
             /// - Parameters:
@@ -133,18 +140,21 @@ extension Components {
             ///   - status:
             ///   - detail: Explanation of this occurrence; not for display.
             ///   - errors: Field validation failures, one per invalid field.
+            ///   - warnings: With `confirmation-required`, what the request would cause.
             public init(
                 _type: Swift.String,
                 title: Swift.String,
                 status: Swift.Int,
                 detail: Swift.String? = nil,
-                errors: [Components.Schemas.FieldError]? = nil
+                errors: [Components.Schemas.FieldError]? = nil,
+                warnings: [Components.Schemas.Warning]? = nil
             ) {
                 self._type = _type
                 self.title = title
                 self.status = status
                 self.detail = detail
                 self.errors = errors
+                self.warnings = warnings
             }
             public enum CodingKeys: String, CodingKey {
                 case _type = "type"
@@ -152,6 +162,7 @@ extension Components {
                 case status
                 case detail
                 case errors
+                case warnings
             }
         }
         /// One invalid field in a request body.
@@ -1618,6 +1629,348 @@ extension Components {
                     "version",
                     "created_at",
                     "shares"
+                ])
+            }
+        }
+        /// A consequence the User must confirm (D16). Codes: `overpayment`
+        /// (the Settlement is more than the payer owes, or more than the
+        /// receiver is owed).
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/Warning`.
+        public struct Warning: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Warning/code`.
+            public var code: Swift.String
+            /// Creates a new `Warning`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Swift.String) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.code = try container.decode(
+                    Swift.String.self,
+                    forKey: .code
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "code"
+                ])
+            }
+        }
+        /// Where the Settlement is in its life (doc 06). In M1 every Settlement counts at once (D9).
+        ///
+        /// - Remark: Generated from `#/components/schemas/SettlementState`.
+        @frozen public enum SettlementState: String, Codable, Hashable, Sendable, CaseIterable {
+            case pending = "pending"
+            case accepted = "accepted"
+            case disputed = "disputed"
+            case withdrawalPending = "withdrawal_pending"
+            case withdrawn = "withdrawn"
+        }
+        /// A Settlement as entered (FR-S1).
+        ///
+        /// - Remark: Generated from `#/components/schemas/SettlementInput`.
+        public struct SettlementInput: Codable, Hashable, Sendable {
+            /// The Member who paid.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SettlementInput/from_member_id`.
+            public var fromMemberId: Swift.String
+            /// The Member who was paid; not the payer.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SettlementInput/to_member_id`.
+            public var toMemberId: Swift.String
+            /// > 0, in the Group Currency.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SettlementInput/amount`.
+            public var amount: Components.Schemas.Money
+            /// - Remark: Generated from `#/components/schemas/SettlementInput/settled_on`.
+            public var settledOn: Swift.String
+            /// Optional, at most 500 characters after trimming (D1).
+            ///
+            /// - Remark: Generated from `#/components/schemas/SettlementInput/note`.
+            public var note: Swift.String?
+            /// Save despite the warnings of a `confirmation-required` answer (D16).
+            ///
+            /// - Remark: Generated from `#/components/schemas/SettlementInput/acknowledge_warnings`.
+            public var acknowledgeWarnings: Swift.Bool?
+            /// Creates a new `SettlementInput`.
+            ///
+            /// - Parameters:
+            ///   - fromMemberId: The Member who paid.
+            ///   - toMemberId: The Member who was paid; not the payer.
+            ///   - amount: > 0, in the Group Currency.
+            ///   - settledOn:
+            ///   - note: Optional, at most 500 characters after trimming (D1).
+            ///   - acknowledgeWarnings: Save despite the warnings of a `confirmation-required` answer (D16).
+            public init(
+                fromMemberId: Swift.String,
+                toMemberId: Swift.String,
+                amount: Components.Schemas.Money,
+                settledOn: Swift.String,
+                note: Swift.String? = nil,
+                acknowledgeWarnings: Swift.Bool? = nil
+            ) {
+                self.fromMemberId = fromMemberId
+                self.toMemberId = toMemberId
+                self.amount = amount
+                self.settledOn = settledOn
+                self.note = note
+                self.acknowledgeWarnings = acknowledgeWarnings
+            }
+            public enum CodingKeys: String, CodingKey {
+                case fromMemberId = "from_member_id"
+                case toMemberId = "to_member_id"
+                case amount
+                case settledOn = "settled_on"
+                case note
+                case acknowledgeWarnings = "acknowledge_warnings"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.fromMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .fromMemberId
+                )
+                self.toMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .toMemberId
+                )
+                self.amount = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .amount
+                )
+                self.settledOn = try container.decode(
+                    Swift.String.self,
+                    forKey: .settledOn
+                )
+                self.note = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .note
+                )
+                self.acknowledgeWarnings = try container.decodeIfPresent(
+                    Swift.Bool.self,
+                    forKey: .acknowledgeWarnings
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "from_member_id",
+                    "to_member_id",
+                    "amount",
+                    "settled_on",
+                    "note",
+                    "acknowledge_warnings"
+                ])
+            }
+        }
+        /// A record that one Member paid another back (GLOSSARY).
+        ///
+        /// - Remark: Generated from `#/components/schemas/Settlement`.
+        public struct Settlement: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Settlement/id`.
+            public var id: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Settlement/group_id`.
+            public var groupId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Settlement/from_member_id`.
+            public var fromMemberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Settlement/to_member_id`.
+            public var toMemberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Settlement/amount`.
+            public var amount: Components.Schemas.Money
+            /// - Remark: Generated from `#/components/schemas/Settlement/settled_on`.
+            public var settledOn: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Settlement/note`.
+            public var note: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/Settlement/created_by_member_id`.
+            public var createdByMemberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Settlement/state`.
+            public var state: Components.Schemas.SettlementState
+            /// - Remark: Generated from `#/components/schemas/Settlement/version`.
+            public var version: Swift.Int32
+            /// - Remark: Generated from `#/components/schemas/Settlement/created_at`.
+            public var createdAt: Foundation.Date
+            /// Creates a new `Settlement`.
+            ///
+            /// - Parameters:
+            ///   - id:
+            ///   - groupId:
+            ///   - fromMemberId:
+            ///   - toMemberId:
+            ///   - amount:
+            ///   - settledOn:
+            ///   - note:
+            ///   - createdByMemberId:
+            ///   - state:
+            ///   - version:
+            ///   - createdAt:
+            public init(
+                id: Swift.String,
+                groupId: Swift.String,
+                fromMemberId: Swift.String,
+                toMemberId: Swift.String,
+                amount: Components.Schemas.Money,
+                settledOn: Swift.String,
+                note: Swift.String? = nil,
+                createdByMemberId: Swift.String,
+                state: Components.Schemas.SettlementState,
+                version: Swift.Int32,
+                createdAt: Foundation.Date
+            ) {
+                self.id = id
+                self.groupId = groupId
+                self.fromMemberId = fromMemberId
+                self.toMemberId = toMemberId
+                self.amount = amount
+                self.settledOn = settledOn
+                self.note = note
+                self.createdByMemberId = createdByMemberId
+                self.state = state
+                self.version = version
+                self.createdAt = createdAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case groupId = "group_id"
+                case fromMemberId = "from_member_id"
+                case toMemberId = "to_member_id"
+                case amount
+                case settledOn = "settled_on"
+                case note
+                case createdByMemberId = "created_by_member_id"
+                case state
+                case version
+                case createdAt = "created_at"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.id = try container.decode(
+                    Swift.String.self,
+                    forKey: .id
+                )
+                self.groupId = try container.decode(
+                    Swift.String.self,
+                    forKey: .groupId
+                )
+                self.fromMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .fromMemberId
+                )
+                self.toMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .toMemberId
+                )
+                self.amount = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .amount
+                )
+                self.settledOn = try container.decode(
+                    Swift.String.self,
+                    forKey: .settledOn
+                )
+                self.note = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .note
+                )
+                self.createdByMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .createdByMemberId
+                )
+                self.state = try container.decode(
+                    Components.Schemas.SettlementState.self,
+                    forKey: .state
+                )
+                self.version = try container.decode(
+                    Swift.Int32.self,
+                    forKey: .version
+                )
+                self.createdAt = try container.decode(
+                    Foundation.Date.self,
+                    forKey: .createdAt
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "id",
+                    "group_id",
+                    "from_member_id",
+                    "to_member_id",
+                    "amount",
+                    "settled_on",
+                    "note",
+                    "created_by_member_id",
+                    "state",
+                    "version",
+                    "created_at"
+                ])
+            }
+        }
+        /// One page of a Group's Settlements.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SettlementPage`.
+        public struct SettlementPage: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/SettlementPage/items`.
+            public var items: [Components.Schemas.Settlement]
+            /// The cursor of the next page of Settlements; null on the last page.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SettlementPage/next_cursor`.
+            public var nextCursor: Swift.String?
+            /// Creates a new `SettlementPage`.
+            ///
+            /// - Parameters:
+            ///   - items:
+            ///   - nextCursor: The cursor of the next page of Settlements; null on the last page.
+            public init(
+                items: [Components.Schemas.Settlement],
+                nextCursor: Swift.String? = nil
+            ) {
+                self.items = items
+                self.nextCursor = nextCursor
+            }
+            public enum CodingKeys: String, CodingKey {
+                case items
+                case nextCursor = "next_cursor"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.items = try container.decode(
+                    [Components.Schemas.Settlement].self,
+                    forKey: .items
+                )
+                self.nextCursor = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .nextCursor
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "items",
+                    "next_cursor"
+                ])
+            }
+        }
+        /// The version an action applies to (NFR-R4).
+        ///
+        /// - Remark: Generated from `#/components/schemas/VersionRequest`.
+        public struct VersionRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/VersionRequest/version`.
+            public var version: Swift.Int32
+            /// Creates a new `VersionRequest`.
+            ///
+            /// - Parameters:
+            ///   - version:
+            public init(version: Swift.Int32) {
+                self.version = version
+            }
+            public enum CodingKeys: String, CodingKey {
+                case version
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.version = try container.decode(
+                    Swift.Int32.self,
+                    forKey: .version
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "version"
                 ])
             }
         }

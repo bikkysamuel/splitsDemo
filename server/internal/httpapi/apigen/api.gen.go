@@ -177,6 +177,33 @@ func (e ReadinessStatusStatus) Valid() bool {
 	}
 }
 
+// Defines values for SettlementState.
+const (
+	SettlementStateAccepted          SettlementState = "accepted"
+	SettlementStateDisputed          SettlementState = "disputed"
+	SettlementStatePending           SettlementState = "pending"
+	SettlementStateWithdrawalPending SettlementState = "withdrawal_pending"
+	SettlementStateWithdrawn         SettlementState = "withdrawn"
+)
+
+// Valid indicates whether the value is a known member of the SettlementState enum.
+func (e SettlementState) Valid() bool {
+	switch e {
+	case SettlementStateAccepted:
+		return true
+	case SettlementStateDisputed:
+		return true
+	case SettlementStatePending:
+		return true
+	case SettlementStateWithdrawalPending:
+		return true
+	case SettlementStateWithdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SplitMethod.
 const (
 	SplitMethodEqual SplitMethod = "equal"
@@ -651,6 +678,9 @@ type Password = string
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -678,6 +708,11 @@ type Problem struct {
 
 	// Type Examples: https://splits.dev/problems/not-ready
 	Type string `json:"type"`
+
+	// Warnings With `confirmation-required`, what the request would cause.
+	//
+	// Examples: [{"code":"overpayment"}]
+	Warnings *[]Warning `json:"warnings,omitempty"`
 }
 
 // ReadinessStatus Readiness answer.
@@ -727,6 +762,92 @@ type SettleUpSuggestion struct {
 	// ToMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
 	ToMemberId openapi_types.UUID `json:"to_member_id"`
 }
+
+// Settlement A record that one Member paid another back (GLOSSARY).
+type Settlement struct {
+	// Amount An amount in integer minor units of an ISO 4217 currency (ADR-0002).
+	// Never a floating-point number.
+	Amount Money `json:"amount"`
+
+	// CreatedAt Examples: 2026-10-02T10:00:00Z
+	CreatedAt time.Time `json:"created_at"`
+
+	// CreatedByMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d2
+	CreatedByMemberId openapi_types.UUID `json:"created_by_member_id"`
+
+	// FromMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d2
+	FromMemberId openapi_types.UUID `json:"from_member_id"`
+
+	// GroupId Examples: 0190b6c4-0000-7000-8000-0000000000c1
+	GroupId openapi_types.UUID `json:"group_id"`
+
+	// Id Examples: 0190b6c4-0000-7000-8000-0000000000f1
+	Id openapi_types.UUID `json:"id"`
+
+	// Note Examples: UPI
+	Note *string `json:"note,omitempty"`
+
+	// SettledOn Examples: 2026-10-02
+	SettledOn openapi_types.Date `json:"settled_on"`
+
+	// State Where the Settlement is in its life (doc 06). In M1 every Settlement counts at once (D9).
+	//
+	// Examples: accepted
+	State SettlementState `json:"state"`
+
+	// ToMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	ToMemberId openapi_types.UUID `json:"to_member_id"`
+
+	// Version Examples: 1
+	Version int32 `json:"version"`
+}
+
+// SettlementInput A Settlement as entered (FR-S1).
+type SettlementInput struct {
+	// AcknowledgeWarnings Save despite the warnings of a `confirmation-required` answer (D16).
+	//
+	// Examples: true
+	AcknowledgeWarnings *bool `json:"acknowledge_warnings,omitempty"`
+
+	// Amount > 0, in the Group Currency.
+	//
+	// Examples: {"currency":"INR","minor":33334}
+	Amount Money `json:"amount"`
+
+	// FromMemberId The Member who paid.
+	//
+	// Examples: 0190b6c4-0000-7000-8000-0000000000d2
+	FromMemberId openapi_types.UUID `json:"from_member_id"`
+
+	// Note Optional, at most 500 characters after trimming (D1).
+	//
+	// Examples: UPI
+	Note *string `json:"note,omitempty"`
+
+	// SettledOn Examples: 2026-10-02
+	SettledOn openapi_types.Date `json:"settled_on"`
+
+	// ToMemberId The Member who was paid; not the payer.
+	//
+	// Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	ToMemberId openapi_types.UUID `json:"to_member_id"`
+}
+
+// SettlementPage One page of a Group's Settlements.
+type SettlementPage struct {
+	// Items Examples: []
+	Items []Settlement `json:"items"`
+
+	// NextCursor The cursor of the next page of Settlements; null on the last page.
+	//
+	// Examples: null
+	NextCursor *string `json:"next_cursor"`
+}
+
+// SettlementState Where the Settlement is in its life (doc 06). In M1 every Settlement counts at once (D9).
+//
+// Examples: accepted
+type SettlementState string
 
 // ShareLine One Member's Share.
 type ShareLine struct {
@@ -836,6 +957,20 @@ type VerifyEmailRequest struct {
 	Email Email `json:"email"`
 }
 
+// VersionRequest The version an action applies to (NFR-R4).
+type VersionRequest struct {
+	// Version Examples: 1
+	Version int32 `json:"version"`
+}
+
+// Warning A consequence the User must confirm (D16). Codes: `overpayment`
+// (the Settlement is more than the payer owes, or more than the
+// receiver is owed).
+type Warning struct {
+	// Code Examples: overpayment
+	Code string `json:"code"`
+}
+
 // Cursor defines model for Cursor.
 type Cursor = string
 
@@ -853,6 +988,9 @@ type Limit = int
 
 // MemberId defines model for MemberId.
 type MemberId = openapi_types.UUID
+
+// SettlementId defines model for SettlementId.
+type SettlementId = openapi_types.UUID
 
 // BadRequest RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
@@ -879,6 +1017,9 @@ type MemberId = openapi_types.UUID
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -912,6 +1053,9 @@ type BadRequest = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -945,6 +1089,9 @@ type Conflict = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -978,6 +1125,9 @@ type EmailNotVerified = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1011,6 +1161,9 @@ type EmailTaken = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1044,6 +1197,9 @@ type Forbidden = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1077,6 +1233,9 @@ type IdempotencyKeyInProgress = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1110,6 +1269,9 @@ type IdempotencyKeyReused = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1143,6 +1305,9 @@ type InternalError = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1176,6 +1341,9 @@ type InvalidCredentials = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1209,6 +1377,9 @@ type NotFound = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1242,6 +1413,9 @@ type NotReady = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1275,6 +1449,9 @@ type RequestTooLarge = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1308,6 +1485,9 @@ type TooManyAttempts = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1315,6 +1495,42 @@ type TooManyAttempts = Problem
 // `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type Unauthenticated = Problem
+
+// Unprocessable RFC 9457 problem details. `type` is a stable URI,
+// `https://splits.dev/problems/<slug>`, that clients map to a localized
+// message. Clients must treat an unknown `type` as a generic error.
+// Slugs in use:
+// - `not-ready`: the server cannot reach its database (503).
+// - `invalid-request`: the request could not be decoded (400).
+// - `validation-failed`: one or more fields are invalid; see `errors` (400).
+// - `invalid-code`: the one-time code is wrong, expired, used up or unknown (400).
+// - `idempotency-key-required`: a write by a signed-in User has no valid `Idempotency-Key` (400).
+// - `unauthenticated`: no access token, or it is unknown, expired or revoked (401).
+// - `invalid-credentials`: the email or password is wrong (401).
+// - `email-not-verified`: the User must verify their email first (403).
+// - `email-taken`: a verified User already has this email (409).
+// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
+// - `request-too-large`: the request body is over 64 KB (413).
+// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
+// - `admin-required`: only an Admin of the Group may do this (403).
+// - `not-found`: no such resource, or one the User can't see (404).
+// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
+// - `group-limit-reached`: the User is already in 200 Groups (409).
+// - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
+// - `not-creator`: only the item's creator may do this (403).
+// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
+// - `internal`: an unexpected server failure (500).
+type Unprocessable = Problem
 
 // SignOutParams defines parameters for SignOut.
 type SignOutParams struct {
@@ -1406,6 +1622,39 @@ type UpdateMemberParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// ListSettlementsParams defines parameters for ListSettlements.
+type ListSettlementsParams struct {
+	// Cursor The `next_cursor` of the previous page; omit for the first page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size, 1–200 (default 50).
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// RecordSettlementParams defines parameters for RecordSettlement.
+type RecordSettlementParams struct {
+	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
+	// (NFR-R1). Repeating a request with the same key within 24 hours
+	// returns the original response; reusing a key for a different request
+	// answers `idempotency-key-reused`, and repeating it while the first is
+	// still running answers `idempotency-key-in-progress`. Responses with a
+	// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+	// it: their responses carry tokens, which are never stored (ADR-0011).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// WithdrawSettlementParams defines parameters for WithdrawSettlement.
+type WithdrawSettlementParams struct {
+	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
+	// (NFR-R1). Repeating a request with the same key within 24 hours
+	// returns the original response; reusing a key for a different request
+	// answers `idempotency-key-reused`, and repeating it while the first is
+	// still running answers `idempotency-key-in-progress`. Responses with a
+	// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+	// it: their responses carry tokens, which are never stored (ADR-0011).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
 // RefreshSessionJSONRequestBody defines body for RefreshSession for application/json ContentType.
 type RefreshSessionJSONRequestBody = RefreshSessionRequest
 
@@ -1438,6 +1687,12 @@ type AddMemberJSONRequestBody = AddMemberRequest
 
 // UpdateMemberJSONRequestBody defines body for UpdateMember for application/json ContentType.
 type UpdateMemberJSONRequestBody = UpdateMemberRequest
+
+// RecordSettlementJSONRequestBody defines body for RecordSettlement for application/json ContentType.
+type RecordSettlementJSONRequestBody = SettlementInput
+
+// WithdrawSettlementJSONRequestBody defines body for WithdrawSettlement for application/json ContentType.
+type WithdrawSettlementJSONRequestBody = VersionRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1498,9 +1753,21 @@ type ServerInterface interface {
 	// UpdateMember Make a Member an Admin
 	// (PATCH /v1/groups/{groupId}/members/{memberId})
 	UpdateMember(w http.ResponseWriter, r *http.Request, groupId GroupId, memberId MemberId, params UpdateMemberParams)
+	// ListSettlements A Group's Settlements
+	// (GET /v1/groups/{groupId}/settlements)
+	ListSettlements(w http.ResponseWriter, r *http.Request, groupId GroupId, params ListSettlementsParams)
+	// RecordSettlement Record a Settlement
+	// (POST /v1/groups/{groupId}/settlements)
+	RecordSettlement(w http.ResponseWriter, r *http.Request, groupId GroupId, params RecordSettlementParams)
 	// GetMe The signed-in User
 	// (GET /v1/me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// GetSettlement A Settlement
+	// (GET /v1/settlements/{settlementId})
+	GetSettlement(w http.ResponseWriter, r *http.Request, settlementId SettlementId)
+	// WithdrawSettlement Withdraw a Settlement
+	// (POST /v1/settlements/{settlementId}/withdraw)
+	WithdrawSettlement(w http.ResponseWriter, r *http.Request, settlementId SettlementId, params WithdrawSettlementParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -2130,11 +2397,200 @@ func (siw *ServerInterfaceWrapper) UpdateMember(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// ListSettlements operation middleware
+func (siw *ServerInterfaceWrapper) ListSettlements(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListSettlementsParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSettlements(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RecordSettlement operation middleware
+func (siw *ServerInterfaceWrapper) RecordSettlement(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RecordSettlementParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RecordSettlement(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMe operation middleware
 func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSettlement operation middleware
+func (siw *ServerInterfaceWrapper) GetSettlement(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "settlementId" -------------
+	var settlementId SettlementId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "settlementId", r.PathValue("settlementId"), &settlementId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "settlementId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSettlement(w, r, settlementId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// WithdrawSettlement operation middleware
+func (siw *ServerInterfaceWrapper) WithdrawSettlement(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "settlementId" -------------
+	var settlementId SettlementId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "settlementId", r.PathValue("settlementId"), &settlementId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "settlementId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params WithdrawSettlementParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WithdrawSettlement(w, r, settlementId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2282,6 +2738,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/groups/{groupId}/expenses", wrapper.ListExpenses)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/groups/{groupId}/expenses", wrapper.CreateExpense)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/groups/{groupId}/balances", wrapper.GetBalances)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/groups/{groupId}/settlements", wrapper.ListSettlements)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/groups/{groupId}/settlements", wrapper.RecordSettlement)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/settlements/{settlementId}", wrapper.GetSettlement)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/settlements/{settlementId}/withdraw", wrapper.WithdrawSettlement)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/expenses/{expenseId}", wrapper.GetExpense)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
 
@@ -2322,6 +2782,8 @@ type TooManyAttemptsApplicationProblemPlusJSONResponse struct {
 }
 
 type UnauthenticatedApplicationProblemPlusJSONResponse Problem
+
+type UnprocessableApplicationProblemPlusJSONResponse Problem
 
 type GetHealthzRequestObject struct {
 }
@@ -4308,6 +4770,261 @@ func (response UpdateMember500ApplicationProblemPlusJSONResponse) VisitUpdateMem
 	return err
 }
 
+type ListSettlementsRequestObject struct {
+	GroupId GroupId `json:"groupId"`
+	Params  ListSettlementsParams
+}
+
+type ListSettlementsResponseObject interface {
+	VisitListSettlementsResponse(w http.ResponseWriter) error
+}
+
+type ListSettlements200JSONResponse SettlementPage
+
+func (response ListSettlements200JSONResponse) VisitListSettlementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSettlements400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListSettlements400ApplicationProblemPlusJSONResponse) VisitListSettlementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSettlements401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response ListSettlements401ApplicationProblemPlusJSONResponse) VisitListSettlementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSettlements403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListSettlements403ApplicationProblemPlusJSONResponse) VisitListSettlementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSettlements404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListSettlements404ApplicationProblemPlusJSONResponse) VisitListSettlementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSettlements500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response ListSettlements500ApplicationProblemPlusJSONResponse) VisitListSettlementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordSettlementRequestObject struct {
+	GroupId GroupId `json:"groupId"`
+	Params  RecordSettlementParams
+	Body    *RecordSettlementJSONRequestBody
+}
+
+type RecordSettlementResponseObject interface {
+	VisitRecordSettlementResponse(w http.ResponseWriter) error
+}
+
+type RecordSettlement201JSONResponse Settlement
+
+func (response RecordSettlement201JSONResponse) VisitRecordSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordSettlement400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response RecordSettlement400ApplicationProblemPlusJSONResponse) VisitRecordSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordSettlement401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response RecordSettlement401ApplicationProblemPlusJSONResponse) VisitRecordSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordSettlement403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response RecordSettlement403ApplicationProblemPlusJSONResponse) VisitRecordSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordSettlement404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response RecordSettlement404ApplicationProblemPlusJSONResponse) VisitRecordSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordSettlement409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response RecordSettlement409ApplicationProblemPlusJSONResponse) VisitRecordSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordSettlement413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response RecordSettlement413ApplicationProblemPlusJSONResponse) VisitRecordSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordSettlement422ApplicationProblemPlusJSONResponse struct {
+	UnprocessableApplicationProblemPlusJSONResponse
+}
+
+func (response RecordSettlement422ApplicationProblemPlusJSONResponse) VisitRecordSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecordSettlement500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response RecordSettlement500ApplicationProblemPlusJSONResponse) VisitRecordSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetMeRequestObject struct {
 }
 
@@ -4350,6 +5067,260 @@ type GetMe500ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetMe500ApplicationProblemPlusJSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSettlementRequestObject struct {
+	SettlementId SettlementId `json:"settlementId"`
+}
+
+type GetSettlementResponseObject interface {
+	VisitGetSettlementResponse(w http.ResponseWriter) error
+}
+
+type GetSettlement200JSONResponse Settlement
+
+func (response GetSettlement200JSONResponse) VisitGetSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSettlement400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetSettlement400ApplicationProblemPlusJSONResponse) VisitGetSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSettlement401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response GetSettlement401ApplicationProblemPlusJSONResponse) VisitGetSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSettlement403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetSettlement403ApplicationProblemPlusJSONResponse) VisitGetSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSettlement404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetSettlement404ApplicationProblemPlusJSONResponse) VisitGetSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSettlement500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response GetSettlement500ApplicationProblemPlusJSONResponse) VisitGetSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawSettlementRequestObject struct {
+	SettlementId SettlementId `json:"settlementId"`
+	Params       WithdrawSettlementParams
+	Body         *WithdrawSettlementJSONRequestBody
+}
+
+type WithdrawSettlementResponseObject interface {
+	VisitWithdrawSettlementResponse(w http.ResponseWriter) error
+}
+
+type WithdrawSettlement200JSONResponse Settlement
+
+func (response WithdrawSettlement200JSONResponse) VisitWithdrawSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawSettlement400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawSettlement400ApplicationProblemPlusJSONResponse) VisitWithdrawSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawSettlement401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawSettlement401ApplicationProblemPlusJSONResponse) VisitWithdrawSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawSettlement403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawSettlement403ApplicationProblemPlusJSONResponse) VisitWithdrawSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawSettlement404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawSettlement404ApplicationProblemPlusJSONResponse) VisitWithdrawSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawSettlement409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawSettlement409ApplicationProblemPlusJSONResponse) VisitWithdrawSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawSettlement413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawSettlement413ApplicationProblemPlusJSONResponse) VisitWithdrawSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawSettlement422ApplicationProblemPlusJSONResponse struct {
+	UnprocessableApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawSettlement422ApplicationProblemPlusJSONResponse) VisitWithdrawSettlementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawSettlement500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawSettlement500ApplicationProblemPlusJSONResponse) VisitWithdrawSettlementResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -4420,9 +5391,21 @@ type StrictServerInterface interface {
 	// UpdateMember Make a Member an Admin
 	// (PATCH /v1/groups/{groupId}/members/{memberId})
 	UpdateMember(ctx context.Context, request UpdateMemberRequestObject) (UpdateMemberResponseObject, error)
+	// ListSettlements A Group's Settlements
+	// (GET /v1/groups/{groupId}/settlements)
+	ListSettlements(ctx context.Context, request ListSettlementsRequestObject) (ListSettlementsResponseObject, error)
+	// RecordSettlement Record a Settlement
+	// (POST /v1/groups/{groupId}/settlements)
+	RecordSettlement(ctx context.Context, request RecordSettlementRequestObject) (RecordSettlementResponseObject, error)
 	// GetMe The signed-in User
 	// (GET /v1/me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+	// GetSettlement A Settlement
+	// (GET /v1/settlements/{settlementId})
+	GetSettlement(ctx context.Context, request GetSettlementRequestObject) (GetSettlementResponseObject, error)
+	// WithdrawSettlement Withdraw a Settlement
+	// (POST /v1/settlements/{settlementId}/withdraw)
+	WithdrawSettlement(ctx context.Context, request WithdrawSettlementRequestObject) (WithdrawSettlementResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -5027,6 +6010,67 @@ func (sh *strictHandler) UpdateMember(w http.ResponseWriter, r *http.Request, gr
 	}
 }
 
+// ListSettlements operation middleware
+func (sh *strictHandler) ListSettlements(w http.ResponseWriter, r *http.Request, groupId GroupId, params ListSettlementsParams) {
+	var request ListSettlementsRequestObject
+
+	request.GroupId = groupId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSettlements(ctx, request.(ListSettlementsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSettlements")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListSettlementsResponseObject); ok {
+		if err := validResponse.VisitListSettlementsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RecordSettlement operation middleware
+func (sh *strictHandler) RecordSettlement(w http.ResponseWriter, r *http.Request, groupId GroupId, params RecordSettlementParams) {
+	var request RecordSettlementRequestObject
+
+	request.GroupId = groupId
+	request.Params = params
+
+	var body RecordSettlementJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RecordSettlement(ctx, request.(RecordSettlementRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RecordSettlement")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RecordSettlementResponseObject); ok {
+		if err := validResponse.VisitRecordSettlementResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetMe operation middleware
 func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	var request GetMeRequestObject
@@ -5044,6 +6088,66 @@ func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetMeResponseObject); ok {
 		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSettlement operation middleware
+func (sh *strictHandler) GetSettlement(w http.ResponseWriter, r *http.Request, settlementId SettlementId) {
+	var request GetSettlementRequestObject
+
+	request.SettlementId = settlementId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSettlement(ctx, request.(GetSettlementRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSettlement")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSettlementResponseObject); ok {
+		if err := validResponse.VisitGetSettlementResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// WithdrawSettlement operation middleware
+func (sh *strictHandler) WithdrawSettlement(w http.ResponseWriter, r *http.Request, settlementId SettlementId, params WithdrawSettlementParams) {
+	var request WithdrawSettlementRequestObject
+
+	request.SettlementId = settlementId
+	request.Params = params
+
+	var body WithdrawSettlementJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.WithdrawSettlement(ctx, request.(WithdrawSettlementRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "WithdrawSettlement")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(WithdrawSettlementResponseObject); ok {
+		if err := validResponse.VisitWithdrawSettlementResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

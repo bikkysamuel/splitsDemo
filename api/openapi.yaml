@@ -31,6 +31,8 @@ tags:
     description: Groups and their Members (FR-G*, FR-M*)
   - name: expenses
     description: Expenses and their Shares (FR-E*)
+  - name: settlements
+    description: Settlements between Members (FR-S*)
 security: []
 
 paths:
@@ -853,6 +855,203 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalError"
+  /v1/groups/{groupId}/settlements:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      operationId: listSettlements
+      summary: A Group's Settlements
+      description: Newest first by date, then by when they were recorded, a page at a time.
+      tags: [settlements]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: One page of Settlements.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettlementPage"
+              example:
+                items: []
+                next_cursor: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: recordSettlement
+      summary: Record a Settlement
+      description: |
+        Any active Member records that one Member paid another back, in
+        the Group Currency (FR-S1). Any positive amount is allowed (FR-S2):
+        paying more than the payer owes, or more than the receiver is
+        owed, answers `422 confirmation-required` with `warnings`; resend
+        with `acknowledge_warnings: true` (and a new Idempotency-Key) to
+        save anyway. In M1 it counts at once (D9). The Settlement and its
+        Activity History event are saved together.
+      tags: [settlements]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        description: The Settlement.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettlementInput"
+            example:
+              from_member_id: 0190b6c4-0000-7000-8000-0000000000d2
+              to_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+              amount: {minor: 33334, currency: INR}
+              settled_on: "2026-10-02"
+              note: UPI
+      responses:
+        "201":
+          description: The Settlement was recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000f1
+                group_id: 0190b6c4-0000-7000-8000-0000000000c1
+                from_member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                to_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                amount: {minor: 33334, currency: INR}
+                settled_on: "2026-10-02"
+                note: UPI
+                created_by_member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                state: accepted
+                version: 1
+                created_at: "2026-10-02T10:00:00Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/settlements/{settlementId}:
+    parameters:
+      - $ref: "#/components/parameters/SettlementId"
+    get:
+      operationId: getSettlement
+      summary: A Settlement
+      description: "`404` unless the User is an active Member of its Group."
+      tags: [settlements]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The Settlement.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000f1
+                group_id: 0190b6c4-0000-7000-8000-0000000000c1
+                from_member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                to_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                amount: {minor: 33334, currency: INR}
+                settled_on: "2026-10-02"
+                note: UPI
+                created_by_member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                state: accepted
+                version: 1
+                created_at: "2026-10-02T10:00:00Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/settlements/{settlementId}/withdraw:
+    parameters:
+      - $ref: "#/components/parameters/SettlementId"
+    post:
+      operationId: withdrawSettlement
+      summary: Withdraw a Settlement
+      description: |
+        Only its creator withdraws a Settlement (FR-S3, FR-E6); others get
+        `not-creator`. In M1 it is Withdrawn at once and stops counting;
+        with the agreement flow (M2) an accepted one becomes
+        WithdrawalPending first. Already withdrawn: `invalid-state`. Send
+        the `version` you last read (`version-conflict` if stale).
+      tags: [settlements]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        description: The version being withdrawn.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VersionRequest"
+            example:
+              version: 1
+      responses:
+        "200":
+          description: The withdrawn Settlement.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000f1
+                group_id: 0190b6c4-0000-7000-8000-0000000000c1
+                from_member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                to_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                amount: {minor: 33334, currency: INR}
+                settled_on: "2026-10-02"
+                note: UPI
+                created_by_member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                state: withdrawn
+                version: 2
+                created_at: "2026-10-02T10:00:00Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /v1/expenses/{expenseId}:
     parameters:
       - $ref: "#/components/parameters/ExpenseId"
@@ -941,6 +1140,14 @@ components:
       in: path
       required: true
       description: The Group's ID.
+      schema:
+        type: string
+        format: uuid
+    SettlementId:
+      name: settlementId
+      in: path
+      required: true
+      description: The Settlement's ID.
       schema:
         type: string
         format: uuid
@@ -1042,6 +1249,9 @@ components:
         - `member-limit-reached`: the Group already has 50 Members (409).
         - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
         - `group-closed`: the Group is Closed and read-only (409).
+        - `not-creator`: only the item's creator may do this (403).
+        - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
+        - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
 
         Field error codes of an Expense (`errors[].code`): `required`,
         `invalid`, `too_long`, `not_positive`, `not_group_currency`,
@@ -1075,6 +1285,12 @@ components:
           examples: [[{field: /amount/minor, code: required}]]
           items:
             $ref: "#/components/schemas/FieldError"
+        warnings:
+          description: With `confirmation-required`, what the request would cause.
+          type: array
+          examples: [[{code: overpayment}]]
+          items:
+            $ref: "#/components/schemas/Warning"
 
     FieldError:
       description: One invalid field in a request body.
@@ -1632,6 +1848,134 @@ components:
             - - member_id: 0190b6c4-0000-7000-8000-0000000000d1
                 share: {minor: 100001, currency: INR}
 
+    Warning:
+      description: |
+        A consequence the User must confirm (D16). Codes: `overpayment`
+        (the Settlement is more than the payer owes, or more than the
+        receiver is owed).
+      type: object
+      required: [code]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          examples: ["overpayment"]
+
+    SettlementState:
+      description: Where the Settlement is in its life (doc 06). In M1 every Settlement counts at once (D9).
+      type: string
+      enum: [pending, accepted, disputed, withdrawal_pending, withdrawn]
+      examples: ["accepted"]
+
+    SettlementInput:
+      description: A Settlement as entered (FR-S1).
+      type: object
+      required: [from_member_id, to_member_id, amount, settled_on]
+      additionalProperties: false
+      properties:
+        from_member_id:
+          description: The Member who paid.
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d2"]
+        to_member_id:
+          description: The Member who was paid; not the payer.
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        amount:
+          description: "> 0, in the Group Currency."
+          $ref: "#/components/schemas/Money"
+          examples:
+            - {minor: 33334, currency: INR}
+        settled_on:
+          type: string
+          format: date
+          examples: ["2026-10-02"]
+        note:
+          description: Optional, at most 500 characters after trimming (D1).
+          type: string
+          maxLength: 2000
+          examples: ["UPI"]
+        acknowledge_warnings:
+          description: Save despite the warnings of a `confirmation-required` answer (D16).
+          type: boolean
+          examples: [true]
+
+    Settlement:
+      description: A record that one Member paid another back (GLOSSARY).
+      type: object
+      required: [id, group_id, from_member_id, to_member_id, amount, settled_on, created_by_member_id, state, version, created_at]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000f1"]
+        group_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000c1"]
+        from_member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d2"]
+        to_member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        amount:
+          $ref: "#/components/schemas/Money"
+        settled_on:
+          type: string
+          format: date
+          examples: ["2026-10-02"]
+        note:
+          type: string
+          examples: ["UPI"]
+        created_by_member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d2"]
+        state:
+          $ref: "#/components/schemas/SettlementState"
+        version:
+          type: integer
+          format: int32
+          examples: [1]
+        created_at:
+          type: string
+          format: date-time
+          examples: ["2026-10-02T10:00:00Z"]
+
+    SettlementPage:
+      description: One page of a Group's Settlements.
+      type: object
+      required: [items, next_cursor]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Settlement"
+          examples:
+            - []
+        next_cursor:
+          description: The cursor of the next page of Settlements; null on the last page.
+          type: [string, "null"]
+          examples: [null]
+
+    VersionRequest:
+      description: The version an action applies to (NFR-R4).
+      type: object
+      required: [version]
+      additionalProperties: false
+      properties:
+        version:
+          type: integer
+          format: int32
+          examples: [1]
+
     MemberBalance:
       description: One Member's Balance; positive means they are owed money.
       type: object
@@ -1843,6 +2187,20 @@ components:
             type: https://splits.dev/problems/too-many-attempts
             title: Too many attempts
             status: 429
+    Unprocessable:
+      description: |
+        The request needs confirming (`confirmation-required`, with
+        `warnings`) or reuses an Idempotency-Key for a different request
+        (`idempotency-key-reused`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/confirmation-required
+            title: Confirmation required
+            status: 422
+            warnings: [{code: overpayment}]
     IdempotencyKeyInProgress:
       description: A request with the same Idempotency-Key is still being processed.
       content:

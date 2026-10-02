@@ -6,15 +6,17 @@ public struct AppDependencies: Sendable {
   public let groups: any GroupsRepository
   public let expenses: any ExpensesRepository
   public let balances: any BalancesRepository
+  public let settlements: any SettlementsRepository
   public let preferences: any PreferencesRepository
 
   public init(
     groups: any GroupsRepository, expenses: any ExpensesRepository, balances: any BalancesRepository,
-    preferences: any PreferencesRepository
+    settlements: any SettlementsRepository, preferences: any PreferencesRepository
   ) {
     self.groups = groups
     self.expenses = expenses
     self.balances = balances
+    self.settlements = settlements
     self.preferences = preferences
   }
 }

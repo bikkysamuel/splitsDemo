@@ -108,9 +108,8 @@ struct GroupBalancesTests {
   @Test func theGroupScreenLoadsBalancesAndReloadsThemAfterAnExpense() async {
     let balances = FakeBalancesRepository()
     await balances.set(.tripOwes, for: Group.trip.id)
-    let viewModel = GroupViewModel(
-      groupID: Group.trip.id, repository: FakeGroupsRepository(), expenses: FakeExpensesRepository(), balances: balances
-    )
+    let viewModel = GroupViewModel.make(
+      groupID: Group.trip.id, groups: FakeGroupsRepository(), expenses: FakeExpensesRepository(), balances: balances)
 
     await viewModel.load()
     #expect(viewModel.balances == .tripOwes)
@@ -120,9 +119,9 @@ struct GroupBalancesTests {
   }
 
   @Test func aFailedLoadIsShown() async {
-    let viewModel = GroupViewModel(
-      groupID: Group.trip.id, repository: FakeGroupsRepository(), expenses: FakeExpensesRepository(),
-      balances: FakeBalancesRepository())
+    let viewModel = GroupViewModel.make(
+      groupID: Group.trip.id, groups: FakeGroupsRepository(), expenses: FakeExpensesRepository(),
+      balances: FakeBalancesRepository(), settlements: FakeSettlementsRepository())
 
     await viewModel.load()
 

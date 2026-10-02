@@ -4820,6 +4820,1279 @@ public enum Operations {
             }
         }
     }
+    /// A Group's Settlements
+    ///
+    /// Newest first by date, then by when they were recorded, a page at a time.
+    ///
+    /// - Remark: HTTP `GET /v1/groups/{groupId}/settlements`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/get(listSettlements)`.
+    public enum ListSettlements {
+        public static let id: Swift.String = "listSettlements"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/GET/path`.
+            public struct Path: Sendable, Hashable {
+                /// The Group's ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/GET/path/groupId`.
+                public var groupId: Components.Parameters.GroupId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - groupId: The Group's ID.
+                public init(groupId: Components.Parameters.GroupId) {
+                    self.groupId = groupId
+                }
+            }
+            public var path: Operations.ListSettlements.Input.Path
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/GET/query`.
+            public struct Query: Sendable, Hashable {
+                /// The `next_cursor` of the previous page; omit for the first page.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/GET/query/cursor`.
+                public var cursor: Components.Parameters.Cursor?
+                /// Page size, 1–200 (default 50).
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/GET/query/limit`.
+                public var limit: Components.Parameters.Limit?
+                /// Creates a new `Query`.
+                ///
+                /// - Parameters:
+                ///   - cursor: The `next_cursor` of the previous page; omit for the first page.
+                ///   - limit: Page size, 1–200 (default 50).
+                public init(
+                    cursor: Components.Parameters.Cursor? = nil,
+                    limit: Components.Parameters.Limit? = nil
+                ) {
+                    self.cursor = cursor
+                    self.limit = limit
+                }
+            }
+            public var query: Operations.ListSettlements.Input.Query
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListSettlements.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListSettlements.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.ListSettlements.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - query:
+            ///   - headers:
+            public init(
+                path: Operations.ListSettlements.Input.Path,
+                query: Operations.ListSettlements.Input.Query = .init(),
+                headers: Operations.ListSettlements.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.query = query
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.SettlementPage)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.SettlementPage {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ListSettlements.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.ListSettlements.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// One page of Settlements.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/get(listSettlements)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.ListSettlements.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.ListSettlements.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request could not be decoded (`invalid-request`), a field is
+            /// invalid (`validation-failed`, with `errors`), or a one-time code was
+            /// refused (`invalid-code`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/get(listSettlements)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No access token, or it is unknown, expired or revoked.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/get(listSettlements)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthenticated)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthenticated {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The signed-in User may not do this: their email isn't verified
+            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/get(listSettlements)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No such resource, or one the User can't see.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/get(listSettlements)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Components.Responses.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Components.Responses.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// An unexpected server failure.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/get(listSettlements)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
+    /// Record a Settlement
+    ///
+    /// Any active Member records that one Member paid another back, in
+    /// the Group Currency (FR-S1). Any positive amount is allowed (FR-S2):
+    /// paying more than the payer owes, or more than the receiver is
+    /// owed, answers `422 confirmation-required` with `warnings`; resend
+    /// with `acknowledge_warnings: true` (and a new Idempotency-Key) to
+    /// save anyway. In M1 it counts at once (D9). The Settlement and its
+    /// Activity History event are saved together.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups/{groupId}/settlements`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)`.
+    public enum RecordSettlement {
+        public static let id: Swift.String = "recordSettlement"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/POST/path`.
+            public struct Path: Sendable, Hashable {
+                /// The Group's ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/POST/path/groupId`.
+                public var groupId: Components.Parameters.GroupId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - groupId: The Group's ID.
+                public init(groupId: Components.Parameters.GroupId) {
+                    self.groupId = groupId
+                }
+            }
+            public var path: Operations.RecordSettlement.Input.Path
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/POST/header`.
+            public struct Headers: Sendable, Hashable {
+                /// A client-generated UUID, required on every write by a signed-in User
+                /// (NFR-R1). Repeating a request with the same key within 24 hours
+                /// returns the original response; reusing a key for a different request
+                /// answers `idempotency-key-reused`, and repeating it while the first is
+                /// still running answers `idempotency-key-in-progress`. Responses with a
+                /// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+                /// it: their responses carry tokens, which are never stored (ADR-0011).
+                ///
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/POST/header/Idempotency-Key`.
+                public var idempotencyKey: Components.Parameters.IdempotencyKey
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RecordSettlement.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - idempotencyKey: A client-generated UUID, required on every write by a signed-in User
+                ///   - accept:
+                public init(
+                    idempotencyKey: Components.Parameters.IdempotencyKey,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RecordSettlement.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.idempotencyKey = idempotencyKey
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.RecordSettlement.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/POST/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.SettlementInput)
+            }
+            public var body: Operations.RecordSettlement.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            ///   - body:
+            public init(
+                path: Operations.RecordSettlement.Input.Path,
+                headers: Operations.RecordSettlement.Input.Headers,
+                body: Operations.RecordSettlement.Input.Body
+            ) {
+                self.path = path
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Created: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/POST/responses/201/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/groups/{groupId}/settlements/POST/responses/201/content/application\/json`.
+                    case json(Components.Schemas.Settlement)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Settlement {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RecordSettlement.Output.Created.Body
+                /// Creates a new `Created`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RecordSettlement.Output.Created.Body) {
+                    self.body = body
+                }
+            }
+            /// The Settlement was recorded.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)/responses/201`.
+            ///
+            /// HTTP response code: `201 created`.
+            case created(Operations.RecordSettlement.Output.Created)
+            /// The associated value of the enum case if `self` is `.created`.
+            ///
+            /// - Throws: An error if `self` is not `.created`.
+            /// - SeeAlso: `.created`.
+            public var created: Operations.RecordSettlement.Output.Created {
+                get throws {
+                    switch self {
+                    case let .created(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "created",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request could not be decoded (`invalid-request`), a field is
+            /// invalid (`validation-failed`, with `errors`), or a one-time code was
+            /// refused (`invalid-code`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No access token, or it is unknown, expired or revoked.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthenticated)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthenticated {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The signed-in User may not do this: their email isn't verified
+            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No such resource, or one the User can't see.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Components.Responses.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Components.Responses.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request conflicts with the current state: a stale `version`
+            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// request with the same Idempotency-Key still running
+            /// (`idempotency-key-in-progress`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)/responses/409`.
+            ///
+            /// HTTP response code: `409 conflict`.
+            case conflict(Components.Responses.Conflict)
+            /// The associated value of the enum case if `self` is `.conflict`.
+            ///
+            /// - Throws: An error if `self` is not `.conflict`.
+            /// - SeeAlso: `.conflict`.
+            public var conflict: Components.Responses.Conflict {
+                get throws {
+                    switch self {
+                    case let .conflict(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "conflict",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request body is over 64 KB.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)/responses/413`.
+            ///
+            /// HTTP response code: `413 contentTooLarge`.
+            case contentTooLarge(Components.Responses.RequestTooLarge)
+            /// The associated value of the enum case if `self` is `.contentTooLarge`.
+            ///
+            /// - Throws: An error if `self` is not `.contentTooLarge`.
+            /// - SeeAlso: `.contentTooLarge`.
+            public var contentTooLarge: Components.Responses.RequestTooLarge {
+                get throws {
+                    switch self {
+                    case let .contentTooLarge(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "contentTooLarge",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request needs confirming (`confirmation-required`, with
+            /// `warnings`) or reuses an Idempotency-Key for a different request
+            /// (`idempotency-key-reused`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)/responses/422`.
+            ///
+            /// HTTP response code: `422 unprocessableContent`.
+            case unprocessableContent(Components.Responses.Unprocessable)
+            /// The associated value of the enum case if `self` is `.unprocessableContent`.
+            ///
+            /// - Throws: An error if `self` is not `.unprocessableContent`.
+            /// - SeeAlso: `.unprocessableContent`.
+            public var unprocessableContent: Components.Responses.Unprocessable {
+                get throws {
+                    switch self {
+                    case let .unprocessableContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unprocessableContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// An unexpected server failure.
+            ///
+            /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
+    /// A Settlement
+    ///
+    /// `404` unless the User is an active Member of its Group.
+    ///
+    /// - Remark: HTTP `GET /v1/settlements/{settlementId}`.
+    /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/get(getSettlement)`.
+    public enum GetSettlement {
+        public static let id: Swift.String = "getSettlement"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/GET/path`.
+            public struct Path: Sendable, Hashable {
+                /// The Settlement's ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/GET/path/settlementId`.
+                public var settlementId: Components.Parameters.SettlementId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - settlementId: The Settlement's ID.
+                public init(settlementId: Components.Parameters.SettlementId) {
+                    self.settlementId = settlementId
+                }
+            }
+            public var path: Operations.GetSettlement.Input.Path
+            /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetSettlement.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetSettlement.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.GetSettlement.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            public init(
+                path: Operations.GetSettlement.Input.Path,
+                headers: Operations.GetSettlement.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.Settlement)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Settlement {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetSettlement.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetSettlement.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The Settlement.
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/get(getSettlement)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.GetSettlement.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.GetSettlement.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request could not be decoded (`invalid-request`), a field is
+            /// invalid (`validation-failed`, with `errors`), or a one-time code was
+            /// refused (`invalid-code`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/get(getSettlement)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No access token, or it is unknown, expired or revoked.
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/get(getSettlement)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthenticated)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthenticated {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The signed-in User may not do this: their email isn't verified
+            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/get(getSettlement)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No such resource, or one the User can't see.
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/get(getSettlement)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Components.Responses.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Components.Responses.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// An unexpected server failure.
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/get(getSettlement)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
+    /// Withdraw a Settlement
+    ///
+    /// Only its creator withdraws a Settlement (FR-S3, FR-E6); others get
+    /// `not-creator`. In M1 it is Withdrawn at once and stops counting;
+    /// with the agreement flow (M2) an accepted one becomes
+    /// WithdrawalPending first. Already withdrawn: `invalid-state`. Send
+    /// the `version` you last read (`version-conflict` if stale).
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/settlements/{settlementId}/withdraw`.
+    /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)`.
+    public enum WithdrawSettlement {
+        public static let id: Swift.String = "withdrawSettlement"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/withdraw/POST/path`.
+            public struct Path: Sendable, Hashable {
+                /// The Settlement's ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/withdraw/POST/path/settlementId`.
+                public var settlementId: Components.Parameters.SettlementId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - settlementId: The Settlement's ID.
+                public init(settlementId: Components.Parameters.SettlementId) {
+                    self.settlementId = settlementId
+                }
+            }
+            public var path: Operations.WithdrawSettlement.Input.Path
+            /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/withdraw/POST/header`.
+            public struct Headers: Sendable, Hashable {
+                /// A client-generated UUID, required on every write by a signed-in User
+                /// (NFR-R1). Repeating a request with the same key within 24 hours
+                /// returns the original response; reusing a key for a different request
+                /// answers `idempotency-key-reused`, and repeating it while the first is
+                /// still running answers `idempotency-key-in-progress`. Responses with a
+                /// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+                /// it: their responses carry tokens, which are never stored (ADR-0011).
+                ///
+                ///
+                /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/withdraw/POST/header/Idempotency-Key`.
+                public var idempotencyKey: Components.Parameters.IdempotencyKey
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.WithdrawSettlement.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - idempotencyKey: A client-generated UUID, required on every write by a signed-in User
+                ///   - accept:
+                public init(
+                    idempotencyKey: Components.Parameters.IdempotencyKey,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.WithdrawSettlement.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.idempotencyKey = idempotencyKey
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.WithdrawSettlement.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/withdraw/POST/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/withdraw/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.VersionRequest)
+            }
+            public var body: Operations.WithdrawSettlement.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            ///   - body:
+            public init(
+                path: Operations.WithdrawSettlement.Input.Path,
+                headers: Operations.WithdrawSettlement.Input.Headers,
+                body: Operations.WithdrawSettlement.Input.Body
+            ) {
+                self.path = path
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/withdraw/POST/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/settlements/{settlementId}/withdraw/POST/responses/200/content/application\/json`.
+                    case json(Components.Schemas.Settlement)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Settlement {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.WithdrawSettlement.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.WithdrawSettlement.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The withdrawn Settlement.
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.WithdrawSettlement.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.WithdrawSettlement.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request could not be decoded (`invalid-request`), a field is
+            /// invalid (`validation-failed`, with `errors`), or a one-time code was
+            /// refused (`invalid-code`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No access token, or it is unknown, expired or revoked.
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthenticated)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthenticated {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The signed-in User may not do this: their email isn't verified
+            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No such resource, or one the User can't see.
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Components.Responses.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Components.Responses.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request conflicts with the current state: a stale `version`
+            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// request with the same Idempotency-Key still running
+            /// (`idempotency-key-in-progress`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)/responses/409`.
+            ///
+            /// HTTP response code: `409 conflict`.
+            case conflict(Components.Responses.Conflict)
+            /// The associated value of the enum case if `self` is `.conflict`.
+            ///
+            /// - Throws: An error if `self` is not `.conflict`.
+            /// - SeeAlso: `.conflict`.
+            public var conflict: Components.Responses.Conflict {
+                get throws {
+                    switch self {
+                    case let .conflict(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "conflict",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request body is over 64 KB.
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)/responses/413`.
+            ///
+            /// HTTP response code: `413 contentTooLarge`.
+            case contentTooLarge(Components.Responses.RequestTooLarge)
+            /// The associated value of the enum case if `self` is `.contentTooLarge`.
+            ///
+            /// - Throws: An error if `self` is not `.contentTooLarge`.
+            /// - SeeAlso: `.contentTooLarge`.
+            public var contentTooLarge: Components.Responses.RequestTooLarge {
+                get throws {
+                    switch self {
+                    case let .contentTooLarge(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "contentTooLarge",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request needs confirming (`confirmation-required`, with
+            /// `warnings`) or reuses an Idempotency-Key for a different request
+            /// (`idempotency-key-reused`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)/responses/422`.
+            ///
+            /// HTTP response code: `422 unprocessableContent`.
+            case unprocessableContent(Components.Responses.Unprocessable)
+            /// The associated value of the enum case if `self` is `.unprocessableContent`.
+            ///
+            /// - Throws: An error if `self` is not `.unprocessableContent`.
+            /// - SeeAlso: `.unprocessableContent`.
+            public var unprocessableContent: Components.Responses.Unprocessable {
+                get throws {
+                    switch self {
+                    case let .unprocessableContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unprocessableContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// An unexpected server failure.
+            ///
+            /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
     /// An Expense
     ///
     /// The Expense with its Shares. `404` unless the User is an active Member of its Group.

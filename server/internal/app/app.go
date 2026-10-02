@@ -16,6 +16,7 @@ import (
 	"github.com/bikkysamuel/splitsDemo/server/internal/httpapi"
 	"github.com/bikkysamuel/splitsDemo/server/internal/idempotency"
 	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
+	"github.com/bikkysamuel/splitsDemo/server/internal/settlements"
 	"github.com/bikkysamuel/splitsDemo/server/internal/store"
 )
 
@@ -65,6 +66,7 @@ func New(ctx context.Context, cfg platform.Config, logger *slog.Logger, opts ...
 	}
 	ids := platform.NewIDGenerator(o.clock)
 	groupsService := groups.NewService(groups.Deps{Repository: db.Groups(), Clock: o.clock, IDs: ids})
+	balancesService := balances.NewService(db.Balances(), groupsService)
 	api := httpapi.New(httpapi.Deps{
 		Logger:    logger,
 		Readiness: db,
@@ -77,7 +79,10 @@ func New(ctx context.Context, cfg platform.Config, logger *slog.Logger, opts ...
 		}),
 		Idempotency: idempotency.NewService(db.Idempotency(), o.clock),
 		Groups:      groupsService,
-		Balances:    balances.NewService(db.Balances(), groupsService),
+		Balances:    balancesService,
+		Settlements: settlements.NewService(settlements.Deps{
+			Repository: db.Settlements(), Groups: groupsService, Balances: balancesService, Clock: o.clock, IDs: ids,
+		}),
 		Expenses: expenses.NewService(expenses.Deps{
 			Repository: db.Expenses(), Groups: groupsService, Clock: o.clock, IDs: ids,
 		}),

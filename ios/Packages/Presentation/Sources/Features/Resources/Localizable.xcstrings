@@ -25,6 +25,18 @@
         }
       }
     },
+    "%1$@ paid %2$@ %3$@": {
+      "comment": "Settlement row: payer, receiver, amount",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ paid %2$@ %3$@"
+          }
+        }
+      }
+    },
     "%1$@ pays %2$@ %3$@": {
       "comment": "A Settle-up Suggestion: payer, receiver, amount",
       "extractionState": "manual",
@@ -289,6 +301,18 @@
         }
       }
     },
+    "Choose a Member of this Group.": {
+      "comment": "Field error: the Settlement's Member isn't in the Group",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a Member of this Group."
+          }
+        }
+      }
+    },
     "Choose a currency.": {
       "comment": "Field error: the currency isn't accepted",
       "extractionState": "manual",
@@ -313,6 +337,18 @@
         }
       }
     },
+    "Choose someone other than the payer.": {
+      "comment": "Field error: a Settlement's payer and receiver are the same",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose someone other than the payer."
+          }
+        }
+      }
+    },
     "Choose who paid from the Group's Members.": {
       "comment": "Field error: the payer isn't a Member",
       "extractionState": "manual",
@@ -333,6 +369,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Couldn't make the change"
+          }
+        }
+      }
+    },
+    "Couldn't withdraw": {
+      "comment": "Title of the alert when withdrawing failed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't withdraw"
           }
         }
       }
@@ -637,6 +685,18 @@
         }
       }
     },
+    "It stays in the history but no longer counts toward Balances.": {
+      "comment": "Footer explaining withdrawal",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It stays in the history but no longer counts toward Balances."
+          }
+        }
+      }
+    },
     "Loading…": {
       "comment": "VoiceOver label of a loading indicator",
       "extractionState": "manual",
@@ -681,6 +741,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Members"
+          }
+        }
+      }
+    },
+    "More than is owed": {
+      "comment": "Title of the overpayment confirmation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More than is owed"
           }
         }
       }
@@ -805,6 +877,18 @@
         }
       }
     },
+    "Only the person who recorded this can do that.": {
+      "comment": "Error when someone other than the creator acts on an item",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the person who recorded this can do that."
+          }
+        }
+      }
+    },
     "Other": {
       "comment": "Category: other",
       "extractionState": "manual",
@@ -841,6 +925,18 @@
         }
       }
     },
+    "Paid to": {
+      "comment": "Label of the Settlement receiver picker",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paid to"
+          }
+        }
+      }
+    },
     "Password": {
       "comment": "Label of the password field",
       "extractionState": "manual",
@@ -865,6 +961,18 @@
         }
       }
     },
+    "Please confirm this.": {
+      "comment": "Shown when the server asks the User to confirm a warning",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please confirm this."
+          }
+        }
+      }
+    },
     "Pre-fills the Group Currency when you create a Group.": {
       "comment": "Footer under the default currency setting",
       "extractionState": "manual",
@@ -873,6 +981,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pre-fills the Group Currency when you create a Group."
+          }
+        }
+      }
+    },
+    "Record": {
+      "comment": "Action that records a Settlement from a Suggestion",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record"
+          }
+        }
+      }
+    },
+    "Record Settlement": {
+      "comment": "Title and button for recording a Settlement",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record Settlement"
+          }
+        }
+      }
+    },
+    "Record money paid outside the app. Any amount is fine, including part of what's owed.": {
+      "comment": "Footer of the Record Settlement form",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record money paid outside the app. Any amount is fine, including part of what's owed."
           }
         }
       }
@@ -961,6 +1105,30 @@
         }
       }
     },
+    "Save Settlement": {
+      "comment": "Button that records the Settlement",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save Settlement"
+          }
+        }
+      }
+    },
+    "Save anyway": {
+      "comment": "Button that saves an overpaying Settlement",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save anyway"
+          }
+        }
+      }
+    },
     "Send a new code": {
       "comment": "Button that sends a new verification code",
       "extractionState": "manual",
@@ -1005,6 +1173,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Settle up"
+          }
+        }
+      }
+    },
+    "Settlement": {
+      "comment": "Title of the Settlement detail screen",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settlement"
+          }
+        }
+      }
+    },
+    "Settlements": {
+      "comment": "Section header of a Group's Settlements",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settlements"
           }
         }
       }
@@ -1273,6 +1465,18 @@
         }
       }
     },
+    "This can't be done any more. Reload to see its current state.": {
+      "comment": "Error when an item's state no longer allows the action",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This can't be done any more. Reload to see its current state."
+          }
+        }
+      }
+    },
     "This field is invalid.": {
       "comment": "Field error with no more specific message",
       "extractionState": "manual",
@@ -1305,6 +1509,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "This password is too common. Choose another."
+          }
+        }
+      }
+    },
+    "This pays more than the payer owes or the receiver is owed. Save it anyway?": {
+      "comment": "Message of the overpayment confirmation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This pays more than the payer owes or the receiver is owed. Save it anyway?"
           }
         }
       }
@@ -1533,6 +1749,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "We sent a new code."
+          }
+        }
+      }
+    },
+    "Withdraw": {
+      "comment": "Button that withdraws a Settlement",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Withdraw"
+          }
+        }
+      }
+    },
+    "Withdraw this Settlement?": {
+      "comment": "Confirmation title before withdrawing",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Withdraw this Settlement?"
+          }
+        }
+      }
+    },
+    "Withdrawn": {
+      "comment": "Badge on a withdrawn Settlement",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Withdrawn"
           }
         }
       }
