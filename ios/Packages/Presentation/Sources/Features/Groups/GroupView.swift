@@ -39,21 +39,21 @@ struct GroupView: View {
       }
       .alert(
         Text(LocalizedStringKey(Self.renameFailed), bundle: .module),
-        isPresented: Binding(get: { viewModel.renameError != nil }, set: { if !$0 { viewModel.dismissRenameError() } })
+        isPresented: Binding(get: { viewModel.changeError != nil }, set: { if !$0 { viewModel.dismissChangeError() } })
       ) {
         Button {
-          viewModel.dismissRenameError()
+          viewModel.dismissChangeError()
         } label: {
           Text(LocalizedStringKey(CommonKeys.ok), bundle: .module)
         }
       } message: {
-        Text(LocalizedStringKey(viewModel.renameError ?? ""), bundle: .module)
+        Text(LocalizedStringKey(viewModel.changeError ?? ""), bundle: .module)
       }
       .sheet(item: $addMember) { model in
         NavigationStack {
-          AddMemberView(viewModel: model) { member in
+          AddMemberView(viewModel: model) { _ in
             addMember = nil
-            Task { await viewModel.didAdd(member) }
+            Task { await viewModel.memberAdded() }
           }
         }
       }
@@ -68,9 +68,7 @@ struct GroupView: View {
           Text(LocalizedStringKey(Self.makeAdmin), bundle: .module)
         }
       } message: { member in
-        Text(
-          LocalizedStringKey("\(member.displayName) will be able to rename the Group, remove Members and grant Admin."),
-          bundle: .module)
+        Text(verbatim: Self.makeAdminText(member.displayName))
       }
       .task { await viewModel.load() }
   }
@@ -131,6 +129,11 @@ struct GroupView: View {
   nonisolated static let makeAdmin = "Make Admin"
   nonisolated static let makeAdminTitle = "Make this Member an Admin?"
   nonisolated static let makeAdminMessage = "%@ will be able to rename the Group, remove Members and grant Admin."
+
+  /// The grant-Admin confirmation, from the one catalog key above.
+  static func makeAdminText(_ name: String) -> String {
+    String(format: String(localized: String.LocalizationValue(makeAdminMessage), bundle: .module), name)
+  }
   nonisolated static let members = "Members"
   nonisolated static let allKeys =
     [rename, renameTitle, renameFailed, members, makeAdmin, makeAdminTitle, makeAdminMessage] + MemberRow.allKeys

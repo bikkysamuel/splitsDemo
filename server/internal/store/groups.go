@@ -2,9 +2,11 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/bikkysamuel/splitsDemo/server/internal/groups"
@@ -158,6 +160,10 @@ func (r *GroupsRepository) AddMember(ctx context.Context, m groups.NewMember, ma
 			ID: uuid(m.ID), GroupID: uuid(m.GroupID), UserID: userID, DisplayName: m.DisplayName,
 			Email: email, Role: string(groups.RoleMember), Now: timestamptz(m.Now),
 		})
+		if f, ok := takenField(err); ok {
+			// The database's uniqueness is the backstop for the checks above.
+			return &groups.ValidationError{Fields: []groups.FieldError{{Field: f, Code: groups.CodeTaken}}}
+		}
 		if err != nil {
 			return fmt.Errorf("insert member: %w", err)
 		}
@@ -171,6 +177,13 @@ func (r *GroupsRepository) AddMember(ctx context.Context, m groups.NewMember, ma
 func (r *GroupsRepository) MakeAdmin(ctx context.Context, groupID, memberID platform.ID, version int, now time.Time) (groups.Member, error) {
 	var updated groups.Member
 	err := r.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		state, err := q.LockGroup(ctx, uuid(groupID))
+		if err != nil {
+			return fmt.Errorf("lock group: %w", err)
+		}
+		if groups.State(state) == groups.StateClosed {
+			return groups.ErrGroupClosed
+		}
 		cur, err := q.MemberInGroup(ctx, sqlcgen.MemberInGroupParams{GroupID: uuid(groupID), ID: uuid(memberID)})
 		if isNoRows(err) {
 			return groups.ErrNotFound
@@ -202,6 +215,22 @@ func member(memberID, userID pgtype.UUID, displayName, role, status string, join
 		ID: id(memberID), UserID: optionalID(userID), DisplayName: displayName,
 		Role: groups.Role(role), Status: groups.MemberStatus(status), JoinSeq: int(joinSeq), Version: int(version),
 	}
+}
+
+// takenField names the request field a unique violation on members is
+// about.
+func takenField(err error) (string, bool) {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != "23505" {
+		return "", false
+	}
+	switch pgErr.ConstraintName {
+	case "members_group_display_name_idx":
+		return "display_name", true
+	case "members_group_id_email_key", "members_group_id_user_id_key":
+		return "email", true
+	}
+	return "", false
 }
 
 func optionalID(u pgtype.UUID) *platform.ID {

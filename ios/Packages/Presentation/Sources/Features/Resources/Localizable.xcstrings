@@ -289,18 +289,6 @@
         }
       }
     },
-    "Enter your name in this Group.": {
-      "comment": "Field error: the User's display name is empty",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter your name in this Group."
-          }
-        }
-      }
-    },
     "Goa trip": {
       "comment": "Placeholder of the Group name field",
       "extractionState": "manual",
@@ -757,14 +745,14 @@
         }
       }
     },
-    "Someone with a Splits account joins at once. Anyone else is added as a Placeholder you can record Expenses for; it becomes theirs when they sign up with this email.": {
+    "Someone with a Splits account joins at once. Anyone else is added as a Placeholder Member you can record Expenses for; it becomes theirs when they sign up with this email.": {
       "comment": "Footer explaining how adding by email works",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Someone with a Splits account joins at once. Anyone else is added as a Placeholder you can record Expenses for; it becomes theirs when they sign up with this email."
+            "value": "Someone with a Splits account joins at once. Anyone else is added as a Placeholder Member you can record Expenses for; it becomes theirs when they sign up with this email."
           }
         }
       }

@@ -145,7 +145,7 @@ type Repository interface {
 	AddMember(ctx context.Context, m NewMember, maxMembers int) (Member, error)
 	// MakeAdmin makes the Member an Admin if its version is still version.
 	// It returns ErrNotFound (no such Member in the Group),
-	// ErrMemberNotEligible (a Placeholder or Former Member) or
-	// ErrVersionConflict.
+	// ErrMemberNotEligible (a Placeholder or Former Member),
+	// ErrGroupClosed or ErrVersionConflict.
 	MakeAdmin(ctx context.Context, groupID, memberID platform.ID, version int, now time.Time) (Member, error)
 }

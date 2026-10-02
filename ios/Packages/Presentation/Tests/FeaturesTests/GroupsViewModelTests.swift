@@ -167,7 +167,7 @@ struct GroupViewModelTests {
     let renames = await repository.renames
     #expect(renames.count == 1 && renames[0] == ("Goa 2026", 1))
     #expect(viewModel.state.value?.name == "Goa 2026")
-    #expect(viewModel.renameError == nil)
+    #expect(viewModel.changeError == nil)
   }
 
   // NFR-R4: a stale version shows the conflict and reloads the Group.
@@ -180,7 +180,7 @@ struct GroupViewModelTests {
 
     await viewModel.rename(to: "Mine")
 
-    #expect(viewModel.renameError == "Someone else changed this just now. Reload and try again.")
+    #expect(viewModel.changeError == "Someone else changed this just now. Reload and try again.")
     #expect(viewModel.state.value?.name == "Renamed elsewhere")
   }
 }
@@ -282,7 +282,7 @@ struct GrantAdminTests {
 
     let grants = await repository.adminGrants
     #expect(grants.count == 1 && grants[0] == (Member.bob.id, 3))
-    #expect(viewModel.renameError == nil)
+    #expect(viewModel.changeError == nil)
   }
 
   @Test func aRefusalIsShown() async {
@@ -293,6 +293,6 @@ struct GrantAdminTests {
 
     await viewModel.makeAdmin(.grandma)
 
-    #expect(viewModel.renameError == "Only a Member who has an account can be an Admin.")
+    #expect(viewModel.changeError == "Only a Member who has an account can be an Admin.")
   }
 }

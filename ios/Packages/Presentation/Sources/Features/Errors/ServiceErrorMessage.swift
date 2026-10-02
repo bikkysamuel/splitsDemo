@@ -52,7 +52,7 @@ enum ServiceErrorMessage {
     case ("password", .tooCommon): "This password is too common. Choose another."
     case ("name", .required): "Enter a name."
     case ("name", .tooLong): "Use at most 100 characters."
-    case ("display_name", .required): "Enter your name in this Group."
+    case ("display_name", .required): "Enter a name."
     case ("display_name", .tooLong): "Use at most 50 characters."
     case ("display_name", .taken): "Someone in this Group already has this name."
     case ("currency", _): "Choose a currency."

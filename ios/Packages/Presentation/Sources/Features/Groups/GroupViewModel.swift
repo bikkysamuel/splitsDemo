@@ -10,7 +10,7 @@ public final class GroupViewModel {
   public let groupID: UUID
   private(set) var state: LoadState<Domain.Group> = .loading
   /// A failed change's message key (rename, grant Admin).
-  private(set) var renameError: String?
+  private(set) var changeError: String?
   public private(set) var isRenaming = false
 
   let repository: any GroupsRepository
@@ -43,22 +43,22 @@ public final class GroupViewModel {
     do {
       state = .loaded(try await repository.renameGroup(id: group.id, name: name, version: group.version, key: key))
       renameKeys.succeeded()
-      renameError = nil
+      changeError = nil
     } catch {
-      renameError = ServiceErrorMessage.key(for: error)
+      changeError = ServiceErrorMessage.key(for: error)
       if error == .problem(.versionConflict) { await load() }
     }
   }
 
-  func dismissRenameError() { renameError = nil }
+  func dismissChangeError() { changeError = nil }
 
-  /// Shows a Member just added, then reloads for the server's view.
-  func didAdd(_ member: Member) async {
+  /// Reloads after a Member was added, so the list shows the server's view.
+  func memberAdded() async {
     await load()
   }
 
   /// Whether the signed-in User may make `member` an Admin.
-  func canMakeAdmin(_ member: Member) -> Bool { canRename && member.canBecomeAdmin }
+  func canMakeAdmin(_ member: Member) -> Bool { state.value?.isAdmin == true && member.canBecomeAdmin }
 
   /// Makes a Member an Admin (Admins only, FR-G3), then reloads.
   public func makeAdmin(_ member: Member) async {
@@ -67,9 +67,9 @@ public final class GroupViewModel {
     do {
       _ = try await repository.makeAdmin(groupID: group.id, memberID: member.id, version: member.version, key: key)
       adminKeys.succeeded()
-      renameError = nil
+      changeError = nil
     } catch {
-      renameError = ServiceErrorMessage.key(for: error)
+      changeError = ServiceErrorMessage.key(for: error)
     }
     await load()
   }

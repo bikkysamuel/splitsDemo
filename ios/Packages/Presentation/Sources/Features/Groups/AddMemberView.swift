@@ -48,7 +48,7 @@ struct AddMemberView: View {
   nonisolated static let email = "Email (optional)"
   nonisolated static let emailPrompt = "bob@example.com"
   nonisolated static let footer =
-    "Someone with a Splits account joins at once. Anyone else is added as a Placeholder you can record Expenses for; it becomes theirs when they sign up with this email."
+    "Someone with a Splits account joins at once. Anyone else is added as a Placeholder Member you can record Expenses for; it becomes theirs when they sign up with this email."
   nonisolated static let add = "Add"
   nonisolated static let allKeys = [title, displayName, email, emailPrompt, footer, add]
 }

@@ -184,7 +184,8 @@ func (s *Service) MakeAdmin(ctx context.Context, userID, groupID, memberID platf
 	}
 	m, err := s.deps.Repository.MakeAdmin(ctx, groupID, memberID, version, s.deps.Clock.Now())
 	switch {
-	case errors.Is(err, ErrNotFound), errors.Is(err, ErrMemberNotEligible), errors.Is(err, ErrVersionConflict):
+	case errors.Is(err, ErrNotFound), errors.Is(err, ErrMemberNotEligible), errors.Is(err, ErrVersionConflict),
+		errors.Is(err, ErrGroupClosed):
 		return Member{}, err
 	case err != nil:
 		return Member{}, fmt.Errorf("groups: make member %s admin: %w", memberID, err)

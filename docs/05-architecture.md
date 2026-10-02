@@ -53,7 +53,7 @@ server/
   migrations/            goose SQL, embedded, forward-only
 ```
 
-**Dependency rule (ADR-0015).** Each domain package holds its entities, a service (its use cases) and the repository interfaces it needs. `store` implements those interfaces and `httpapi` calls the services. Domain packages may import `ledger`, `platform` and each other's interfaces, never `store`, `httpapi`, pgx or `net/http`. depguard enforces this.
+**Dependency rule (ADR-0015).** Each domain package holds its entities, a service (its use cases) and the repository interfaces it needs. `store` implements those interfaces and `httpapi` calls the services. Domain packages may import `ledger`, `platform` and each other's exported types and pure functions (for example `groups` uses `auth.NormalizeEmail`), never `store`, `httpapi`, pgx or `net/http`. depguard enforces this.
 
 **Key flows.**
 - *Write path*: `httpapi` decodes the request and checks the idempotency key → the service validates and authorizes → `ledger` computes → `store` writes the domain change + Activity History entry + Notifications in **one transaction** → response.
