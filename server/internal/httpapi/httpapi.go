@@ -53,6 +53,9 @@ var (
 	problemVersionConflict          = problemKind{"version-conflict", "Version conflict", http.StatusConflict}
 	problemGroupLimitReached        = problemKind{"group-limit-reached", "Group limit reached", http.StatusConflict}
 	problemInvalidCursor            = problemKind{"invalid-cursor", "Invalid cursor", http.StatusBadRequest}
+	problemMemberLimitReached       = problemKind{"member-limit-reached", "Member limit reached", http.StatusConflict}
+	problemMemberNotEligible        = problemKind{"member-not-eligible", "Member not eligible", http.StatusConflict}
+	problemGroupClosed              = problemKind{"group-closed", "Group closed", http.StatusConflict}
 	problemInternal                 = problemKind{"internal", "Internal error", http.StatusInternalServerError}
 )
 

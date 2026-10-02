@@ -8,7 +8,8 @@
       "join_seq": 1,
       "placeholder": false,
       "role": "admin",
-      "status": "active"
+      "status": "active",
+      "version": 1
     }
   ],
   "my_member_id": "01a0faaf-d1d6-7f06-ae6a-ff0d46436053",

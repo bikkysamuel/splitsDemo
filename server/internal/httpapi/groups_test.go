@@ -19,6 +19,7 @@ type member struct {
 	Status      string `json:"status"`
 	Placeholder bool   `json:"placeholder"`
 	JoinSeq     int    `json:"join_seq"`
+	Version     int    `json:"version"`
 }
 
 type group struct {

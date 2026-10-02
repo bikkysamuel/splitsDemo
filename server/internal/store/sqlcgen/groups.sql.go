@@ -22,6 +22,35 @@ func (q *Queries) CountActiveMemberships(ctx context.Context, userID pgtype.UUID
 	return count, err
 }
 
+const countMembers = `-- name: CountMembers :one
+SELECT count(*) FROM members WHERE group_id = $1
+`
+
+func (q *Queries) CountMembers(ctx context.Context, groupID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countMembers, groupID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const displayNameExists = `-- name: DisplayNameExists :one
+SELECT EXISTS (
+    SELECT 1 FROM members WHERE group_id = $1 AND lower(display_name) = lower($2)
+)
+`
+
+type DisplayNameExistsParams struct {
+	GroupID     pgtype.UUID
+	DisplayName string
+}
+
+func (q *Queries) DisplayNameExists(ctx context.Context, arg DisplayNameExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, displayNameExists, arg.GroupID, arg.DisplayName)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const groupForMember = `-- name: GroupForMember :one
 SELECT g.id, g.name, g.currency, g.state, g.version, m.id AS my_member_id, m.role AS my_role
 FROM groups g JOIN members m ON m.group_id = g.id
@@ -60,7 +89,7 @@ func (q *Queries) GroupForMember(ctx context.Context, arg GroupForMemberParams) 
 }
 
 const groupMembers = `-- name: GroupMembers :many
-SELECT id, user_id, display_name, role, status, join_seq FROM members
+SELECT id, user_id, display_name, role, status, join_seq, version FROM members
 WHERE group_id = $1
 ORDER BY join_seq
 `
@@ -72,6 +101,7 @@ type GroupMembersRow struct {
 	Role        string
 	Status      string
 	JoinSeq     int32
+	Version     int32
 }
 
 func (q *Queries) GroupMembers(ctx context.Context, groupID pgtype.UUID) ([]GroupMembersRow, error) {
@@ -90,6 +120,7 @@ func (q *Queries) GroupMembers(ctx context.Context, groupID pgtype.UUID) ([]Grou
 			&i.Role,
 			&i.Status,
 			&i.JoinSeq,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -123,10 +154,11 @@ func (q *Queries) InsertGroup(ctx context.Context, arg InsertGroupParams) error 
 	return err
 }
 
-const insertMember = `-- name: InsertMember :exec
+const insertMember = `-- name: InsertMember :one
 INSERT INTO members (id, group_id, user_id, display_name, email, role, join_seq, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6,
         (SELECT coalesce(max(join_seq), 0) + 1 FROM members WHERE group_id = $2), $7, $7)
+RETURNING id, user_id, display_name, role, status, join_seq, version
 `
 
 type InsertMemberParams struct {
@@ -139,8 +171,19 @@ type InsertMemberParams struct {
 	Now         pgtype.Timestamptz
 }
 
-func (q *Queries) InsertMember(ctx context.Context, arg InsertMemberParams) error {
-	_, err := q.db.Exec(ctx, insertMember,
+type InsertMemberRow struct {
+	ID          pgtype.UUID
+	UserID      pgtype.UUID
+	DisplayName string
+	Role        string
+	Status      string
+	JoinSeq     int32
+	Version     int32
+}
+
+// Call with the Group row locked (LockGroup), so join_seq is the next one.
+func (q *Queries) InsertMember(ctx context.Context, arg InsertMemberParams) (InsertMemberRow, error) {
+	row := q.db.QueryRow(ctx, insertMember,
 		arg.ID,
 		arg.GroupID,
 		arg.UserID,
@@ -149,7 +192,17 @@ func (q *Queries) InsertMember(ctx context.Context, arg InsertMemberParams) erro
 		arg.Role,
 		arg.Now,
 	)
-	return err
+	var i InsertMemberRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.DisplayName,
+		&i.Role,
+		&i.Status,
+		&i.JoinSeq,
+		&i.Version,
+	)
+	return i, err
 }
 
 const listGroupsForUser = `-- name: ListGroupsForUser :many
@@ -198,6 +251,18 @@ func (q *Queries) ListGroupsForUser(ctx context.Context, arg ListGroupsForUserPa
 	return items, nil
 }
 
+const lockGroup = `-- name: LockGroup :one
+SELECT state FROM groups WHERE id = $1 FOR UPDATE
+`
+
+// Serializes changes to a Group's Members (join_seq, the 50 limit).
+func (q *Queries) LockGroup(ctx context.Context, id pgtype.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, lockGroup, id)
+	var state string
+	err := row.Scan(&state)
+	return state, err
+}
+
 const lockUser = `-- name: LockUser :exec
 SELECT id FROM users WHERE id = $1 FOR UPDATE
 `
@@ -206,6 +271,62 @@ SELECT id FROM users WHERE id = $1 FOR UPDATE
 func (q *Queries) LockUser(ctx context.Context, id pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, lockUser, id)
 	return err
+}
+
+const memberEmailOrUserExists = `-- name: MemberEmailOrUserExists :one
+SELECT EXISTS (
+    SELECT 1 FROM members m LEFT JOIN users u ON u.id = m.user_id
+    WHERE m.group_id = $1 AND (m.email = $2 OR u.email = $2)
+)
+`
+
+type MemberEmailOrUserExistsParams struct {
+	GroupID pgtype.UUID
+	Email   pgtype.Text
+}
+
+// Whether the email is already in the Group, as a Placeholder's email or as
+// the email of a Member's User.
+func (q *Queries) MemberEmailOrUserExists(ctx context.Context, arg MemberEmailOrUserExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, memberEmailOrUserExists, arg.GroupID, arg.Email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const memberInGroup = `-- name: MemberInGroup :one
+SELECT id, user_id, display_name, role, status, join_seq, version FROM members
+WHERE group_id = $1 AND id = $2
+`
+
+type MemberInGroupParams struct {
+	GroupID pgtype.UUID
+	ID      pgtype.UUID
+}
+
+type MemberInGroupRow struct {
+	ID          pgtype.UUID
+	UserID      pgtype.UUID
+	DisplayName string
+	Role        string
+	Status      string
+	JoinSeq     int32
+	Version     int32
+}
+
+func (q *Queries) MemberInGroup(ctx context.Context, arg MemberInGroupParams) (MemberInGroupRow, error) {
+	row := q.db.QueryRow(ctx, memberInGroup, arg.GroupID, arg.ID)
+	var i MemberInGroupRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.DisplayName,
+		&i.Role,
+		&i.Status,
+		&i.JoinSeq,
+		&i.Version,
+	)
+	return i, err
 }
 
 const renameGroup = `-- name: RenameGroup :execrows
@@ -231,4 +352,60 @@ func (q *Queries) RenameGroup(ctx context.Context, arg RenameGroupParams) (int64
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const setMemberRole = `-- name: SetMemberRole :one
+UPDATE members SET role = $1, updated_at = $2, version = version + 1
+WHERE group_id = $3 AND id = $4 AND version = $5
+RETURNING id, user_id, display_name, role, status, join_seq, version
+`
+
+type SetMemberRoleParams struct {
+	Role    string
+	Now     pgtype.Timestamptz
+	GroupID pgtype.UUID
+	ID      pgtype.UUID
+	Version int32
+}
+
+type SetMemberRoleRow struct {
+	ID          pgtype.UUID
+	UserID      pgtype.UUID
+	DisplayName string
+	Role        string
+	Status      string
+	JoinSeq     int32
+	Version     int32
+}
+
+func (q *Queries) SetMemberRole(ctx context.Context, arg SetMemberRoleParams) (SetMemberRoleRow, error) {
+	row := q.db.QueryRow(ctx, setMemberRole,
+		arg.Role,
+		arg.Now,
+		arg.GroupID,
+		arg.ID,
+		arg.Version,
+	)
+	var i SetMemberRoleRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.DisplayName,
+		&i.Role,
+		&i.Status,
+		&i.JoinSeq,
+		&i.Version,
+	)
+	return i, err
+}
+
+const verifiedUserIDByEmail = `-- name: VerifiedUserIDByEmail :one
+SELECT id FROM users WHERE email = $1 AND email_verified_at IS NOT NULL
+`
+
+func (q *Queries) VerifiedUserIDByEmail(ctx context.Context, email string) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, verifiedUserIDByEmail, email)
+	var id pgtype.UUID
+	err := row.Scan(&id)
+	return id, err
 }

@@ -7,6 +7,8 @@ struct GroupView: View {
   @Bindable var viewModel: GroupViewModel
   @State private var renaming = false
   @State private var newName = ""
+  @State private var addMember: AddMemberViewModel?
+  @State private var promoting: Member?
 
   var body: some View {
     content
@@ -47,6 +49,29 @@ struct GroupView: View {
       } message: {
         Text(LocalizedStringKey(viewModel.renameError ?? ""), bundle: .module)
       }
+      .sheet(item: $addMember) { model in
+        NavigationStack {
+          AddMemberView(viewModel: model) { member in
+            addMember = nil
+            Task { await viewModel.didAdd(member) }
+          }
+        }
+      }
+      .confirmationDialog(
+        Text(LocalizedStringKey(Self.makeAdminTitle), bundle: .module),
+        isPresented: Binding(get: { promoting != nil }, set: { if !$0 { promoting = nil } }),
+        titleVisibility: .visible, presenting: promoting
+      ) { member in
+        Button {
+          Task { await viewModel.makeAdmin(member) }
+        } label: {
+          Text(LocalizedStringKey(Self.makeAdmin), bundle: .module)
+        }
+      } message: { member in
+        Text(
+          LocalizedStringKey("\(member.displayName) will be able to rename the Group, remove Members and grant Admin."),
+          bundle: .module)
+      }
       .task { await viewModel.load() }
   }
 
@@ -68,6 +93,29 @@ struct GroupView: View {
         Section {
           ForEach(group.members) { member in
             MemberRow(member: member, isMe: member.id == group.myMemberID)
+              .swipeActions {
+                if viewModel.canMakeAdmin(member) {
+                  Button {
+                    promoting = member
+                  } label: {
+                    Text(LocalizedStringKey(Self.makeAdmin), bundle: .module)
+                  }
+                  .tint(.blue)
+                }
+              }
+              .accessibilityAction(named: Text(LocalizedStringKey(Self.makeAdmin), bundle: .module)) {
+                if viewModel.canMakeAdmin(member) { promoting = member }
+              }
+          }
+          Button {
+            addMember = AddMemberViewModel(groupID: group.id, repository: viewModel.repository)
+          } label: {
+            Label {
+              Text(LocalizedStringKey(AddMemberView.title), bundle: .module)
+            } icon: {
+              Image(systemName: "person.badge.plus").accessibilityHidden(true)
+            }
+            .frame(minHeight: 44)
           }
         } header: {
           Text(LocalizedStringKey(Self.members), bundle: .module)
@@ -79,9 +127,13 @@ struct GroupView: View {
 
   nonisolated static let rename = "Rename"
   nonisolated static let renameTitle = "Rename Group"
-  nonisolated static let renameFailed = "Couldn't rename"
+  nonisolated static let renameFailed = "Couldn't make the change"
+  nonisolated static let makeAdmin = "Make Admin"
+  nonisolated static let makeAdminTitle = "Make this Member an Admin?"
+  nonisolated static let makeAdminMessage = "%@ will be able to rename the Group, remove Members and grant Admin."
   nonisolated static let members = "Members"
-  nonisolated static let allKeys = [rename, renameTitle, renameFailed, members] + MemberRow.allKeys
+  nonisolated static let allKeys =
+    [rename, renameTitle, renameFailed, members, makeAdmin, makeAdminTitle, makeAdminMessage] + MemberRow.allKeys
 }
 
 /// One Member, with Admin, Placeholder and "you" badges.

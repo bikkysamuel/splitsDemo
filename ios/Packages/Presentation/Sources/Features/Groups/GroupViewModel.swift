@@ -9,12 +9,13 @@ import Observation
 public final class GroupViewModel {
   public let groupID: UUID
   private(set) var state: LoadState<Domain.Group> = .loading
-  /// A failed rename's message key.
+  /// A failed change's message key (rename, grant Admin).
   private(set) var renameError: String?
   public private(set) var isRenaming = false
 
-  private let repository: any GroupsRepository
+  let repository: any GroupsRepository
   private var renameKeys = WriteKeys<[String]>()
+  private var adminKeys = WriteKeys<[String]>()
 
   public init(groupID: UUID, repository: any GroupsRepository) {
     self.groupID = groupID
@@ -50,4 +51,26 @@ public final class GroupViewModel {
   }
 
   func dismissRenameError() { renameError = nil }
+
+  /// Shows a Member just added, then reloads for the server's view.
+  func didAdd(_ member: Member) async {
+    await load()
+  }
+
+  /// Whether the signed-in User may make `member` an Admin.
+  func canMakeAdmin(_ member: Member) -> Bool { canRename && member.canBecomeAdmin }
+
+  /// Makes a Member an Admin (Admins only, FR-G3), then reloads.
+  public func makeAdmin(_ member: Member) async {
+    guard let group = state.value else { return }
+    let key = adminKeys.key(for: [member.id.uuidString, String(member.version)])
+    do {
+      _ = try await repository.makeAdmin(groupID: group.id, memberID: member.id, version: member.version, key: key)
+      adminKeys.succeeded()
+      renameError = nil
+    } catch {
+      renameError = ServiceErrorMessage.key(for: error)
+    }
+    await load()
+  }
 }

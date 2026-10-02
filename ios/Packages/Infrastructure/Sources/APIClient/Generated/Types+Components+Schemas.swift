@@ -96,6 +96,9 @@ extension Components {
         /// - `version-conflict`: the resource changed since the `version` sent; reload it (409).
         /// - `group-limit-reached`: the User is already in 200 Groups (409).
         /// - `invalid-cursor`: the `cursor` is not one the server gave (400).
+        /// - `member-limit-reached`: the Group already has 50 Members (409).
+        /// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+        /// - `group-closed`: the Group is Closed and read-only (409).
         /// - `internal`: an unexpected server failure (500).
         ///
         ///
@@ -667,6 +670,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Member/join_seq`.
             public var joinSeq: Swift.Int32
+            /// Send it back when changing the Member (NFR-R4).
+            ///
+            /// - Remark: Generated from `#/components/schemas/Member/version`.
+            public var version: Swift.Int32
             /// Creates a new `Member`.
             ///
             /// - Parameters:
@@ -676,13 +683,15 @@ extension Components {
             ///   - status:
             ///   - placeholder:
             ///   - joinSeq: Order of joining; breaks rounding ties (ADR-0010).
+            ///   - version: Send it back when changing the Member (NFR-R4).
             public init(
                 id: Swift.String,
                 displayName: Swift.String,
                 role: Components.Schemas.MemberRole,
                 status: Components.Schemas.MemberStatus,
                 placeholder: Swift.Bool,
-                joinSeq: Swift.Int32
+                joinSeq: Swift.Int32,
+                version: Swift.Int32
             ) {
                 self.id = id
                 self.displayName = displayName
@@ -690,6 +699,7 @@ extension Components {
                 self.status = status
                 self.placeholder = placeholder
                 self.joinSeq = joinSeq
+                self.version = version
             }
             public enum CodingKeys: String, CodingKey {
                 case id
@@ -698,6 +708,7 @@ extension Components {
                 case status
                 case placeholder
                 case joinSeq = "join_seq"
+                case version
             }
             public init(from decoder: any Swift.Decoder) throws {
                 let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -725,13 +736,18 @@ extension Components {
                     Swift.Int32.self,
                     forKey: .joinSeq
                 )
+                self.version = try container.decode(
+                    Swift.Int32.self,
+                    forKey: .version
+                )
                 try decoder.ensureNoAdditionalProperties(knownKeys: [
                     "id",
                     "display_name",
                     "role",
                     "status",
                     "placeholder",
-                    "join_seq"
+                    "join_seq",
+                    "version"
                 ])
             }
         }
@@ -886,6 +902,98 @@ extension Components {
                     "name",
                     "currency",
                     "display_name"
+                ])
+            }
+        }
+        /// Add-Member input (FR-M1, FR-M2).
+        ///
+        /// - Remark: Generated from `#/components/schemas/AddMemberRequest`.
+        public struct AddMemberRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/AddMemberRequest/display_name`.
+            public var displayName: Components.Schemas.DisplayName
+            /// Optional. Field error codes: `invalid`, `taken` (already in
+            /// this Group).
+            ///
+            ///
+            /// - Remark: Generated from `#/components/schemas/AddMemberRequest/email`.
+            public var email: Swift.String?
+            /// Creates a new `AddMemberRequest`.
+            ///
+            /// - Parameters:
+            ///   - displayName:
+            ///   - email: Optional. Field error codes: `invalid`, `taken` (already in
+            public init(
+                displayName: Components.Schemas.DisplayName,
+                email: Swift.String? = nil
+            ) {
+                self.displayName = displayName
+                self.email = email
+            }
+            public enum CodingKeys: String, CodingKey {
+                case displayName = "display_name"
+                case email
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.displayName = try container.decode(
+                    Components.Schemas.DisplayName.self,
+                    forKey: .displayName
+                )
+                self.email = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .email
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "display_name",
+                    "email"
+                ])
+            }
+        }
+        /// Grant-Admin input (FR-G3).
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateMemberRequest`.
+        public struct UpdateMemberRequest: Codable, Hashable, Sendable {
+            /// Only `admin` can be set; Admin rights aren't taken away in v1.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMemberRequest/role`.
+            @frozen public enum RolePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case admin = "admin"
+            }
+            /// Only `admin` can be set; Admin rights aren't taken away in v1.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMemberRequest/role`.
+            public var role: Components.Schemas.UpdateMemberRequest.RolePayload
+            /// - Remark: Generated from `#/components/schemas/UpdateMemberRequest/version`.
+            public var version: Swift.Int32
+            /// Creates a new `UpdateMemberRequest`.
+            ///
+            /// - Parameters:
+            ///   - role: Only `admin` can be set; Admin rights aren't taken away in v1.
+            ///   - version:
+            public init(
+                role: Components.Schemas.UpdateMemberRequest.RolePayload,
+                version: Swift.Int32
+            ) {
+                self.role = role
+                self.version = version
+            }
+            public enum CodingKeys: String, CodingKey {
+                case role
+                case version
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.role = try container.decode(
+                    Components.Schemas.UpdateMemberRequest.RolePayload.self,
+                    forKey: .role
+                )
+                self.version = try container.decode(
+                    Swift.Int32.self,
+                    forKey: .version
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "role",
+                    "version"
                 ])
             }
         }

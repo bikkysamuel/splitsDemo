@@ -39,7 +39,7 @@ func (r *GroupsRepository) CreateGroup(ctx context.Context, g groups.NewGroup, m
 		if err != nil {
 			return fmt.Errorf("insert group: %w", err)
 		}
-		err = q.InsertMember(ctx, sqlcgen.InsertMemberParams{
+		_, err = q.InsertMember(ctx, sqlcgen.InsertMemberParams{
 			ID: uuid(g.MemberID), GroupID: uuid(g.ID), UserID: uuid(g.CreatorID),
 			DisplayName: g.DisplayName, Role: string(groups.RoleAdmin), Now: timestamptz(g.Now),
 		})
@@ -72,10 +72,7 @@ func (r *GroupsRepository) GroupForUser(ctx context.Context, groupID, userID pla
 		Members:    make([]groups.Member, len(rows)),
 	}
 	for i, m := range rows {
-		g.Members[i] = groups.Member{
-			ID: id(m.ID), UserID: optionalID(m.UserID), DisplayName: m.DisplayName,
-			Role: groups.Role(m.Role), Status: groups.MemberStatus(m.Status), JoinSeq: int(m.JoinSeq),
-		}
+		g.Members[i] = member(m.ID, m.UserID, m.DisplayName, m.Role, m.Status, m.JoinSeq, m.Version)
 	}
 	return g, nil
 }
@@ -107,6 +104,104 @@ func (r *GroupsRepository) RenameGroup(ctx context.Context, groupID platform.ID,
 		return groups.ErrVersionConflict
 	}
 	return nil
+}
+
+// AddMember implements groups.Repository.
+func (r *GroupsRepository) AddMember(ctx context.Context, m groups.NewMember, maxMembers int) (groups.Member, error) {
+	var added groups.Member
+	err := r.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		state, err := q.LockGroup(ctx, uuid(m.GroupID))
+		if err != nil {
+			return fmt.Errorf("lock group: %w", err)
+		}
+		if groups.State(state) == groups.StateClosed {
+			return groups.ErrGroupClosed
+		}
+		n, err := q.CountMembers(ctx, uuid(m.GroupID))
+		if err != nil {
+			return fmt.Errorf("count members: %w", err)
+		}
+		if n >= int64(maxMembers) {
+			return groups.ErrMemberLimit
+		}
+		var taken []groups.FieldError
+		nameTaken, err := q.DisplayNameExists(ctx, sqlcgen.DisplayNameExistsParams{GroupID: uuid(m.GroupID), DisplayName: m.DisplayName})
+		if err != nil {
+			return fmt.Errorf("check display name: %w", err)
+		}
+		if nameTaken {
+			taken = append(taken, groups.FieldError{Field: "display_name", Code: groups.CodeTaken})
+		}
+		var userID pgtype.UUID
+		email := pgtype.Text{}
+		if m.Email != nil {
+			emailTaken, err := q.MemberEmailOrUserExists(ctx, sqlcgen.MemberEmailOrUserExistsParams{GroupID: uuid(m.GroupID), Email: pgtype.Text{String: *m.Email, Valid: true}})
+			if err != nil {
+				return fmt.Errorf("check email: %w", err)
+			}
+			if emailTaken {
+				taken = append(taken, groups.FieldError{Field: "email", Code: groups.CodeTaken})
+			}
+			userID, err = q.VerifiedUserIDByEmail(ctx, *m.Email)
+			switch {
+			case isNoRows(err):
+				// No verified User: a Placeholder carrying the email (ADR-0017).
+				email = pgtype.Text{String: *m.Email, Valid: true}
+			case err != nil:
+				return fmt.Errorf("find user by email: %w", err)
+			}
+		}
+		if len(taken) > 0 {
+			return &groups.ValidationError{Fields: taken}
+		}
+		row, err := q.InsertMember(ctx, sqlcgen.InsertMemberParams{
+			ID: uuid(m.ID), GroupID: uuid(m.GroupID), UserID: userID, DisplayName: m.DisplayName,
+			Email: email, Role: string(groups.RoleMember), Now: timestamptz(m.Now),
+		})
+		if err != nil {
+			return fmt.Errorf("insert member: %w", err)
+		}
+		added = member(row.ID, row.UserID, row.DisplayName, row.Role, row.Status, row.JoinSeq, row.Version)
+		return nil
+	})
+	return added, err
+}
+
+// MakeAdmin implements groups.Repository.
+func (r *GroupsRepository) MakeAdmin(ctx context.Context, groupID, memberID platform.ID, version int, now time.Time) (groups.Member, error) {
+	var updated groups.Member
+	err := r.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		cur, err := q.MemberInGroup(ctx, sqlcgen.MemberInGroupParams{GroupID: uuid(groupID), ID: uuid(memberID)})
+		if isNoRows(err) {
+			return groups.ErrNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("select member: %w", err)
+		}
+		if !cur.UserID.Valid || groups.MemberStatus(cur.Status) != groups.StatusActive {
+			return groups.ErrMemberNotEligible
+		}
+		row, err := q.SetMemberRole(ctx, sqlcgen.SetMemberRoleParams{
+			Role: string(groups.RoleAdmin), Now: timestamptz(now), GroupID: uuid(groupID), ID: uuid(memberID),
+			Version: int32(version), //nolint:gosec // a version
+		})
+		if isNoRows(err) {
+			return groups.ErrVersionConflict
+		}
+		if err != nil {
+			return fmt.Errorf("set member role: %w", err)
+		}
+		updated = member(row.ID, row.UserID, row.DisplayName, row.Role, row.Status, row.JoinSeq, row.Version)
+		return nil
+	})
+	return updated, err
+}
+
+func member(memberID, userID pgtype.UUID, displayName, role, status string, joinSeq, version int32) groups.Member {
+	return groups.Member{
+		ID: id(memberID), UserID: optionalID(userID), DisplayName: displayName,
+		Role: groups.Role(role), Status: groups.MemberStatus(status), JoinSeq: int(joinSeq), Version: int(version),
+	}
 }
 
 func optionalID(u pgtype.UUID) *platform.ID {

@@ -22,7 +22,7 @@ struct StringCatalogTests {
     #expect(isInCatalog(key))
   }
 
-  @Test(arguments: GroupKeys.all + CommonKeys.all + CreateGroupView.allKeys + GroupView.allKeys)
+  @Test(arguments: GroupKeys.all + CommonKeys.all + CreateGroupView.allKeys + GroupView.allKeys + AddMemberView.allKeys)
   func everyGroupScreenStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))
   }

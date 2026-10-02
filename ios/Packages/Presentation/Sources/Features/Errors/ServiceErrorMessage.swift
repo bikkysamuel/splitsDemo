@@ -31,6 +31,9 @@ enum ServiceErrorMessage {
     case .notFound: "This isn't available to you."
     case .versionConflict: "Someone else changed this just now. Reload and try again."
     case .groupLimitReached: "You're already in 200 Groups, the most allowed."
+    case .memberLimitReached: "This Group already has 50 Members, the most allowed."
+    case .memberNotEligible: "Only a Member who has an account can be an Admin."
+    case .groupClosed: "This Group is closed. Reopen it to make changes."
     case .invalidRequest, .idempotencyKeyRequired, .idempotencyKeyInProgress, .idempotencyKeyReused, .notReady,
       .internal, .invalidCursor:
       generic
@@ -41,6 +44,7 @@ enum ServiceErrorMessage {
   static func key(for issue: FieldIssue) -> String {
     switch (issue.field, issue.reason) {
     case ("email", .required): "Enter your email address."
+    case ("email", .taken): "Someone in this Group already has this email."
     case ("email", _): "Enter a valid email address."
     case ("password", .required): "Enter a password."
     case ("password", .tooShort): "Use at least 10 characters."
