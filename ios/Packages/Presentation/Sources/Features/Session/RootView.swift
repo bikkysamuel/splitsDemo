@@ -21,12 +21,30 @@ public struct RootView: View {
         }
         // A new User gets a fresh screen, not the previous one's code.
         .id(user.id)
-      case .signedIn:
-        MainTabView()
+      case .signedIn(let user):
+        MainTabView(user: user, session: session)
       }
     }
     .task { await session.start() }
+    .task { await session.observeSessionExpirations() }
+    .alert(
+      Text(LocalizedStringKey(Self.expiredTitle), bundle: .module),
+      isPresented: Binding(get: { session.showsSessionExpired }, set: { if !$0 { session.dismissSessionExpired() } })
+    ) {
+      Button {
+        session.dismissSessionExpired()
+      } label: {
+        Text(LocalizedStringKey(Self.okKey), bundle: .module)
+      }
+    } message: {
+      Text(LocalizedStringKey(Self.expiredMessage), bundle: .module)
+    }
   }
+
+  nonisolated static let expiredTitle = "Session expired"
+  nonisolated static let expiredMessage = "Sign in again to continue."
+  nonisolated static let okKey = "OK"
+  nonisolated static let allKeys = [expiredTitle, expiredMessage, okKey]
 }
 
 /// Shown while the saved Session is checked. A failed check stays here

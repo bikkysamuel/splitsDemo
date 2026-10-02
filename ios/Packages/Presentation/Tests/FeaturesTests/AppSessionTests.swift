@@ -76,7 +76,7 @@ struct AppSessionTests {
     #expect(session.state == expected)
   }
 
-  @Test func usingAnotherAccountForgetsTheSession() async {
+  @Test func usingAnotherAccountSignsOut() async {
     let repository = FakeAuthRepository()
     let session = AppSession(repository: repository)
     session.didAuthenticate(.unverified)
@@ -84,6 +84,57 @@ struct AppSessionTests {
     await session.useAnotherAccount()
 
     #expect(session.state == .signedOut)
-    #expect(await repository.forgotSession)
+    #expect(await repository.signedOut)
+  }
+
+  @Test func signingOutReturnsToSignIn() async {
+    let repository = FakeAuthRepository()
+    let session = AppSession(repository: repository)
+    session.didAuthenticate(.verified)
+
+    await session.signOut()
+
+    #expect(session.state == .signedOut)
+    #expect(await repository.signedOut)
+    #expect(!session.showsSessionExpired)
+  }
+
+  // FR-U2: a failed refresh shows one "session expired" alert and returns
+  // to sign-in.
+  @Test func anExpiredSessionShowsTheAlertAndReturnsToSignIn() async throws {
+    let repository = FakeAuthRepository()
+    let session = AppSession(repository: repository)
+    session.didAuthenticate(.verified)
+    let observing = Task { await session.observeSessionExpirations() }
+    defer { observing.cancel() }
+
+    repository.expireSession()
+    try await waitUntil { session.state == .signedOut }
+
+    #expect(session.showsSessionExpired)
+    session.dismissSessionExpired()
+    #expect(!session.showsSessionExpired)
+  }
+
+  // Already signed out (say, the User signed out while a request failed):
+  // no alert.
+  @Test func anExpiryAfterSigningOutShowsNoAlert() async throws {
+    let repository = FakeAuthRepository()
+    let session = AppSession(repository: repository)
+    await session.start()
+    let observing = Task { await session.observeSessionExpirations() }
+    defer { observing.cancel() }
+
+    repository.expireSession()
+    try await Task.sleep(for: .milliseconds(50))
+
+    #expect(!session.showsSessionExpired)
+  }
+
+  private func waitUntil(_ condition: () -> Bool) async throws {
+    for _ in 0..<100 where !condition() {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    #expect(condition())
   }
 }

@@ -514,8 +514,10 @@ func TestBearerAuthMatchesTheContract(t *testing.T) {
 			resp := srv.Do(t, op.Method, op.Path, []byte(`{}`), "Content-Type", "application/json")
 			if op.BearerAuth {
 				wantProblem(t, resp, http.StatusUnauthorized, "unauthenticated")
-			} else if resp.StatusCode == http.StatusUnauthorized && resp.ProblemType(t) == "unauthenticated" {
-				t.Errorf("public operation answered unauthenticated")
+			} else if resp.Header.Get("WWW-Authenticate") != "" {
+				// A public operation may answer 401 itself (refresh does), but
+				// never with the middleware's Bearer challenge.
+				t.Errorf("public operation asked for a Bearer token")
 			}
 		})
 	}

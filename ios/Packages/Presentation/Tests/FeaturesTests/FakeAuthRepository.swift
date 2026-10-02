@@ -15,7 +15,16 @@ actor FakeAuthRepository: AuthRepository {
   var signInResult: Result<User, ServiceError> = .success(.verified)
   var currentUserResult: Result<User?, ServiceError> = .success(nil)
   private(set) var calls: [Call] = []
-  private(set) var forgotSession = false
+  private(set) var signedOut = false
+  nonisolated let sessionExpirations: AsyncStream<Void>
+  private nonisolated let expirationsContinuation: AsyncStream<Void>.Continuation
+
+  init() {
+    (sessionExpirations, expirationsContinuation) = AsyncStream.makeStream(of: Void.self)
+  }
+
+  /// Ends the Session as a failed refresh would.
+  nonisolated func expireSession() { expirationsContinuation.yield() }
 
   func set(signUp: Result<User, ServiceError>) { signUpResult = signUp }
   func set(verify: Result<User, ServiceError>) { verifyResult = verify }
@@ -48,8 +57,8 @@ actor FakeAuthRepository: AuthRepository {
     return try currentUserResult.get()
   }
 
-  func forgetSession() async {
-    forgotSession = true
+  func signOut() async {
+    signedOut = true
   }
 }
 

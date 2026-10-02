@@ -12,8 +12,14 @@ public protocol AuthRepository: Sendable {
   /// Signs in. The returned User may still be unverified.
   func signIn(email: String, password: String) async throws(ServiceError) -> User
   /// The User of the saved Session (FR-U1), or `nil` when there is none or
-  /// the server no longer accepts it, in which case it is forgotten.
+  /// the server no longer accepts it (even after a refresh), in which case
+  /// it is forgotten.
   func currentUser() async throws(ServiceError) -> User?
-  /// Forgets the saved Session on this device.
-  func forgetSession() async
+  /// Signs out: revokes the Session on the server when it can be reached,
+  /// and forgets it on this device either way.
+  func signOut() async
+  /// Yields once each time the saved Session ends because a refresh failed
+  /// (FR-U2). Simultaneous failures share one refresh, so they yield once.
+  /// Single consumer: the app-level session.
+  var sessionExpirations: AsyncStream<Void> { get }
 }

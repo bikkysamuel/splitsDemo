@@ -26,6 +26,7 @@ public enum ProblemKind: String, CaseIterable, Sendable {
   case idempotencyKeyInProgress = "idempotency-key-in-progress"
   case requestTooLarge = "request-too-large"
   case idempotencyKeyReused = "idempotency-key-reused"
+  case tooManyAttempts = "too-many-attempts"
   case notReady = "not-ready"
   case `internal`
 }

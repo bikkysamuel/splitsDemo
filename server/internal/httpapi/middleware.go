@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -27,12 +28,14 @@ var publicRoutes = map[string]bool{
 	"POST /v1/auth/verify-email":        true,
 	"POST /v1/auth/verify-email/resend": true,
 	"POST /v1/auth/signin":              true,
+	"POST /v1/auth/refresh":             true,
 }
 
 // unverifiedRoutes are the protected routes a User whose email is not yet
 // verified may call (FR-A2): only the launch check.
 var unverifiedRoutes = map[string]bool{
-	"GET /v1/me": true,
+	"GET /v1/me":            true,
+	"POST /v1/auth/signout": true,
 }
 
 var requestIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
@@ -46,7 +49,8 @@ func (s *Server) withRequestID(next http.Handler) http.Handler {
 			id = s.deps.IDs.New().String()
 		}
 		w.Header().Set("X-Request-ID", id)
-		next.ServeHTTP(w, r.WithContext(platform.WithRequestID(r.Context(), id)))
+		ctx := platform.WithRequestID(r.Context(), id)
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, clientIPKey{}, remoteIP(r))))
 	})
 }
 
@@ -156,6 +160,24 @@ func bearerToken(r *http.Request) (string, bool) {
 func writeUnauthenticated(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", "Bearer")
 	writeProblem(w, problemUnauthenticated.problem(""))
+}
+
+type clientIPKey struct{}
+
+// clientIP is the address the request came from, for login throttling. The
+// server runs locally without a proxy, so it is the TCP peer; trusting a
+// forwarding header comes with a host (doc 08, before production).
+func clientIP(ctx context.Context) string {
+	ip, _ := ctx.Value(clientIPKey{}).(string)
+	return ip
+}
+
+func remoteIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 type principalKey struct{}

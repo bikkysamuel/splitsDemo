@@ -19,6 +19,14 @@ type IdempotencyKey struct {
 	CreatedAt           pgtype.Timestamptz
 }
 
+type LoginThrottle struct {
+	Scope         string
+	Key           []byte
+	Failures      int32
+	LastFailureAt pgtype.Timestamptz
+	NextAllowedAt pgtype.Timestamptz
+}
+
 type OneTimeCode struct {
 	ID         pgtype.UUID
 	UserID     pgtype.UUID
@@ -40,6 +48,7 @@ type Session struct {
 	ReplacedBy       pgtype.UUID
 	RevokedAt        pgtype.Timestamptz
 	CreatedAt        pgtype.Timestamptz
+	FamilyID         pgtype.UUID
 }
 
 type User struct {

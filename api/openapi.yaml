@@ -189,6 +189,13 @@ paths:
         Email and password → a new Session. An unverified User gets a Session
         too, with `user.email_verified` false, and goes to verification. A
         wrong email or password answers the same `invalid-credentials`.
+
+        After 5 failures, per account and per client IP, each further failure
+        makes the next attempt wait longer: 1 s, then doubling, at most
+        15 minutes. An attempt before then answers `too-many-attempts` with
+        `Retry-After`, without checking the password. There is no lockout:
+        the wait always ends, a successful sign-in clears the account's
+        count, and an hour without failures clears both (FR-A4).
       tags: [auth]
       requestBody:
         description: The User's email and password.
@@ -222,6 +229,80 @@ paths:
           $ref: "#/components/responses/InvalidCredentials"
         "413":
           $ref: "#/components/responses/RequestTooLarge"
+        "429":
+          $ref: "#/components/responses/TooManyAttempts"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/auth/refresh:
+    post:
+      operationId: refreshSession
+      summary: Refresh the Session
+      description: |
+        Exchanges the refresh token for a new token pair (ADR-0011). The old
+        pair stops working at once. Presenting a refresh token that was
+        already exchanged is taken as theft: the whole Session is revoked
+        and every token of it answers `unauthenticated`. An expired,
+        revoked or unknown refresh token answers `unauthenticated` too.
+      tags: [auth]
+      requestBody:
+        description: The Session's current refresh token.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshSessionRequest"
+            example:
+              refresh_token: vu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      responses:
+        "200":
+          description: The new token pair.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+              example:
+                user:
+                  id: 0190b6c4-0000-7000-8000-000000000001
+                  email: alice@example.com
+                  email_verified: true
+                access_token: 3q2-7wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                access_expires_at: "2026-10-01T09:15:00Z"
+                refresh_token: vu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                refresh_expires_at: "2026-10-31T09:00:00Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/auth/signout:
+    post:
+      operationId: signOut
+      summary: Sign out
+      description: |
+        Revokes the Session the access token belongs to: its access and
+        refresh tokens stop working (ADR-0011). Works for unverified Users
+        too.
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Signed out.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          $ref: "#/components/responses/IdempotencyKeyInProgress"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "422":
+          $ref: "#/components/responses/IdempotencyKeyReused"
         "500":
           $ref: "#/components/responses/InternalError"
   /v1/me:
@@ -315,6 +396,7 @@ components:
         - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
         - `request-too-large`: the request body is over 64 KB (413).
         - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+        - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
         - `internal`: an unexpected server failure (500).
       type: object
       required: [type, title, status]
@@ -426,6 +508,17 @@ components:
           type: string
           maxLength: 1024
           examples: ["correct horse battery"]
+
+    RefreshSessionRequest:
+      description: Refresh input (ADR-0011).
+      type: object
+      required: [refresh_token]
+      additionalProperties: false
+      properties:
+        refresh_token:
+          type: string
+          maxLength: 128
+          examples: ["vu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
 
     User:
       description: A User's own profile.
@@ -578,6 +671,24 @@ components:
             type: https://splits.dev/problems/idempotency-key-reused
             title: Idempotency key reused
             status: 422
+    TooManyAttempts:
+      description: Too many failed sign-ins; wait before trying again.
+      headers:
+        Retry-After:
+          description: Seconds to wait before the next attempt.
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          example: 4
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            type: https://splits.dev/problems/too-many-attempts
+            title: Too many attempts
+            status: 429
     IdempotencyKeyInProgress:
       description: A request with the same Idempotency-Key is still being processed.
       content:

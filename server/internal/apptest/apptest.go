@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -32,6 +33,9 @@ type Server struct {
 	DatabaseURL string
 	proxy       *pgtest.Proxy
 	logs        *syncBuffer
+	// otherURL serves the same app on IPv6 loopback, so tests can send
+	// requests from a second client IP; "" when ::1 is unavailable.
+	otherURL string
 }
 
 // Start migrates a fresh schema, wires the server and serves it over HTTP
@@ -65,7 +69,28 @@ func Start(t testing.TB) *Server {
 
 	ts := httptest.NewServer(a.Handler())
 	t.Cleanup(ts.Close)
-	return &Server{URL: ts.URL, Clock: clock, DatabaseURL: databaseURL, proxy: proxy, logs: logs}
+	srv := &Server{URL: ts.URL, Clock: clock, DatabaseURL: databaseURL, proxy: proxy, logs: logs}
+	if ln, err := net.Listen("tcp", "[::1]:0"); err == nil {
+		other := httptest.NewUnstartedServer(a.Handler())
+		other.Listener = ln
+		other.Start()
+		t.Cleanup(other.Close)
+		srv.otherURL = other.URL
+	}
+	return srv
+}
+
+// FromOtherIP returns the same server reached from a second client IP
+// (IPv6 loopback instead of 127.0.0.1), for per-IP rules such as login
+// throttling. The test is skipped where ::1 is unavailable.
+func (s *Server) FromOtherIP(t testing.TB) *Server {
+	t.Helper()
+	if s.otherURL == "" {
+		t.Skip("IPv6 loopback (::1) is unavailable")
+	}
+	other := *s
+	other.URL = s.otherURL
+	return &other
 }
 
 // Response is an HTTP response with its body fully read.

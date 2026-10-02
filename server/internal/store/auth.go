@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bikkysamuel/splitsDemo/server/internal/auth"
 	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
@@ -91,6 +92,7 @@ func (r *AuthRepository) SessionByAccessHash(ctx context.Context, hash []byte) (
 	}
 	return auth.SessionRecord{
 		ID:              id(row.ID),
+		FamilyID:        id(row.FamilyID),
 		UserID:          id(row.UserID),
 		EmailVerified:   row.EmailVerifiedAt.Valid,
 		AccessExpiresAt: row.AccessExpiresAt.Time,
@@ -146,6 +148,94 @@ func (r *AuthRepository) CompleteEmailVerification(ctx context.Context, codeID p
 	})
 }
 
+// RotateSession implements auth.Repository.
+func (r *AuthRepository) RotateSession(ctx context.Context, refreshHash []byte, now time.Time, next auth.NewSession) (auth.User, error) {
+	var user auth.User
+	reused := false
+	err := r.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		row, err := q.SessionByRefreshHashForUpdate(ctx, refreshHash)
+		if isNoRows(err) {
+			return auth.ErrNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("select session by refresh hash: %w", err)
+		}
+		if row.ReplacedBy.Valid {
+			// Theft signal (ADR-0011): end the whole Session, and keep that
+			// even though the caller gets an error.
+			if err := q.RevokeSessionFamily(ctx, sqlcgen.RevokeSessionFamilyParams{Now: timestamptz(now), FamilyID: row.FamilyID}); err != nil {
+				return fmt.Errorf("revoke session family: %w", err)
+			}
+			reused = true
+			return nil
+		}
+		if row.RevokedAt.Valid || !now.Before(row.RefreshExpiresAt.Time) {
+			return auth.ErrUnauthenticated
+		}
+		next.FamilyID = id(row.FamilyID)
+		next.UserID = id(row.UserID)
+		if err := insertSession(ctx, q, next); err != nil {
+			return err
+		}
+		if err := q.MarkSessionReplaced(ctx, sqlcgen.MarkSessionReplacedParams{
+			ReplacedBy: uuid(next.ID), Now: timestamptz(now), ID: row.ID,
+		}); err != nil {
+			return fmt.Errorf("mark session replaced: %w", err)
+		}
+		user = auth.User{ID: id(row.UserID), Email: row.Email, EmailVerified: row.EmailVerifiedAt.Valid}
+		return nil
+	})
+	if err == nil && reused {
+		return auth.User{}, auth.ErrRefreshReused
+	}
+	return user, err
+}
+
+// RevokeSession implements auth.Repository.
+func (r *AuthRepository) RevokeSession(ctx context.Context, familyID platform.ID, now time.Time) error {
+	err := sqlcgen.New(r.db.pool).RevokeSessionFamily(ctx, sqlcgen.RevokeSessionFamilyParams{Now: timestamptz(now), FamilyID: uuid(familyID)})
+	if err != nil {
+		return fmt.Errorf("revoke session family: %w", err)
+	}
+	return nil
+}
+
+// UpdateLoginThrottle implements auth.Repository.
+func (r *AuthRepository) UpdateLoginThrottle(ctx context.Context, k auth.ThrottleKey, update func(auth.ThrottleRecord) auth.ThrottleRecord) error {
+	return r.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		if err := q.EnsureLoginThrottle(ctx, sqlcgen.EnsureLoginThrottleParams{Scope: string(k.Scope), Key: k.Key}); err != nil {
+			return fmt.Errorf("ensure login throttle: %w", err)
+		}
+		row, err := q.LoginThrottleForUpdate(ctx, sqlcgen.LoginThrottleForUpdateParams{Scope: string(k.Scope), Key: k.Key})
+		if err != nil {
+			return fmt.Errorf("lock login throttle: %w", err)
+		}
+		next := update(auth.ThrottleRecord{
+			Failures: int(row.Failures), LastFailureAt: row.LastFailureAt.Time, NextAllowedAt: row.NextAllowedAt.Time,
+		})
+		err = q.UpdateLoginThrottle(ctx, sqlcgen.UpdateLoginThrottleParams{
+			Failures:      int32(next.Failures), //nolint:gosec // a small count
+			LastFailureAt: timestamptz(next.LastFailureAt),
+			NextAllowedAt: timestamptz(next.NextAllowedAt),
+			Scope:         string(k.Scope),
+			Key:           k.Key,
+		})
+		if err != nil {
+			return fmt.Errorf("update login throttle: %w", err)
+		}
+		return nil
+	})
+}
+
+// ClearLoginThrottle implements auth.Repository.
+func (r *AuthRepository) ClearLoginThrottle(ctx context.Context, k auth.ThrottleKey) error {
+	err := sqlcgen.New(r.db.pool).ClearLoginThrottle(ctx, sqlcgen.ClearLoginThrottleParams{Scope: string(k.Scope), Key: k.Key})
+	if err != nil {
+		return fmt.Errorf("clear login throttle: %w", err)
+	}
+	return nil
+}
+
 func replaceCode(ctx context.Context, q *sqlcgen.Queries, c auth.NewCode) error {
 	if err := q.DeleteUserCodes(ctx, sqlcgen.DeleteUserCodesParams{UserID: uuid(c.UserID), Purpose: string(c.Purpose)}); err != nil {
 		return fmt.Errorf("delete codes: %w", err)
@@ -167,6 +257,7 @@ func replaceCode(ctx context.Context, q *sqlcgen.Queries, c auth.NewCode) error 
 func insertSession(ctx context.Context, q *sqlcgen.Queries, s auth.NewSession) error {
 	err := q.InsertSession(ctx, sqlcgen.InsertSessionParams{
 		ID:               uuid(s.ID),
+		FamilyID:         uuid(s.FamilyID),
 		UserID:           uuid(s.UserID),
 		AccessHash:       s.AccessHash,
 		AccessExpiresAt:  timestamptz(s.AccessExpiresAt),

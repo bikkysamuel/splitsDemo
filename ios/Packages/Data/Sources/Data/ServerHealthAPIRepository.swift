@@ -7,7 +7,7 @@ public struct ServerHealthAPIRepository: ServerHealthRepository {
   private let client: Client
 
   public init(configuration: APIConfiguration) {
-    self.init(client: APIClientFactory.makeClient(configuration: configuration))
+    self.init(client: APIClientFactory.makeAnonymousClient(configuration: configuration))
   }
 
   init(client: Client) {

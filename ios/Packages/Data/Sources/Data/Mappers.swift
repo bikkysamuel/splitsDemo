@@ -11,6 +11,15 @@ enum UserMapper {
   }
 }
 
+extension StoredTokens {
+  /// The tokens of a new Session, as saved in the Keychain.
+  init(_ session: Components.Schemas.AuthSession) {
+    self.init(
+      accessToken: session.accessToken, accessExpiresAt: session.accessExpiresAt,
+      refreshToken: session.refreshToken, refreshExpiresAt: session.refreshExpiresAt)
+  }
+}
+
 /// problem+json and transport failures → `ServiceError` (doc 07).
 enum ServiceErrorMapper {
   static let problemTypeBase = "https://splits.dev/problems/"
@@ -37,6 +46,7 @@ enum ServiceErrorMapper {
     var current: any Error = error
     while true {
       if current is URLError { return .unreachable }
+      if let refresh = current as? RefreshUnavailable { return .unexpected(status: refresh.status) }
       if let client = current as? ClientError {
         current = client.underlyingError
         continue

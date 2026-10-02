@@ -17,6 +17,11 @@ struct StringCatalogTests {
     #expect(isInCatalog(key))
   }
 
+  @Test(arguments: SettingsView.allKeys + RootView.allKeys)
+  func everySettingsAndAlertStringIsInTheCatalog(key: String) {
+    #expect(isInCatalog(key))
+  }
+
   @Test(arguments: MainTabView.allKeys)
   func everyTabStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))

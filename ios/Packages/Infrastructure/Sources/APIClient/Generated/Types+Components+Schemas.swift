@@ -90,6 +90,7 @@ extension Components {
         /// - `idempotency-key-in-progress`: a request with the same `Idempotency-Key` is still being processed (409).
         /// - `request-too-large`: the request body is over 64 KB (413).
         /// - `idempotency-key-reused`: the `Idempotency-Key` was used for a different request (422).
+        /// - `too-many-attempts`: too many failed sign-ins; retry after `Retry-After` seconds (429).
         /// - `internal`: an unexpected server failure (500).
         ///
         ///
@@ -347,6 +348,33 @@ extension Components {
                 try decoder.ensureNoAdditionalProperties(knownKeys: [
                     "email",
                     "password"
+                ])
+            }
+        }
+        /// Refresh input (ADR-0011).
+        ///
+        /// - Remark: Generated from `#/components/schemas/RefreshSessionRequest`.
+        public struct RefreshSessionRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/RefreshSessionRequest/refresh_token`.
+            public var refreshToken: Swift.String
+            /// Creates a new `RefreshSessionRequest`.
+            ///
+            /// - Parameters:
+            ///   - refreshToken:
+            public init(refreshToken: Swift.String) {
+                self.refreshToken = refreshToken
+            }
+            public enum CodingKeys: String, CodingKey {
+                case refreshToken = "refresh_token"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.refreshToken = try container.decode(
+                    Swift.String.self,
+                    forKey: .refreshToken
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "refresh_token"
                 ])
             }
         }

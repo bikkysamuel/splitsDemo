@@ -11,6 +11,20 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const clearLoginThrottle = `-- name: ClearLoginThrottle :exec
+DELETE FROM login_throttle WHERE scope = $1 AND key = $2
+`
+
+type ClearLoginThrottleParams struct {
+	Scope string
+	Key   []byte
+}
+
+func (q *Queries) ClearLoginThrottle(ctx context.Context, arg ClearLoginThrottleParams) error {
+	_, err := q.db.Exec(ctx, clearLoginThrottle, arg.Scope, arg.Key)
+	return err
+}
+
 const consumeCode = `-- name: ConsumeCode :one
 UPDATE one_time_codes SET consumed_at = $1
 WHERE id = $2 AND consumed_at IS NULL
@@ -61,6 +75,22 @@ func (q *Queries) DeleteUserCodes(ctx context.Context, arg DeleteUserCodesParams
 	return err
 }
 
+const ensureLoginThrottle = `-- name: EnsureLoginThrottle :exec
+INSERT INTO login_throttle (scope, key, failures, last_failure_at, next_allowed_at)
+VALUES ($1, $2, 0, '-infinity', '-infinity')
+ON CONFLICT (scope, key) DO NOTHING
+`
+
+type EnsureLoginThrottleParams struct {
+	Scope string
+	Key   []byte
+}
+
+func (q *Queries) EnsureLoginThrottle(ctx context.Context, arg EnsureLoginThrottleParams) error {
+	_, err := q.db.Exec(ctx, ensureLoginThrottle, arg.Scope, arg.Key)
+	return err
+}
+
 const insertCode = `-- name: InsertCode :exec
 INSERT INTO one_time_codes (id, user_id, purpose, code_hash, expires_at, created_at)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -88,12 +118,13 @@ func (q *Queries) InsertCode(ctx context.Context, arg InsertCodeParams) error {
 }
 
 const insertSession = `-- name: InsertSession :exec
-INSERT INTO sessions (id, user_id, access_hash, access_expires_at, refresh_hash, refresh_expires_at, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO sessions (id, family_id, user_id, access_hash, access_expires_at, refresh_hash, refresh_expires_at, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type InsertSessionParams struct {
 	ID               pgtype.UUID
+	FamilyID         pgtype.UUID
 	UserID           pgtype.UUID
 	AccessHash       []byte
 	AccessExpiresAt  pgtype.Timestamptz
@@ -105,6 +136,7 @@ type InsertSessionParams struct {
 func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) error {
 	_, err := q.db.Exec(ctx, insertSession,
 		arg.ID,
+		arg.FamilyID,
 		arg.UserID,
 		arg.AccessHash,
 		arg.AccessExpiresAt,
@@ -144,6 +176,30 @@ func (q *Queries) LiveCode(ctx context.Context, arg LiveCodeParams) (LiveCodeRow
 	return i, err
 }
 
+const loginThrottleForUpdate = `-- name: LoginThrottleForUpdate :one
+SELECT failures, last_failure_at, next_allowed_at FROM login_throttle
+WHERE scope = $1 AND key = $2
+FOR UPDATE
+`
+
+type LoginThrottleForUpdateParams struct {
+	Scope string
+	Key   []byte
+}
+
+type LoginThrottleForUpdateRow struct {
+	Failures      int32
+	LastFailureAt pgtype.Timestamptz
+	NextAllowedAt pgtype.Timestamptz
+}
+
+func (q *Queries) LoginThrottleForUpdate(ctx context.Context, arg LoginThrottleForUpdateParams) (LoginThrottleForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, loginThrottleForUpdate, arg.Scope, arg.Key)
+	var i LoginThrottleForUpdateRow
+	err := row.Scan(&i.Failures, &i.LastFailureAt, &i.NextAllowedAt)
+	return i, err
+}
+
 const markEmailVerified = `-- name: MarkEmailVerified :exec
 UPDATE users SET email_verified_at = $1, updated_at = $1, version = version + 1
 WHERE id = $2 AND email_verified_at IS NULL
@@ -156,6 +212,37 @@ type MarkEmailVerifiedParams struct {
 
 func (q *Queries) MarkEmailVerified(ctx context.Context, arg MarkEmailVerifiedParams) error {
 	_, err := q.db.Exec(ctx, markEmailVerified, arg.Now, arg.ID)
+	return err
+}
+
+const markSessionReplaced = `-- name: MarkSessionReplaced :exec
+UPDATE sessions SET replaced_by = $1, revoked_at = $2
+WHERE id = $3
+`
+
+type MarkSessionReplacedParams struct {
+	ReplacedBy pgtype.UUID
+	Now        pgtype.Timestamptz
+	ID         pgtype.UUID
+}
+
+func (q *Queries) MarkSessionReplaced(ctx context.Context, arg MarkSessionReplacedParams) error {
+	_, err := q.db.Exec(ctx, markSessionReplaced, arg.ReplacedBy, arg.Now, arg.ID)
+	return err
+}
+
+const revokeSessionFamily = `-- name: RevokeSessionFamily :exec
+UPDATE sessions SET revoked_at = $1
+WHERE family_id = $2 AND revoked_at IS NULL
+`
+
+type RevokeSessionFamilyParams struct {
+	Now      pgtype.Timestamptz
+	FamilyID pgtype.UUID
+}
+
+func (q *Queries) RevokeSessionFamily(ctx context.Context, arg RevokeSessionFamilyParams) error {
+	_, err := q.db.Exec(ctx, revokeSessionFamily, arg.Now, arg.FamilyID)
 	return err
 }
 
@@ -175,13 +262,14 @@ func (q *Queries) RevokeUserSessions(ctx context.Context, arg RevokeUserSessions
 }
 
 const sessionByAccessHash = `-- name: SessionByAccessHash :one
-SELECT s.id, s.user_id, s.access_expires_at, s.revoked_at, u.email_verified_at
+SELECT s.id, s.family_id, s.user_id, s.access_expires_at, s.revoked_at, u.email_verified_at
 FROM sessions s JOIN users u ON u.id = s.user_id
 WHERE s.access_hash = $1
 `
 
 type SessionByAccessHashRow struct {
 	ID              pgtype.UUID
+	FamilyID        pgtype.UUID
 	UserID          pgtype.UUID
 	AccessExpiresAt pgtype.Timestamptz
 	RevokedAt       pgtype.Timestamptz
@@ -193,12 +281,73 @@ func (q *Queries) SessionByAccessHash(ctx context.Context, accessHash []byte) (S
 	var i SessionByAccessHashRow
 	err := row.Scan(
 		&i.ID,
+		&i.FamilyID,
 		&i.UserID,
 		&i.AccessExpiresAt,
 		&i.RevokedAt,
 		&i.EmailVerifiedAt,
 	)
 	return i, err
+}
+
+const sessionByRefreshHashForUpdate = `-- name: SessionByRefreshHashForUpdate :one
+SELECT s.id, s.family_id, s.user_id, s.refresh_expires_at, s.replaced_by, s.revoked_at,
+       u.email, u.email_verified_at
+FROM sessions s JOIN users u ON u.id = s.user_id
+WHERE s.refresh_hash = $1
+FOR UPDATE OF s
+`
+
+type SessionByRefreshHashForUpdateRow struct {
+	ID               pgtype.UUID
+	FamilyID         pgtype.UUID
+	UserID           pgtype.UUID
+	RefreshExpiresAt pgtype.Timestamptz
+	ReplacedBy       pgtype.UUID
+	RevokedAt        pgtype.Timestamptz
+	Email            string
+	EmailVerifiedAt  pgtype.Timestamptz
+}
+
+func (q *Queries) SessionByRefreshHashForUpdate(ctx context.Context, refreshHash []byte) (SessionByRefreshHashForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, sessionByRefreshHashForUpdate, refreshHash)
+	var i SessionByRefreshHashForUpdateRow
+	err := row.Scan(
+		&i.ID,
+		&i.FamilyID,
+		&i.UserID,
+		&i.RefreshExpiresAt,
+		&i.ReplacedBy,
+		&i.RevokedAt,
+		&i.Email,
+		&i.EmailVerifiedAt,
+	)
+	return i, err
+}
+
+const updateLoginThrottle = `-- name: UpdateLoginThrottle :exec
+UPDATE login_throttle
+SET failures = $1, last_failure_at = $2, next_allowed_at = $3
+WHERE scope = $4 AND key = $5
+`
+
+type UpdateLoginThrottleParams struct {
+	Failures      int32
+	LastFailureAt pgtype.Timestamptz
+	NextAllowedAt pgtype.Timestamptz
+	Scope         string
+	Key           []byte
+}
+
+func (q *Queries) UpdateLoginThrottle(ctx context.Context, arg UpdateLoginThrottleParams) error {
+	_, err := q.db.Exec(ctx, updateLoginThrottle,
+		arg.Failures,
+		arg.LastFailureAt,
+		arg.NextAllowedAt,
+		arg.Scope,
+		arg.Key,
+	)
+	return err
 }
 
 const upsertUnverifiedUser = `-- name: UpsertUnverifiedUser :one

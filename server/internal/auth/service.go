@@ -8,7 +8,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
 )
@@ -159,30 +161,32 @@ func (s *Service) ResendVerificationCode(ctx context.Context, rawEmail string) e
 
 // SignIn checks the email and password and returns a new Session. An
 // unverified User gets one too, and the app takes them to verification.
-func (s *Service) SignIn(ctx context.Context, rawEmail, password string) (Session, error) {
-	email, err := NormalizeEmail(rawEmail)
-	if err != nil {
-		// A malformed email can't belong to an account.
-		return Session{}, ErrInvalidCredentials
+// clientIP is the address the request came from, for throttling. Too many
+// failures return a *ThrottledError without checking the password.
+func (s *Service) SignIn(ctx context.Context, rawEmail, password, clientIP string) (Session, error) {
+	account := ThrottleKey{ThrottleAccount, accountThrottleKey(rawEmail)}
+	ip := ThrottleKey{ThrottleIP, throttleHash(clientIP)}
+	// Each attempt is counted as a failure before the password is checked,
+	// so a burst of parallel guesses can't slip past the wait; a success
+	// takes it back.
+	if err := s.claimAttempt(ctx, account); err != nil {
+		return Session{}, err
 	}
-	user, err := s.deps.Repository.UserByEmail(ctx, email)
-	if errors.Is(err, ErrNotFound) {
-		dummy, err := s.dummyHash()
-		if err != nil {
-			return Session{}, fmt.Errorf("auth: dummy hash: %w", err)
+	if err := s.claimAttempt(ctx, ip); err != nil {
+		if rerr := s.releaseAttempt(ctx, account); rerr != nil {
+			return Session{}, rerr
 		}
-		_, _ = VerifyPassword(dummy, password)
-		return Session{}, ErrInvalidCredentials
+		return Session{}, err
 	}
+	user, err := s.checkCredentials(ctx, rawEmail, password)
 	if err != nil {
-		return Session{}, fmt.Errorf("auth: find user: %w", err)
+		return Session{}, err
 	}
-	ok, err := VerifyPassword(user.PasswordHash, password)
-	if err != nil {
-		return Session{}, fmt.Errorf("auth: verify password of user %s: %w", user.ID, err)
+	if err := s.deps.Repository.ClearLoginThrottle(ctx, account); err != nil {
+		return Session{}, fmt.Errorf("auth: clear login throttle: %w", err)
 	}
-	if !ok {
-		return Session{}, ErrInvalidCredentials
+	if err := s.releaseAttempt(ctx, ip); err != nil {
+		return Session{}, err
 	}
 	session, stored, err := s.newSession(user.ID)
 	if err != nil {
@@ -191,8 +195,138 @@ func (s *Service) SignIn(ctx context.Context, rawEmail, password string) (Sessio
 	if err := s.deps.Repository.CreateSession(ctx, stored); err != nil {
 		return Session{}, fmt.Errorf("auth: create session: %w", err)
 	}
-	session.User = user.User
+	session.User = user
 	return session, nil
+}
+
+// checkCredentials returns the User whose email and password these are, or
+// ErrInvalidCredentials. It takes as long for an unknown email (doc 08).
+func (s *Service) checkCredentials(ctx context.Context, rawEmail, password string) (User, error) {
+	email, err := NormalizeEmail(rawEmail)
+	if err != nil {
+		// A malformed email can't belong to an account.
+		return User{}, ErrInvalidCredentials
+	}
+	user, err := s.deps.Repository.UserByEmail(ctx, email)
+	if errors.Is(err, ErrNotFound) {
+		dummy, err := s.dummyHash()
+		if err != nil {
+			return User{}, fmt.Errorf("auth: dummy hash: %w", err)
+		}
+		_, _ = VerifyPassword(dummy, password)
+		return User{}, ErrInvalidCredentials
+	}
+	if err != nil {
+		return User{}, fmt.Errorf("auth: find user: %w", err)
+	}
+	ok, err := VerifyPassword(user.PasswordHash, password)
+	if err != nil {
+		return User{}, fmt.Errorf("auth: verify password of user %s: %w", user.ID, err)
+	}
+	if !ok {
+		return User{}, ErrInvalidCredentials
+	}
+	return user.User, nil
+}
+
+// accountThrottleKey keys an account's count by its email as the database
+// compares it: trimmed, ignoring case (FR-A1). It hashes even a malformed
+// email, so every attempt is counted.
+func accountThrottleKey(rawEmail string) []byte {
+	return throttleHash(strings.ToLower(strings.TrimSpace(rawEmail)))
+}
+
+// throttleHash keys a count without storing the email or IP.
+func throttleHash(v string) []byte {
+	sum := sha256.Sum256([]byte(v))
+	return sum[:]
+}
+
+// claimAttempt counts one attempt against k, or returns a *ThrottledError
+// while k's wait runs.
+func (s *Service) claimAttempt(ctx context.Context, k ThrottleKey) error {
+	now := s.deps.Clock.Now()
+	var wait time.Duration
+	err := s.deps.Repository.UpdateLoginThrottle(ctx, k, func(r ThrottleRecord) ThrottleRecord {
+		if !r.LastFailureAt.After(now.Add(-LoginFailureMemory)) {
+			r = ThrottleRecord{} // forgotten
+		}
+		if now.Before(r.NextAllowedAt) {
+			wait = r.NextAllowedAt.Sub(now)
+			return r
+		}
+		r.Failures++
+		r.LastFailureAt = now
+		r.NextAllowedAt = now.Add(LoginDelay(r.Failures))
+		return r
+	})
+	if err != nil {
+		return fmt.Errorf("auth: count sign-in attempt: %w", err)
+	}
+	if wait > 0 {
+		return &ThrottledError{RetryAfter: wait}
+	}
+	return nil
+}
+
+// releaseAttempt takes back an attempt that didn't fail.
+func (s *Service) releaseAttempt(ctx context.Context, k ThrottleKey) error {
+	now := s.deps.Clock.Now()
+	err := s.deps.Repository.UpdateLoginThrottle(ctx, k, func(r ThrottleRecord) ThrottleRecord {
+		r.Failures = max(r.Failures-1, 0)
+		r.NextAllowedAt = now
+		return r
+	})
+	if err != nil {
+		return fmt.Errorf("auth: release sign-in attempt: %w", err)
+	}
+	return nil
+}
+
+// LoginDelay is how long the next attempt waits after the given number of
+// consecutive failures: nothing for the first FreeLoginFailures - 1, then
+// FirstLoginDelay doubling up to MaxLoginDelay.
+func LoginDelay(failures int) time.Duration {
+	if failures < FreeLoginFailures {
+		return 0
+	}
+	delay := FirstLoginDelay
+	for range failures - FreeLoginFailures {
+		delay *= 2
+		if delay >= MaxLoginDelay {
+			return MaxLoginDelay
+		}
+	}
+	return delay
+}
+
+// Refresh exchanges a refresh token for a new pair (ADR-0011). A reused
+// token revokes the Session. Every failure is ErrUnauthenticated.
+func (s *Service) Refresh(ctx context.Context, refreshToken string) (Session, error) {
+	if refreshToken == "" {
+		return Session{}, ErrUnauthenticated
+	}
+	session, stored, err := s.newSession(platform.ID{})
+	if err != nil {
+		return Session{}, fmt.Errorf("auth: new session: %w", err)
+	}
+	user, err := s.deps.Repository.RotateSession(ctx, hashToken(refreshToken), s.deps.Clock.Now(), stored)
+	switch {
+	case errors.Is(err, ErrNotFound), errors.Is(err, ErrUnauthenticated), errors.Is(err, ErrRefreshReused):
+		return Session{}, ErrUnauthenticated
+	case err != nil:
+		return Session{}, fmt.Errorf("auth: rotate session: %w", err)
+	}
+	session.User = user
+	return session, nil
+}
+
+// SignOut revokes the Principal's Session.
+func (s *Service) SignOut(ctx context.Context, p Principal) error {
+	if err := s.deps.Repository.RevokeSession(ctx, p.SessionID, s.deps.Clock.Now()); err != nil {
+		return fmt.Errorf("auth: revoke session %s: %w", p.SessionID, err)
+	}
+	return nil
 }
 
 // Authenticate returns who an access token speaks for, or
@@ -210,7 +344,7 @@ func (s *Service) Authenticate(ctx context.Context, accessToken string) (Princip
 	case rec.Revoked, !s.deps.Clock.Now().Before(rec.AccessExpiresAt):
 		return Principal{}, ErrUnauthenticated
 	}
-	return Principal{UserID: rec.UserID, SessionID: rec.ID, EmailVerified: rec.EmailVerified}, nil
+	return Principal{UserID: rec.UserID, SessionID: rec.FamilyID, EmailVerified: rec.EmailVerified}, nil
 }
 
 // Me returns the signed-in User.
@@ -248,6 +382,7 @@ func (s *Service) newSession(userID platform.ID) (Session, NewSession, error) {
 		return Session{}, NewSession{}, err
 	}
 	now := s.deps.Clock.Now()
+	id := s.deps.IDs.New()
 	session := Session{
 		AccessToken:      access,
 		AccessExpiresAt:  now.Add(AccessTokenLifetime),
@@ -255,7 +390,8 @@ func (s *Service) newSession(userID platform.ID) (Session, NewSession, error) {
 		RefreshExpiresAt: now.Add(RefreshTokenLifetime),
 	}
 	return session, NewSession{
-		ID:               s.deps.IDs.New(),
+		ID:               id,
+		FamilyID:         id,
 		UserID:           userID,
 		AccessHash:       hashToken(access),
 		AccessExpiresAt:  session.AccessExpiresAt,

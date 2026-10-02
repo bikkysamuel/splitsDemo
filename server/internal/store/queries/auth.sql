@@ -22,8 +22,8 @@ INSERT INTO one_time_codes (id, user_id, purpose, code_hash, expires_at, created
 VALUES (@id, @user_id, @purpose, @code_hash, @expires_at, @created_at);
 
 -- name: InsertSession :exec
-INSERT INTO sessions (id, user_id, access_hash, access_expires_at, refresh_hash, refresh_expires_at, created_at)
-VALUES (@id, @user_id, @access_hash, @access_expires_at, @refresh_hash, @refresh_expires_at, @created_at);
+INSERT INTO sessions (id, family_id, user_id, access_hash, access_expires_at, refresh_hash, refresh_expires_at, created_at)
+VALUES (@id, @family_id, @user_id, @access_hash, @access_expires_at, @refresh_hash, @refresh_expires_at, @created_at);
 
 -- name: UserByEmail :one
 SELECT id, email, password_hash, email_verified_at FROM users WHERE email = @email;
@@ -32,7 +32,7 @@ SELECT id, email, password_hash, email_verified_at FROM users WHERE email = @ema
 SELECT id, email, email_verified_at FROM users WHERE id = @id;
 
 -- name: SessionByAccessHash :one
-SELECT s.id, s.user_id, s.access_expires_at, s.revoked_at, u.email_verified_at
+SELECT s.id, s.family_id, s.user_id, s.access_expires_at, s.revoked_at, u.email_verified_at
 FROM sessions s JOIN users u ON u.id = s.user_id
 WHERE s.access_hash = @access_hash;
 
@@ -52,3 +52,36 @@ RETURNING user_id;
 -- name: MarkEmailVerified :exec
 UPDATE users SET email_verified_at = @now, updated_at = @now, version = version + 1
 WHERE id = @id AND email_verified_at IS NULL;
+
+-- name: SessionByRefreshHashForUpdate :one
+SELECT s.id, s.family_id, s.user_id, s.refresh_expires_at, s.replaced_by, s.revoked_at,
+       u.email, u.email_verified_at
+FROM sessions s JOIN users u ON u.id = s.user_id
+WHERE s.refresh_hash = @refresh_hash
+FOR UPDATE OF s;
+
+-- name: MarkSessionReplaced :exec
+UPDATE sessions SET replaced_by = @replaced_by, revoked_at = @now
+WHERE id = @id;
+
+-- name: RevokeSessionFamily :exec
+UPDATE sessions SET revoked_at = @now
+WHERE family_id = @family_id AND revoked_at IS NULL;
+
+-- name: EnsureLoginThrottle :exec
+INSERT INTO login_throttle (scope, key, failures, last_failure_at, next_allowed_at)
+VALUES (@scope, @key, 0, '-infinity', '-infinity')
+ON CONFLICT (scope, key) DO NOTHING;
+
+-- name: LoginThrottleForUpdate :one
+SELECT failures, last_failure_at, next_allowed_at FROM login_throttle
+WHERE scope = @scope AND key = @key
+FOR UPDATE;
+
+-- name: UpdateLoginThrottle :exec
+UPDATE login_throttle
+SET failures = @failures, last_failure_at = @last_failure_at, next_allowed_at = @next_allowed_at
+WHERE scope = @scope AND key = @key;
+
+-- name: ClearLoginThrottle :exec
+DELETE FROM login_throttle WHERE scope = @scope AND key = @key;
