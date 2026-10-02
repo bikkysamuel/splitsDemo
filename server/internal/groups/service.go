@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/bikkysamuel/splitsDemo/server/internal/auth"
 	"github.com/bikkysamuel/splitsDemo/server/internal/ledger"
 	"github.com/bikkysamuel/splitsDemo/server/internal/platform"
 )
@@ -134,6 +135,62 @@ func (s *Service) Rename(ctx context.Context, userID, groupID platform.ID, name 
 		return Group{}, fmt.Errorf("groups: rename group %s: %w", groupID, err)
 	}
 	return s.Get(ctx, userID, groupID)
+}
+
+// AddMember adds a person to a Group the User is an active Member of
+// (FR-M1, FR-M2): by email (an existing verified User joins at once,
+// anyone else becomes a Placeholder carrying it) or as a name-only
+// Placeholder.
+func (s *Service) AddMember(ctx context.Context, userID, groupID platform.ID, displayName string, rawEmail *string) (Member, error) {
+	if _, err := s.Get(ctx, userID, groupID); err != nil {
+		return Member{}, err
+	}
+	var fields []FieldError
+	displayName, f := checkDisplayName(displayName)
+	fields = append(fields, f...)
+	var email *string
+	if rawEmail != nil && strings.TrimSpace(*rawEmail) != "" {
+		e, err := auth.NormalizeEmail(*rawEmail)
+		if err != nil {
+			fields = append(fields, FieldError{"email", CodeInvalid})
+		} else {
+			email = &e
+		}
+	}
+	if len(fields) > 0 {
+		return Member{}, &ValidationError{Fields: fields}
+	}
+	m, err := s.deps.Repository.AddMember(ctx, NewMember{
+		ID: s.deps.IDs.New(), GroupID: groupID, DisplayName: displayName, Email: email, Now: s.deps.Clock.Now(),
+	}, MaxMembersPerGroup)
+	var invalid *ValidationError
+	switch {
+	case errors.As(err, &invalid), errors.Is(err, ErrMemberLimit), errors.Is(err, ErrGroupClosed):
+		return Member{}, err
+	case err != nil:
+		return Member{}, fmt.Errorf("groups: add member to %s: %w", groupID, err)
+	}
+	return m, nil
+}
+
+// MakeAdmin grants Admin to a Member (Admins only, FR-G3).
+func (s *Service) MakeAdmin(ctx context.Context, userID, groupID, memberID platform.ID, version int) (Member, error) {
+	g, err := s.Get(ctx, userID, groupID)
+	if err != nil {
+		return Member{}, err
+	}
+	if g.MyRole != RoleAdmin {
+		return Member{}, ErrAdminRequired
+	}
+	m, err := s.deps.Repository.MakeAdmin(ctx, groupID, memberID, version, s.deps.Clock.Now())
+	switch {
+	case errors.Is(err, ErrNotFound), errors.Is(err, ErrMemberNotEligible), errors.Is(err, ErrVersionConflict),
+		errors.Is(err, ErrGroupClosed):
+		return Member{}, err
+	case err != nil:
+		return Member{}, fmt.Errorf("groups: make member %s admin: %w", memberID, err)
+	}
+	return m, nil
 }
 
 func checkGroupName(raw string) (string, []FieldError) {

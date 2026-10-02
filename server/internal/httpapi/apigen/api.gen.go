@@ -105,6 +105,39 @@ func (e ReadinessStatusStatus) Valid() bool {
 	}
 }
 
+// Defines values for UpdateMemberRequestRole.
+const (
+	UpdateMemberRequestRoleAdmin UpdateMemberRequestRole = "admin"
+)
+
+// Valid indicates whether the value is a known member of the UpdateMemberRequestRole enum.
+func (e UpdateMemberRequestRole) Valid() bool {
+	switch e {
+	case UpdateMemberRequestRoleAdmin:
+		return true
+	default:
+		return false
+	}
+}
+
+// AddMemberRequest Add-Member input (FR-M1, FR-M2).
+type AddMemberRequest struct {
+	// DisplayName A Member's name in one Group: 1–50 characters after trimming,
+	// unique within the Group ignoring case (FR-M4). Field error codes:
+	// `required`, `too_long`, `taken`.
+	//
+	//
+	// Examples: Alice
+	DisplayName DisplayName `json:"display_name"`
+
+	// Email Optional. Field error codes: `invalid`, `taken` (already in
+	// this Group).
+	//
+	//
+	// Examples: bob@example.com
+	Email *string `json:"email,omitempty"`
+}
+
 // AuthSession A new Session (ADR-0011): an access token valid 15 minutes and a
 // refresh token valid 30 days, both opaque. Keep both in the Keychain.
 type AuthSession struct {
@@ -195,7 +228,7 @@ type Group struct {
 
 	// Members Every Member, Former ones included, in joining order.
 	//
-	// Examples: [{"display_name":"Alice","id":"0190b6c4-0000-7000-8000-0000000000d1","join_seq":1,"placeholder":false,"role":"admin","status":"active"}]
+	// Examples: [{"display_name":"Alice","id":"0190b6c4-0000-7000-8000-0000000000d1","join_seq":1,"placeholder":false,"role":"admin","status":"active","version":1}]
 	Members []Member `json:"members"`
 
 	// MyMemberId The signed-in User's Member in this Group.
@@ -293,6 +326,11 @@ type Member struct {
 	//
 	// Examples: active
 	Status MemberStatus `json:"status"`
+
+	// Version Send it back when changing the Member (NFR-R4).
+	//
+	// Examples: 1
+	Version int32 `json:"version"`
 }
 
 // MemberRole An Admin or an ordinary Member (FR-G3).
@@ -351,6 +389,9 @@ type Password = string
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type Problem struct {
 	// Detail Explanation of this occurrence; not for display.
@@ -442,6 +483,22 @@ type SignUpRequest struct {
 	Password Password `json:"password"`
 }
 
+// UpdateMemberRequest Grant-Admin input (FR-G3).
+type UpdateMemberRequest struct {
+	// Role Only `admin` can be set; Admin rights aren't taken away in v1.
+	//
+	// Examples: admin
+	Role UpdateMemberRequestRole `json:"role"`
+
+	// Version Examples: 1
+	Version int32 `json:"version"`
+}
+
+// UpdateMemberRequestRole Only `admin` can be set; Admin rights aren't taken away in v1.
+//
+// Examples: admin
+type UpdateMemberRequestRole string
+
 // User A User's own profile.
 type User struct {
 	// Email Examples: alice@example.com
@@ -481,6 +538,9 @@ type IdempotencyKey = openapi_types.UUID
 // Limit defines model for Limit.
 type Limit = int
 
+// MemberId defines model for MemberId.
+type MemberId = openapi_types.UUID
+
 // BadRequest RFC 9457 problem details. `type` is a stable URI,
 // `https://splits.dev/problems/<slug>`, that clients map to a localized
 // message. Clients must treat an unknown `type` as a generic error.
@@ -503,6 +563,9 @@ type Limit = int
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type BadRequest = Problem
 
@@ -528,6 +591,9 @@ type BadRequest = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type Conflict = Problem
 
@@ -553,6 +619,9 @@ type Conflict = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type EmailNotVerified = Problem
 
@@ -578,6 +647,9 @@ type EmailNotVerified = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type EmailTaken = Problem
 
@@ -603,6 +675,9 @@ type EmailTaken = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type Forbidden = Problem
 
@@ -628,6 +703,9 @@ type Forbidden = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type IdempotencyKeyInProgress = Problem
 
@@ -653,6 +731,9 @@ type IdempotencyKeyInProgress = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type IdempotencyKeyReused = Problem
 
@@ -678,6 +759,9 @@ type IdempotencyKeyReused = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type InternalError = Problem
 
@@ -703,6 +787,9 @@ type InternalError = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type InvalidCredentials = Problem
 
@@ -728,6 +815,9 @@ type InvalidCredentials = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type NotFound = Problem
 
@@ -753,6 +843,9 @@ type NotFound = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type NotReady = Problem
 
@@ -778,6 +871,9 @@ type NotReady = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type RequestTooLarge = Problem
 
@@ -803,6 +899,9 @@ type RequestTooLarge = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type TooManyAttempts = Problem
 
@@ -828,6 +927,9 @@ type TooManyAttempts = Problem
 // - `version-conflict`: the resource changed since the `version` sent; reload it (409).
 // - `group-limit-reached`: the User is already in 200 Groups (409).
 // - `invalid-cursor`: the `cursor` is not one the server gave (400).
+// - `member-limit-reached`: the Group already has 50 Members (409).
+// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+// - `group-closed`: the Group is Closed and read-only (409).
 // - `internal`: an unexpected server failure (500).
 type Unauthenticated = Problem
 
@@ -876,6 +978,30 @@ type RenameGroupParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// AddMemberParams defines parameters for AddMember.
+type AddMemberParams struct {
+	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
+	// (NFR-R1). Repeating a request with the same key within 24 hours
+	// returns the original response; reusing a key for a different request
+	// answers `idempotency-key-reused`, and repeating it while the first is
+	// still running answers `idempotency-key-in-progress`. Responses with a
+	// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+	// it: their responses carry tokens, which are never stored (ADR-0011).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// UpdateMemberParams defines parameters for UpdateMember.
+type UpdateMemberParams struct {
+	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
+	// (NFR-R1). Repeating a request with the same key within 24 hours
+	// returns the original response; reusing a key for a different request
+	// answers `idempotency-key-reused`, and repeating it while the first is
+	// still running answers `idempotency-key-in-progress`. Responses with a
+	// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+	// it: their responses carry tokens, which are never stored (ADR-0011).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
 // RefreshSessionJSONRequestBody defines body for RefreshSession for application/json ContentType.
 type RefreshSessionJSONRequestBody = RefreshSessionRequest
 
@@ -896,6 +1022,12 @@ type CreateGroupJSONRequestBody = CreateGroupRequest
 
 // RenameGroupJSONRequestBody defines body for RenameGroup for application/json ContentType.
 type RenameGroupJSONRequestBody = RenameGroupRequest
+
+// AddMemberJSONRequestBody defines body for AddMember for application/json ContentType.
+type AddMemberJSONRequestBody = AddMemberRequest
+
+// UpdateMemberJSONRequestBody defines body for UpdateMember for application/json ContentType.
+type UpdateMemberJSONRequestBody = UpdateMemberRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -935,6 +1067,12 @@ type ServerInterface interface {
 	// RenameGroup Rename a Group
 	// (PATCH /v1/groups/{groupId})
 	RenameGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params RenameGroupParams)
+	// AddMember Add a Member
+	// (POST /v1/groups/{groupId}/members)
+	AddMember(w http.ResponseWriter, r *http.Request, groupId GroupId, params AddMemberParams)
+	// UpdateMember Make a Member an Admin
+	// (PATCH /v1/groups/{groupId}/members/{memberId})
+	UpdateMember(w http.ResponseWriter, r *http.Request, groupId GroupId, memberId MemberId, params UpdateMemberParams)
 	// GetMe The signed-in User
 	// (GET /v1/me)
 	GetMe(w http.ResponseWriter, r *http.Request)
@@ -1263,6 +1401,123 @@ func (siw *ServerInterfaceWrapper) RenameGroup(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// AddMember operation middleware
+func (siw *ServerInterfaceWrapper) AddMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AddMemberParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddMember(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateMember operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "memberId" -------------
+	var memberId MemberId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "memberId", r.PathValue("memberId"), &memberId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "memberId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params UpdateMemberParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMember(w, r, groupId, memberId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMe operation middleware
 func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
 
@@ -1409,6 +1664,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/groups", wrapper.CreateGroup)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/groups/{groupId}", wrapper.GetGroup)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/v1/groups/{groupId}", wrapper.RenameGroup)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/groups/{groupId}/members", wrapper.AddMember)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/v1/groups/{groupId}/members/{memberId}", wrapper.UpdateMember)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
 
 	return m
@@ -2535,6 +2792,311 @@ func (response RenameGroup500ApplicationProblemPlusJSONResponse) VisitRenameGrou
 	return err
 }
 
+type AddMemberRequestObject struct {
+	GroupId GroupId `json:"groupId"`
+	Params  AddMemberParams
+	Body    *AddMemberJSONRequestBody
+}
+
+type AddMemberResponseObject interface {
+	VisitAddMemberResponse(w http.ResponseWriter) error
+}
+
+type AddMember201JSONResponse Member
+
+func (response AddMember201JSONResponse) VisitAddMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddMember400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response AddMember400ApplicationProblemPlusJSONResponse) VisitAddMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddMember401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response AddMember401ApplicationProblemPlusJSONResponse) VisitAddMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddMember403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response AddMember403ApplicationProblemPlusJSONResponse) VisitAddMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddMember404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response AddMember404ApplicationProblemPlusJSONResponse) VisitAddMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddMember409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response AddMember409ApplicationProblemPlusJSONResponse) VisitAddMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddMember413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response AddMember413ApplicationProblemPlusJSONResponse) VisitAddMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddMember422ApplicationProblemPlusJSONResponse struct {
+	IdempotencyKeyReusedApplicationProblemPlusJSONResponse
+}
+
+func (response AddMember422ApplicationProblemPlusJSONResponse) VisitAddMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddMember500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response AddMember500ApplicationProblemPlusJSONResponse) VisitAddMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMemberRequestObject struct {
+	GroupId  GroupId  `json:"groupId"`
+	MemberId MemberId `json:"memberId"`
+	Params   UpdateMemberParams
+	Body     *UpdateMemberJSONRequestBody
+}
+
+type UpdateMemberResponseObject interface {
+	VisitUpdateMemberResponse(w http.ResponseWriter) error
+}
+
+type UpdateMember200JSONResponse Member
+
+func (response UpdateMember200JSONResponse) VisitUpdateMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMember400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateMember400ApplicationProblemPlusJSONResponse) VisitUpdateMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMember401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateMember401ApplicationProblemPlusJSONResponse) VisitUpdateMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMember403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateMember403ApplicationProblemPlusJSONResponse) VisitUpdateMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMember404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateMember404ApplicationProblemPlusJSONResponse) VisitUpdateMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMember409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateMember409ApplicationProblemPlusJSONResponse) VisitUpdateMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMember413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateMember413ApplicationProblemPlusJSONResponse) VisitUpdateMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMember422ApplicationProblemPlusJSONResponse struct {
+	IdempotencyKeyReusedApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateMember422ApplicationProblemPlusJSONResponse) VisitUpdateMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMember500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateMember500ApplicationProblemPlusJSONResponse) VisitUpdateMemberResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetMeRequestObject struct {
 }
 
@@ -2626,6 +3188,12 @@ type StrictServerInterface interface {
 	// RenameGroup Rename a Group
 	// (PATCH /v1/groups/{groupId})
 	RenameGroup(ctx context.Context, request RenameGroupRequestObject) (RenameGroupResponseObject, error)
+	// AddMember Add a Member
+	// (POST /v1/groups/{groupId}/members)
+	AddMember(ctx context.Context, request AddMemberRequestObject) (AddMemberResponseObject, error)
+	// UpdateMember Make a Member an Admin
+	// (PATCH /v1/groups/{groupId}/members/{memberId})
+	UpdateMember(ctx context.Context, request UpdateMemberRequestObject) (UpdateMemberResponseObject, error)
 	// GetMe The signed-in User
 	// (GET /v1/me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
@@ -3011,6 +3579,75 @@ func (sh *strictHandler) RenameGroup(w http.ResponseWriter, r *http.Request, gro
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RenameGroupResponseObject); ok {
 		if err := validResponse.VisitRenameGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AddMember operation middleware
+func (sh *strictHandler) AddMember(w http.ResponseWriter, r *http.Request, groupId GroupId, params AddMemberParams) {
+	var request AddMemberRequestObject
+
+	request.GroupId = groupId
+	request.Params = params
+
+	var body AddMemberJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AddMember(ctx, request.(AddMemberRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AddMember")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AddMemberResponseObject); ok {
+		if err := validResponse.VisitAddMemberResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateMember operation middleware
+func (sh *strictHandler) UpdateMember(w http.ResponseWriter, r *http.Request, groupId GroupId, memberId MemberId, params UpdateMemberParams) {
+	var request UpdateMemberRequestObject
+
+	request.GroupId = groupId
+	request.MemberId = memberId
+	request.Params = params
+
+	var body UpdateMemberJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateMember(ctx, request.(UpdateMemberRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateMember")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateMemberResponseObject); ok {
+		if err := validResponse.VisitUpdateMemberResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

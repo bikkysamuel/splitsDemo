@@ -1,6 +1,18 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ will be able to rename the Group, remove Members and grant Admin.": {
+      "comment": "Confirmation message before granting Admin; %@ is the Member's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ will be able to rename the Group, remove Members and grant Admin."
+          }
+        }
+      }
+    },
     "(you)": {
       "comment": "Shown after the signed-in User's own Member name",
       "extractionState": "manual",
@@ -21,6 +33,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Account"
+          }
+        }
+      }
+    },
+    "Add": {
+      "comment": "Button that adds a Member",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
+          }
+        }
+      }
+    },
+    "Add Member": {
+      "comment": "Title and button for adding a Member",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Member"
           }
         }
       }
@@ -133,14 +169,14 @@
         }
       }
     },
-    "Couldn't rename": {
-      "comment": "Title of the alert when renaming failed",
+    "Couldn't make the change": {
+      "comment": "Title of the alert when renaming or granting Admin failed",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't rename"
+            "value": "Couldn't make the change"
           }
         }
       }
@@ -193,6 +229,18 @@
         }
       }
     },
+    "Email (optional)": {
+      "comment": "Label of the new Member's email field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email (optional)"
+          }
+        }
+      }
+    },
     "Enter a name.": {
       "comment": "Field error: the Group name is empty",
       "extractionState": "manual",
@@ -237,18 +285,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enter your email address."
-          }
-        }
-      }
-    },
-    "Enter your name in this Group.": {
-      "comment": "Field error: the User's display name is empty",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter your name in this Group."
           }
         }
       }
@@ -325,6 +361,30 @@
         }
       }
     },
+    "Make Admin": {
+      "comment": "Action that makes a Member an Admin",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make Admin"
+          }
+        }
+      }
+    },
+    "Make this Member an Admin?": {
+      "comment": "Confirmation title before granting Admin",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make this Member an Admin?"
+          }
+        }
+      }
+    },
     "Members": {
       "comment": "Section header listing a Group's Members",
       "extractionState": "manual",
@@ -333,6 +393,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Members"
+          }
+        }
+      }
+    },
+    "Name in this Group": {
+      "comment": "Label of the new Member's display name field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name in this Group"
           }
         }
       }
@@ -393,6 +465,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "OK"
+          }
+        }
+      }
+    },
+    "Only a Member who has an account can be an Admin.": {
+      "comment": "Error when making a Placeholder or Former Member an Admin",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only a Member who has an account can be an Admin."
           }
         }
       }
@@ -637,6 +721,18 @@
         }
       }
     },
+    "Someone in this Group already has this email.": {
+      "comment": "Field error: another Member has this email",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Someone in this Group already has this email."
+          }
+        }
+      }
+    },
     "Someone in this Group already has this name.": {
       "comment": "Field error: another Member has this display name",
       "extractionState": "manual",
@@ -645,6 +741,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Someone in this Group already has this name."
+          }
+        }
+      }
+    },
+    "Someone with a Splits account joins at once. Anyone else is added as a Placeholder Member you can record Expenses for; it becomes theirs when they sign up with this email.": {
+      "comment": "Footer explaining how adding by email works",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Someone with a Splits account joins at once. Anyone else is added as a Placeholder Member you can record Expenses for; it becomes theirs when they sign up with this email."
           }
         }
       }
@@ -705,6 +813,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "The email or password is wrong."
+          }
+        }
+      }
+    },
+    "This Group already has 50 Members, the most allowed.": {
+      "comment": "Error when a Group has the maximum number of Members",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Group already has 50 Members, the most allowed."
+          }
+        }
+      }
+    },
+    "This Group is closed. Reopen it to make changes.": {
+      "comment": "Error when changing a Closed Group",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Group is closed. Reopen it to make changes."
           }
         }
       }
@@ -933,6 +1065,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Your session has ended. Sign in again."
+          }
+        }
+      }
+    },
+    "bob@example.com": {
+      "comment": "Placeholder of the new Member's email field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bob@example.com"
           }
         }
       }

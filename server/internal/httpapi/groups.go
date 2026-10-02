@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"net/http"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
@@ -158,14 +159,7 @@ func apiGroupSummary(g groups.Summary) apigen.GroupSummary {
 func apiGroup(g groups.Group) apigen.Group {
 	members := make([]apigen.Member, len(g.Members))
 	for i, m := range g.Members {
-		members[i] = apigen.Member{
-			Id:          openapi_types.UUID(m.ID),
-			DisplayName: m.DisplayName,
-			Role:        apigen.MemberRole(m.Role),
-			Status:      apigen.MemberStatus(m.Status),
-			Placeholder: m.Placeholder(),
-			JoinSeq:     int32(m.JoinSeq), //nolint:gosec // ≤ 50 Members
-		}
+		members[i] = apiMember(m)
 	}
 	return apigen.Group{
 		Id:         openapi_types.UUID(g.ID),
@@ -186,4 +180,94 @@ func groupsValidationProblem(v *groups.ValidationError) apigen.BadRequestApplica
 	}
 	p.Errors = &errs
 	return apigen.BadRequestApplicationProblemPlusJSONResponse(p)
+}
+
+// AddMember adds a person by email or as a name-only Placeholder
+// (FR-M1, FR-M2).
+func (s *Server) AddMember(ctx context.Context, req apigen.AddMemberRequestObject) (apigen.AddMemberResponseObject, error) {
+	p, err := mustPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	m, err := s.deps.Groups.AddMember(ctx, p.UserID, platform.ID(req.GroupId), req.Body.DisplayName, req.Body.Email)
+	if err == nil {
+		return apigen.AddMember201JSONResponse(apiMember(m)), nil
+	}
+	prob, ok := groupsProblem(err)
+	if !ok {
+		return nil, err
+	}
+	switch prob.Status {
+	case http.StatusBadRequest:
+		return apigen.AddMember400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: apigen.BadRequestApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusNotFound:
+		return apigen.AddMember404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: apigen.NotFoundApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusConflict:
+		return apigen.AddMember409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: apigen.ConflictApplicationProblemPlusJSONResponse(prob)}, nil
+	}
+	return nil, err
+}
+
+// UpdateMember makes a Member an Admin (Admins only, FR-G3).
+func (s *Server) UpdateMember(ctx context.Context, req apigen.UpdateMemberRequestObject) (apigen.UpdateMemberResponseObject, error) {
+	p, err := mustPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	m, err := s.deps.Groups.MakeAdmin(ctx, p.UserID, platform.ID(req.GroupId), platform.ID(req.MemberId), int(req.Body.Version))
+	if err == nil {
+		return apigen.UpdateMember200JSONResponse(apiMember(m)), nil
+	}
+	prob, ok := groupsProblem(err)
+	if !ok {
+		return nil, err
+	}
+	switch prob.Status {
+	case http.StatusBadRequest:
+		return apigen.UpdateMember400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: apigen.BadRequestApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusForbidden:
+		return apigen.UpdateMember403ApplicationProblemPlusJSONResponse{ForbiddenApplicationProblemPlusJSONResponse: apigen.ForbiddenApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusNotFound:
+		return apigen.UpdateMember404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: apigen.NotFoundApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusConflict:
+		return apigen.UpdateMember409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: apigen.ConflictApplicationProblemPlusJSONResponse(prob)}, nil
+	}
+	return nil, err
+}
+
+// groupsProblem maps an expected groups error to its problem; ok is false
+// for anything else, which becomes a 500.
+func groupsProblem(err error) (apigen.Problem, bool) {
+	var invalid *groups.ValidationError
+	switch {
+	case errors.As(err, &invalid):
+		return apigen.Problem(groupsValidationProblem(invalid)), true
+	case errors.Is(err, groups.ErrNotFound):
+		return problemNotFound.problem(""), true
+	case errors.Is(err, groups.ErrAdminRequired):
+		return problemAdminRequired.problem(""), true
+	case errors.Is(err, groups.ErrVersionConflict):
+		return problemVersionConflict.problem(""), true
+	case errors.Is(err, groups.ErrGroupLimit):
+		return problemGroupLimitReached.problem(""), true
+	case errors.Is(err, groups.ErrMemberLimit):
+		return problemMemberLimitReached.problem(""), true
+	case errors.Is(err, groups.ErrMemberNotEligible):
+		return problemMemberNotEligible.problem(""), true
+	case errors.Is(err, groups.ErrGroupClosed):
+		return problemGroupClosed.problem(""), true
+	}
+	return apigen.Problem{}, false
+}
+
+func apiMember(m groups.Member) apigen.Member {
+	return apigen.Member{
+		Id:          openapi_types.UUID(m.ID),
+		DisplayName: m.DisplayName,
+		Role:        apigen.MemberRole(m.Role),
+		Status:      apigen.MemberStatus(m.Status),
+		Placeholder: m.Placeholder(),
+		JoinSeq:     int32(m.JoinSeq), //nolint:gosec // ≤ 50 Members
+		Version:     int32(m.Version), //nolint:gosec // a version
+	}
 }

@@ -387,6 +387,7 @@ paths:
                     status: active
                     placeholder: false
                     join_seq: 1
+                    version: 1
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -434,6 +435,7 @@ paths:
                     status: active
                     placeholder: false
                     join_seq: 1
+                    version: 1
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -487,6 +489,125 @@ paths:
                     status: active
                     placeholder: false
                     join_seq: 1
+                    version: 1
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "422":
+          $ref: "#/components/responses/IdempotencyKeyReused"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/groups/{groupId}/members:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    post:
+      operationId: addMember
+      summary: Add a Member
+      description: |
+        Any active Member may add one (FR-M1, FR-M2, ADR-0017). With an
+        email that a verified User has, that User joins at once. Otherwise
+        a Placeholder Member is created, carrying the email if one was
+        given; it is Claimed when someone verifies that email. An email or
+        display name already in the Group is a field error with code
+        `taken` (FR-M3, FR-M4). A Group holds at most 50 Members, Former
+        Members and Placeholders included (FR-G2): `member-limit-reached`.
+      tags: [groups]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        description: The new Member's display name, and optionally their email.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMemberRequest"
+            example:
+              display_name: Bob
+              email: bob@example.com
+      responses:
+        "201":
+          description: The Member was added.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000d2
+                display_name: Bob
+                role: member
+                status: active
+                placeholder: true
+                join_seq: 2
+                version: 1
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "422":
+          $ref: "#/components/responses/IdempotencyKeyReused"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/groups/{groupId}/members/{memberId}:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+      - $ref: "#/components/parameters/MemberId"
+    patch:
+      operationId: updateMember
+      summary: Make a Member an Admin
+      description: |
+        Admins only (FR-G3). Only an active Member linked to a User can be
+        an Admin: Placeholders and Former Members answer
+        `member-not-eligible`. Send the Member's `version`
+        (`version-conflict` if stale).
+      tags: [groups]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        description: The new role and the version it changes.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMemberRequest"
+            example:
+              role: admin
+              version: 1
+      responses:
+        "200":
+          description: The updated Member.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000d2
+                display_name: Bob
+                role: admin
+                status: active
+                placeholder: false
+                join_seq: 2
+                version: 2
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -544,6 +665,14 @@ components:
       in: path
       required: true
       description: The Group's ID.
+      schema:
+        type: string
+        format: uuid
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      description: The Member's ID.
       schema:
         type: string
         format: uuid
@@ -626,6 +755,9 @@ components:
         - `version-conflict`: the resource changed since the `version` sent; reload it (409).
         - `group-limit-reached`: the User is already in 200 Groups (409).
         - `invalid-cursor`: the `cursor` is not one the server gave (400).
+        - `member-limit-reached`: the Group already has 50 Members (409).
+        - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
+        - `group-closed`: the Group is Closed and read-only (409).
         - `internal`: an unexpected server failure (500).
       type: object
       required: [type, title, status]
@@ -872,7 +1004,7 @@ components:
         A person's place in one Group (GLOSSARY: Member). `placeholder` is
         true for a Placeholder Member, not yet linked to a User.
       type: object
-      required: [id, display_name, role, status, placeholder, join_seq]
+      required: [id, display_name, role, status, placeholder, join_seq, version]
       additionalProperties: false
       properties:
         id:
@@ -891,6 +1023,11 @@ components:
           examples: [false]
         join_seq:
           description: Order of joining; breaks rounding ties (ADR-0010).
+          type: integer
+          format: int32
+          examples: [1]
+        version:
+          description: Send it back when changing the Member (NFR-R4).
           type: integer
           format: int32
           examples: [1]
@@ -934,6 +1071,7 @@ components:
                 status: active
                 placeholder: false
                 join_seq: 1
+                version: 1
 
     CreateGroupRequest:
       description: Create-Group input (FR-G1).
@@ -950,6 +1088,38 @@ components:
           examples: ["INR"]
         display_name:
           $ref: "#/components/schemas/DisplayName"
+
+    AddMemberRequest:
+      description: Add-Member input (FR-M1, FR-M2).
+      type: object
+      required: [display_name]
+      additionalProperties: false
+      properties:
+        display_name:
+          $ref: "#/components/schemas/DisplayName"
+        email:
+          description: |
+            Optional. Field error codes: `invalid`, `taken` (already in
+            this Group).
+          type: string
+          maxLength: 254
+          examples: ["bob@example.com"]
+
+    UpdateMemberRequest:
+      description: Grant-Admin input (FR-G3).
+      type: object
+      required: [role, version]
+      additionalProperties: false
+      properties:
+        role:
+          description: Only `admin` can be set; Admin rights aren't taken away in v1.
+          type: string
+          enum: [admin]
+          examples: ["admin"]
+        version:
+          type: integer
+          format: int32
+          examples: [1]
 
     RenameGroupRequest:
       description: Rename input (FR-G3).

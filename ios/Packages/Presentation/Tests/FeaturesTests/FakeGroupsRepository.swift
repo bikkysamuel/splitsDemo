@@ -30,6 +30,28 @@ actor FakeGroupsRepository: GroupsRepository {
 
   func group(id: UUID) async throws(ServiceError) -> Group { try groupResult.get() }
 
+  var addResult: Result<Member, ServiceError> = .success(.bob)
+  var adminResult: Result<Member, ServiceError> = .success(.bob)
+  private(set) var added: [(displayName: String, email: String?)] = []
+  private(set) var adminGrants: [(memberID: UUID, version: Int)] = []
+  func set(add: Result<Member, ServiceError>) { addResult = add }
+  func set(admin: Result<Member, ServiceError>) { adminResult = admin }
+
+  func addMember(
+    groupID: UUID, displayName: String, email: String?, key: WriteKey
+  ) async throws(ServiceError)
+    -> Member
+  {
+    added.append((displayName, email))
+    keys.append(key)
+    return try addResult.get()
+  }
+
+  func makeAdmin(groupID: UUID, memberID: UUID, version: Int, key: WriteKey) async throws(ServiceError) -> Member {
+    adminGrants.append((memberID, version))
+    return try adminResult.get()
+  }
+
   func renameGroup(id: UUID, name: String, version: Int, key: WriteKey) async throws(ServiceError) -> Group {
     renames.append((name, version))
     keys.append(key)
@@ -42,6 +64,13 @@ final class FakePreferences: PreferencesRepository, @unchecked Sendable {
   init(currency: String = "INR") { self.currency = currency }
   func defaultCurrency() -> String { currency }
   func setDefaultCurrency(_ code: String) { currency = code }
+}
+
+extension Member {
+  static let bob = Member(
+    id: UUID(), displayName: "Bob", role: .member, status: .active, isPlaceholder: false, joinSeq: 2, version: 3)
+  static let grandma = Member(
+    id: UUID(), displayName: "Grandma", role: .member, status: .active, isPlaceholder: true, joinSeq: 3)
 }
 
 extension Group {

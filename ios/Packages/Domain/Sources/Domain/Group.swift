@@ -62,15 +62,24 @@ public struct Member: Equatable, Hashable, Identifiable, Sendable {
   /// Not yet linked to a User (GLOSSARY: Placeholder Member).
   public let isPlaceholder: Bool
   public let joinSeq: Int
+  /// Sent back when changing the Member (NFR-R4).
+  public let version: Int
 
-  public init(id: UUID, displayName: String, role: Role, status: Status, isPlaceholder: Bool, joinSeq: Int) {
+  public init(
+    id: UUID, displayName: String, role: Role, status: Status, isPlaceholder: Bool, joinSeq: Int, version: Int = 1
+  ) {
     self.id = id
     self.displayName = displayName
     self.role = role
     self.status = status
     self.isPlaceholder = isPlaceholder
     self.joinSeq = joinSeq
+    self.version = version
   }
+
+  /// Whether an Admin may make this Member an Admin (FR-G3): active,
+  /// linked to a User, not one already.
+  public var canBecomeAdmin: Bool { role == .member && status == .active && !isPlaceholder }
 
   public enum Role: String, Sendable {
     case admin, member

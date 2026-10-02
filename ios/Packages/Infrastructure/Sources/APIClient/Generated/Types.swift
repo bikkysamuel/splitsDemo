@@ -136,6 +136,31 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/groups/{groupId}`.
     /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)`.
     func renameGroup(_ input: Operations.RenameGroup.Input) async throws -> Operations.RenameGroup.Output
+    /// Add a Member
+    ///
+    /// Any active Member may add one (FR-M1, FR-M2, ADR-0017). With an
+    /// email that a verified User has, that User joins at once. Otherwise
+    /// a Placeholder Member is created, carrying the email if one was
+    /// given; it is Claimed when someone verifies that email. An email or
+    /// display name already in the Group is a field error with code
+    /// `taken` (FR-M3, FR-M4). A Group holds at most 50 Members, Former
+    /// Members and Placeholders included (FR-G2): `member-limit-reached`.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups/{groupId}/members`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/members/post(addMember)`.
+    func addMember(_ input: Operations.AddMember.Input) async throws -> Operations.AddMember.Output
+    /// Make a Member an Admin
+    ///
+    /// Admins only (FR-G3). Only an active Member linked to a User can be
+    /// an Admin: Placeholders and Former Members answer
+    /// `member-not-eligible`. Send the Member's `version`
+    /// (`version-conflict` if stale).
+    ///
+    ///
+    /// - Remark: HTTP `PATCH /v1/groups/{groupId}/members/{memberId}`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/members/{memberId}/patch(updateMember)`.
+    func updateMember(_ input: Operations.UpdateMember.Input) async throws -> Operations.UpdateMember.Output
     /// The signed-in User
     ///
     /// The app's launch check (FR-U1). Works for unverified Users too.
@@ -347,6 +372,51 @@ extension APIProtocol {
         body: Operations.RenameGroup.Input.Body
     ) async throws -> Operations.RenameGroup.Output {
         try await renameGroup(Operations.RenameGroup.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Add a Member
+    ///
+    /// Any active Member may add one (FR-M1, FR-M2, ADR-0017). With an
+    /// email that a verified User has, that User joins at once. Otherwise
+    /// a Placeholder Member is created, carrying the email if one was
+    /// given; it is Claimed when someone verifies that email. An email or
+    /// display name already in the Group is a field error with code
+    /// `taken` (FR-M3, FR-M4). A Group holds at most 50 Members, Former
+    /// Members and Placeholders included (FR-G2): `member-limit-reached`.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups/{groupId}/members`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/members/post(addMember)`.
+    public func addMember(
+        path: Operations.AddMember.Input.Path,
+        headers: Operations.AddMember.Input.Headers,
+        body: Operations.AddMember.Input.Body
+    ) async throws -> Operations.AddMember.Output {
+        try await addMember(Operations.AddMember.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Make a Member an Admin
+    ///
+    /// Admins only (FR-G3). Only an active Member linked to a User can be
+    /// an Admin: Placeholders and Former Members answer
+    /// `member-not-eligible`. Send the Member's `version`
+    /// (`version-conflict` if stale).
+    ///
+    ///
+    /// - Remark: HTTP `PATCH /v1/groups/{groupId}/members/{memberId}`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/members/{memberId}/patch(updateMember)`.
+    public func updateMember(
+        path: Operations.UpdateMember.Input.Path,
+        headers: Operations.UpdateMember.Input.Headers,
+        body: Operations.UpdateMember.Input.Body
+    ) async throws -> Operations.UpdateMember.Output {
+        try await updateMember(Operations.UpdateMember.Input(
             path: path,
             headers: headers,
             body: body

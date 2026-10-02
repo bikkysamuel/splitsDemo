@@ -32,6 +32,9 @@ public enum ProblemKind: String, CaseIterable, Sendable {
   case versionConflict = "version-conflict"
   case groupLimitReached = "group-limit-reached"
   case invalidCursor = "invalid-cursor"
+  case memberLimitReached = "member-limit-reached"
+  case memberNotEligible = "member-not-eligible"
+  case groupClosed = "group-closed"
   case notReady = "not-ready"
   case `internal`
 }

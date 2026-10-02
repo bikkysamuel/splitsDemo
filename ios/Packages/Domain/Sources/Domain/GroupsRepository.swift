@@ -18,6 +18,14 @@ public protocol GroupsRepository: Sendable {
   func group(id: UUID) async throws(ServiceError) -> Group
   /// Renames a Group (Admins only). `version` is the one last read.
   func renameGroup(id: UUID, name: String, version: Int, key: WriteKey) async throws(ServiceError) -> Group
+  /// Adds a person (FR-M1, FR-M2): with the email of a verified User they
+  /// join at once; otherwise, or without an email, a Placeholder Member.
+  func addMember(
+    groupID: UUID, displayName: String, email: String?, key: WriteKey
+  ) async throws(ServiceError)
+    -> Member
+  /// Makes a Member an Admin (Admins only, FR-G3).
+  func makeAdmin(groupID: UUID, memberID: UUID, version: Int, key: WriteKey) async throws(ServiceError) -> Member
 }
 
 /// Non-financial UI preferences kept on the device (ADR-0005, FR-U5).

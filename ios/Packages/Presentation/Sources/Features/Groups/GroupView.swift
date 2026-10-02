@@ -7,6 +7,8 @@ struct GroupView: View {
   @Bindable var viewModel: GroupViewModel
   @State private var renaming = false
   @State private var newName = ""
+  @State private var addMember: AddMemberViewModel?
+  @State private var promoting: Member?
 
   var body: some View {
     content
@@ -37,15 +39,36 @@ struct GroupView: View {
       }
       .alert(
         Text(LocalizedStringKey(Self.renameFailed), bundle: .module),
-        isPresented: Binding(get: { viewModel.renameError != nil }, set: { if !$0 { viewModel.dismissRenameError() } })
+        isPresented: Binding(get: { viewModel.changeError != nil }, set: { if !$0 { viewModel.dismissChangeError() } })
       ) {
         Button {
-          viewModel.dismissRenameError()
+          viewModel.dismissChangeError()
         } label: {
           Text(LocalizedStringKey(CommonKeys.ok), bundle: .module)
         }
       } message: {
-        Text(LocalizedStringKey(viewModel.renameError ?? ""), bundle: .module)
+        Text(LocalizedStringKey(viewModel.changeError ?? ""), bundle: .module)
+      }
+      .sheet(item: $addMember) { model in
+        NavigationStack {
+          AddMemberView(viewModel: model) { _ in
+            addMember = nil
+            Task { await viewModel.memberAdded() }
+          }
+        }
+      }
+      .confirmationDialog(
+        Text(LocalizedStringKey(Self.makeAdminTitle), bundle: .module),
+        isPresented: Binding(get: { promoting != nil }, set: { if !$0 { promoting = nil } }),
+        titleVisibility: .visible, presenting: promoting
+      ) { member in
+        Button {
+          Task { await viewModel.makeAdmin(member) }
+        } label: {
+          Text(LocalizedStringKey(Self.makeAdmin), bundle: .module)
+        }
+      } message: { member in
+        Text(verbatim: Self.makeAdminText(member.displayName))
       }
       .task { await viewModel.load() }
   }
@@ -68,6 +91,29 @@ struct GroupView: View {
         Section {
           ForEach(group.members) { member in
             MemberRow(member: member, isMe: member.id == group.myMemberID)
+              .swipeActions {
+                if viewModel.canMakeAdmin(member) {
+                  Button {
+                    promoting = member
+                  } label: {
+                    Text(LocalizedStringKey(Self.makeAdmin), bundle: .module)
+                  }
+                  .tint(.blue)
+                }
+              }
+              .accessibilityAction(named: Text(LocalizedStringKey(Self.makeAdmin), bundle: .module)) {
+                if viewModel.canMakeAdmin(member) { promoting = member }
+              }
+          }
+          Button {
+            addMember = AddMemberViewModel(groupID: group.id, repository: viewModel.repository)
+          } label: {
+            Label {
+              Text(LocalizedStringKey(AddMemberView.title), bundle: .module)
+            } icon: {
+              Image(systemName: "person.badge.plus").accessibilityHidden(true)
+            }
+            .frame(minHeight: 44)
           }
         } header: {
           Text(LocalizedStringKey(Self.members), bundle: .module)
@@ -79,9 +125,18 @@ struct GroupView: View {
 
   nonisolated static let rename = "Rename"
   nonisolated static let renameTitle = "Rename Group"
-  nonisolated static let renameFailed = "Couldn't rename"
+  nonisolated static let renameFailed = "Couldn't make the change"
+  nonisolated static let makeAdmin = "Make Admin"
+  nonisolated static let makeAdminTitle = "Make this Member an Admin?"
+  nonisolated static let makeAdminMessage = "%@ will be able to rename the Group, remove Members and grant Admin."
+
+  /// The grant-Admin confirmation, from the one catalog key above.
+  static func makeAdminText(_ name: String) -> String {
+    String(format: String(localized: String.LocalizationValue(makeAdminMessage), bundle: .module), name)
+  }
   nonisolated static let members = "Members"
-  nonisolated static let allKeys = [rename, renameTitle, renameFailed, members] + MemberRow.allKeys
+  nonisolated static let allKeys =
+    [rename, renameTitle, renameFailed, members, makeAdmin, makeAdminTitle, makeAdminMessage] + MemberRow.allKeys
 }
 
 /// One Member, with Admin, Placeholder and "you" badges.

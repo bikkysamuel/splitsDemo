@@ -16,6 +16,10 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/parameters/GroupId`.
         public typealias GroupId = Swift.String
+        /// The Member's ID.
+        ///
+        /// - Remark: Generated from `#/components/parameters/MemberId`.
+        public typealias MemberId = Swift.String
         /// The `next_cursor` of the previous page; omit for the first page.
         ///
         /// - Remark: Generated from `#/components/parameters/Cursor`.

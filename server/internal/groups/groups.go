@@ -28,6 +28,12 @@ var (
 	ErrVersionConflict = errors.New("groups: version conflict")
 	// ErrGroupLimit: the User is already in MaxGroupsPerUser Groups.
 	ErrGroupLimit = errors.New("groups: group limit reached")
+	// ErrMemberLimit: the Group already has MaxMembersPerGroup Members.
+	ErrMemberLimit = errors.New("groups: member limit reached")
+	// ErrMemberNotEligible: a Placeholder or Former Member can't be an Admin.
+	ErrMemberNotEligible = errors.New("groups: member not eligible")
+	// ErrGroupClosed: the Group is Closed and read-only (FR-G6).
+	ErrGroupClosed = errors.New("groups: group closed")
 )
 
 // Role is an Admin or an ordinary Member.
@@ -74,6 +80,7 @@ type Member struct {
 	Role        Role
 	Status      MemberStatus
 	JoinSeq     int
+	Version     int
 }
 
 // Placeholder reports whether no User is linked to the Member yet.
@@ -106,6 +113,16 @@ type NewGroup struct {
 	Now         time.Time
 }
 
+// NewMember is a Member to add. The store links it to the verified User
+// with Email, if there is one; otherwise it is a Placeholder carrying Email.
+type NewMember struct {
+	ID          platform.ID
+	GroupID     platform.ID
+	DisplayName string
+	Email       *string
+	Now         time.Time
+}
+
 // Repository stores Groups and Members. Each method is one transaction.
 type Repository interface {
 	// CreateGroup stores the Group with its creator as first Admin, unless
@@ -121,4 +138,14 @@ type Repository interface {
 	// RenameGroup renames the Group if its version is still version, or
 	// returns ErrVersionConflict.
 	RenameGroup(ctx context.Context, groupID platform.ID, name string, version int, now time.Time) error
+	// AddMember adds m with the Group row locked, so join_seq is the next
+	// one and the limit holds. It returns ErrGroupClosed, ErrMemberLimit
+	// (maxMembers counts every Member), or a *ValidationError with code
+	// CodeTaken for an email or display name already in the Group.
+	AddMember(ctx context.Context, m NewMember, maxMembers int) (Member, error)
+	// MakeAdmin makes the Member an Admin if its version is still version.
+	// It returns ErrNotFound (no such Member in the Group),
+	// ErrMemberNotEligible (a Placeholder or Former Member),
+	// ErrGroupClosed or ErrVersionConflict.
+	MakeAdmin(ctx context.Context, groupID, memberID platform.ID, version int, now time.Time) (Member, error)
 }

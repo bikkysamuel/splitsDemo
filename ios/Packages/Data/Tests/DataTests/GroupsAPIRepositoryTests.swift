@@ -98,6 +98,83 @@ struct GroupsAPIRepositoryTests {
     }
   }
 
+  // MARK: Members (FR-M1, FR-M2, FR-G3)
+
+  private static let groupPath = "/v1/groups/01a0fabc-fbe9-7151-9503-10d608c15583"
+  private static let groupID = UUID(uuidString: "01a0fabc-fbe9-7151-9503-10d608c15583")!
+  private static let bobID = UUID(uuidString: "01a0fabc-fcc1-7d77-92f4-db87ce484cc0")!
+
+  @Test func addMemberSendsTheEmailAndMapsTheMember() async throws {
+    let transport = try PathTransport(["POST \(Self.groupPath)/members": .fixture("member-add-201", status: .created)])
+    let repository = try makeRepository(transport)
+
+    let member = try await repository.addMember(
+      groupID: Self.groupID, displayName: "Bob", email: "bob@example.com", key: WriteKey())
+
+    #expect(member.displayName == "Bob")
+    #expect(!member.isPlaceholder)
+    #expect(member.joinSeq == 2)
+    #expect(member.canBecomeAdmin)
+    let body =
+      try JSONSerialization.jsonObject(with: try #require(await transport.sent.first).body) as? [String: String]
+    #expect(body == ["display_name": "Bob", "email": "bob@example.com"])
+  }
+
+  @Test func aNameOnlyPlaceholderSendsNoEmail() async throws {
+    let transport = try PathTransport([
+      "POST \(Self.groupPath)/members": .fixture("member-add-201-placeholder", status: .created)
+    ])
+    let repository = try makeRepository(transport)
+
+    let member = try await repository.addMember(
+      groupID: Self.groupID, displayName: "Grandma", email: nil, key: WriteKey())
+
+    #expect(member.isPlaceholder)
+    #expect(!member.canBecomeAdmin)
+    let body =
+      try JSONSerialization.jsonObject(with: try #require(await transport.sent.first).body) as? [String: String]
+    #expect(body == ["display_name": "Grandma"])
+  }
+
+  @Test func aTakenDisplayNameIsAFieldIssue() async throws {
+    let transport = try PathTransport([
+      "POST \(Self.groupPath)/members": .fixture("member-add-400-taken", status: .badRequest, problem: true)
+    ])
+    let repository = try makeRepository(transport)
+
+    await #expect(throws: ServiceError.invalidFields([FieldIssue(field: "display_name", reason: .taken)])) {
+      try await repository.addMember(groupID: Self.groupID, displayName: "bob", email: nil, key: WriteKey())
+    }
+  }
+
+  @Test func makeAdminSendsTheVersion() async throws {
+    let transport = try PathTransport([
+      "PATCH \(Self.groupPath)/members/\(Self.bobID.uuidString.lowercased())": .fixture("member-admin-200")
+    ])
+    let repository = try makeRepository(transport)
+
+    let member = try await repository.makeAdmin(
+      groupID: Self.groupID, memberID: Self.bobID, version: 1, key: WriteKey())
+
+    #expect(member.role == .admin)
+    #expect(member.version == 2)
+    let body = try JSONSerialization.jsonObject(with: try #require(await transport.sent.first).body) as? [String: Any]
+    #expect(body?["role"] as? String == "admin")
+    #expect(body?["version"] as? Int == 1)
+  }
+
+  @Test func aPlaceholderIsNotEligible() async throws {
+    let transport = try PathTransport([
+      "PATCH \(Self.groupPath)/members/\(Self.bobID.uuidString.lowercased())": .fixture(
+        "member-admin-409-not-eligible", status: .conflict, problem: true)
+    ])
+    let repository = try makeRepository(transport)
+
+    await #expect(throws: ServiceError.problem(.memberNotEligible)) {
+      try await repository.makeAdmin(groupID: Self.groupID, memberID: Self.bobID, version: 1, key: WriteKey())
+    }
+  }
+
   private func makeRepository(_ transport: PathTransport) throws -> GroupsAPIRepository {
     let api = APISession(
       serverURL: try #require(URL(string: "http://localhost:8080")), transport: transport,
