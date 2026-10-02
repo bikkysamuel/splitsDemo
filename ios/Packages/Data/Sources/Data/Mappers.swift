@@ -37,6 +37,7 @@ enum ServiceErrorMapper {
     var current: any Error = error
     while true {
       if current is URLError { return .unreachable }
+      if let refresh = current as? RefreshUnavailable { return .unexpected(status: refresh.status) }
       if let client = current as? ClientError {
         current = client.underlyingError
         continue

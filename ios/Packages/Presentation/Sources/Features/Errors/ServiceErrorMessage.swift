@@ -26,6 +26,7 @@ enum ServiceErrorMessage {
     case .unauthenticated: "Your session has ended. Sign in again."
     case .emailNotVerified: "Verify your email first."
     case .requestTooLarge: "That's too much text to send."
+    case .tooManyAttempts: "Too many attempts. Wait a moment, then try again."
     case .invalidRequest, .idempotencyKeyRequired, .idempotencyKeyInProgress, .idempotencyKeyReused, .notReady,
       .internal:
       generic

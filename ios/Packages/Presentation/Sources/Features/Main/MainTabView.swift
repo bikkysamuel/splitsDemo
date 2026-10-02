@@ -1,8 +1,12 @@
+import Domain
 import SwiftUI
 
 /// The signed-in shell (FR-U4): Home, Report and Settings, each with its
 /// own navigation stack. The tabs fill in as later tickets land.
 struct MainTabView: View {
+  let user: User
+  let session: AppSession
+
   var body: some View {
     TabView {
       Tab {
@@ -30,9 +34,7 @@ struct MainTabView: View {
       }
       Tab {
         NavigationStack {
-          EmptyTab(
-            titleKey: Self.settings, messageKey: Self.settingsEmpty, detailKey: Self.settingsEmptyDetail,
-            symbol: "gearshape")
+          SettingsView(user: user, session: session)
         }
       } label: {
         Label {
@@ -51,12 +53,9 @@ struct MainTabView: View {
   nonisolated static let reportEmpty = "Nothing to report yet"
   nonisolated static let reportEmptyDetail = "Reports appear once you have Groups."
   nonisolated static let settings = "Settings"
-  nonisolated static let settingsEmpty = "Settings are on their way"
-  nonisolated static let settingsEmptyDetail = "Theme, currency and account settings come next."
 
   nonisolated static let allKeys = [
-    home, homeEmpty, homeEmptyDetail, report, reportEmpty, reportEmptyDetail, settings, settingsEmpty,
-    settingsEmptyDetail,
+    home, homeEmpty, homeEmptyDetail, report, reportEmpty, reportEmptyDetail, settings,
   ]
 }
 

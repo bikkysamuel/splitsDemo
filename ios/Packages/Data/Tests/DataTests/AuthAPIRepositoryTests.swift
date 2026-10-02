@@ -195,13 +195,15 @@ struct AuthAPIRepositoryTests {
     #expect(await tokens.load() == .sample)
   }
 
-  @Test func forgetSessionClearsTheTokens() async throws {
-    let tokens = InMemoryTokenStore(.sample)
-    let (repository, _, _) = try makeRepository(.empty(status: .ok), tokens: tokens)
+  @Test func aThrottledSignInIsTooManyAttempts() async throws {
+    let (repository, _, _) = try makeRepository(
+      .json(
+        #"{"type":"https://splits.dev/problems/too-many-attempts","title":"Too many attempts","status":429}"#,
+        status: .tooManyRequests, problem: true, headers: ["Retry-After": "4"]))
 
-    await repository.forgetSession()
-
-    #expect(await tokens.load() == nil)
+    await #expect(throws: ServiceError.problem(.tooManyAttempts)) {
+      try await repository.signIn(email: "alice@example.com", password: "correct horse battery")
+    }
   }
 
   private func makeRepository(
@@ -223,7 +225,7 @@ extension StoredTokens {
 /// Answers every request the same way and records what was sent.
 final class RecordingTransport: ClientTransport, Sendable {
   enum Behaviour: Sendable {
-    case answer(status: HTTPResponse.Status, body: Data, contentType: String)
+    case answer(status: HTTPResponse.Status, body: Data, contentType: String, headers: [String: String] = [:])
     case fail(any Error)
 
     static func fixture(_ name: String, status: HTTPResponse.Status = .ok, problem: Bool = false) throws -> Behaviour {
@@ -231,8 +233,10 @@ final class RecordingTransport: ClientTransport, Sendable {
       return .answer(status: status, body: try Data(contentsOf: url), contentType: contentType(problem))
     }
 
-    static func json(_ text: String, status: HTTPResponse.Status = .ok, problem: Bool = false) -> Behaviour {
-      .answer(status: status, body: Data(text.utf8), contentType: contentType(problem))
+    static func json(
+      _ text: String, status: HTTPResponse.Status = .ok, problem: Bool = false, headers: [String: String] = [:]
+    ) -> Behaviour {
+      .answer(status: status, body: Data(text.utf8), contentType: contentType(problem), headers: headers)
     }
 
     static func empty(status: HTTPResponse.Status) -> Behaviour {
@@ -271,9 +275,10 @@ final class RecordingTransport: ClientTransport, Sendable {
     }
     await recorder.record(Sent(request: request, body: data))
     switch behaviour {
-    case .answer(let status, let body, let contentType):
+    case .answer(let status, let body, let contentType, let headers):
       var fields = HTTPFields()
       if !contentType.isEmpty { fields[.contentType] = contentType }
+      for (name, value) in headers { fields[HTTPField.Name(name)!] = value }
       return (HTTPResponse(status: status, headerFields: fields), body.isEmpty ? nil : HTTPBody(body))
     case .fail(let error):
       throw error

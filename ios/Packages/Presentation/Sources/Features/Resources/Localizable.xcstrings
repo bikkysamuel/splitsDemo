@@ -1,6 +1,18 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Account": {
+      "comment": "Settings section header: the signed-in account",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account"
+          }
+        }
+      }
+    },
     "An account with this email already exists. Sign in instead.": {
       "comment": "Sign-up error: the email belongs to a verified account",
       "extractionState": "manual",
@@ -181,6 +193,18 @@
         }
       }
     },
+    "OK": {
+      "comment": "Button that dismisses an alert",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
     "Password": {
       "comment": "Label of the password field",
       "extractionState": "manual",
@@ -229,6 +253,18 @@
         }
       }
     },
+    "Session expired": {
+      "comment": "Alert title when the saved session could not be refreshed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Session expired"
+          }
+        }
+      }
+    },
     "Settings": {
       "comment": "Tab title: Settings",
       "extractionState": "manual",
@@ -241,18 +277,6 @@
         }
       }
     },
-    "Settings are on their way": {
-      "comment": "Settings tab placeholder title",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Settings are on their way"
-          }
-        }
-      }
-    },
     "Sign in": {
       "comment": "Title and button of the sign-in screen",
       "extractionState": "manual",
@@ -261,6 +285,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sign in"
+          }
+        }
+      }
+    },
+    "Sign in again to continue.": {
+      "comment": "Alert message when the saved session could not be refreshed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in again to continue."
+          }
+        }
+      }
+    },
+    "Sign out": {
+      "comment": "Settings button that signs out",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign out"
+          }
+        }
+      }
+    },
+    "Sign out of Splits on this iPhone?": {
+      "comment": "Confirmation title before signing out",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign out of Splits on this iPhone?"
+          }
+        }
+      }
+    },
+    "Signed in as": {
+      "comment": "Settings label before the signed-in User's email",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed in as"
           }
         }
       }
@@ -325,18 +397,6 @@
         }
       }
     },
-    "Theme, currency and account settings come next.": {
-      "comment": "Settings tab placeholder description",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Theme, currency and account settings come next."
-          }
-        }
-      }
-    },
     "This field is invalid.": {
       "comment": "Field error with no more specific message",
       "extractionState": "manual",
@@ -357,6 +417,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "This password is too common. Choose another."
+          }
+        }
+      }
+    },
+    "Too many attempts. Wait a moment, then try again.": {
+      "comment": "Sign-in error after too many failed attempts",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many attempts. Wait a moment, then try again."
           }
         }
       }

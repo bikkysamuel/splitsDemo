@@ -30,10 +30,10 @@ users ─1───*─ sessions
 | Table | Key columns | Notes |
 |---|---|---|
 | `users` | `id`, `email citext UNIQUE`, `password_hash`, `email_verified_at null` | Erased on account deletion (ADR-0013). |
-| `sessions` | `id`, `user_id`, `access_hash`, `access_expires_at`, `refresh_hash`, `refresh_expires_at`, `replaced_by null`, `revoked_at null` | Only SHA-256 hashes of tokens are stored (ADR-0011). Reuse of a replaced refresh token revokes the chain. |
+| `sessions` | `id`, `family_id`, `user_id`, `access_hash`, `access_expires_at`, `refresh_hash`, `refresh_expires_at`, `replaced_by null`, `revoked_at null` | Only SHA-256 hashes of tokens are stored (ADR-0011). Each refresh adds a row to the Session's family (`family_id` = its first row); reuse of a replaced refresh token revokes the family. |
 | `one_time_codes` | `id`, `user_id`, `purpose (verify_email \| reset_password)`, `code_hash`, `expires_at`, `attempts`, `consumed_at null` | 15-minute expiry, at most 5 attempts (ADR-0016). |
 | `devices` | `id`, `user_id`, `fcm_token UNIQUE`, `last_seen_at` | Used by push later (Q74). |
-| `login_throttle` | `scope (account \| ip)`, `key`, `failures`, `next_allowed_at` | Growing delays (Q34). |
+| `login_throttle` | `scope (account \| ip)`, `key` (SHA-256), `failures`, `last_failure_at`, `next_allowed_at` | Growing delays (Q34, Q90). |
 
 ### Groups and Members
 

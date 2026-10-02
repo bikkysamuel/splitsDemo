@@ -3,28 +3,33 @@ import Domain
 import Foundation
 import OpenAPIRuntime
 
-/// Sign-up, verification and sign-in over the generated client. Every new
-/// Session's tokens go to the `TokenStore` (the Keychain in the app); the
-/// access token is attached to protected requests by the client's
-/// middleware. Generated types never leave this file (ADR-0015).
+/// Sign-up, verification, sign-in and sign-out over the generated client.
+/// Every new Session's tokens go to the `TokenStore` (the Keychain in the
+/// app); the client's middleware attaches the access token to protected
+/// requests and refreshes it on a 401 through `SessionRefresher`. Generated
+/// types never leave this layer (ADR-0015).
 public struct AuthAPIRepository: AuthRepository {
   private let client: Client
   private let tokens: any TokenStore
+  private let refresher: SessionRefresher
 
   public init(configuration: APIConfiguration, tokens: any TokenStore) {
-    self.client = APIClientFactory.makeClient(configuration: configuration) { await tokens.load()?.accessToken }
-    self.tokens = tokens
+    self.init(serverURL: configuration.baseURL, transport: APIClientFactory.makeTransport(), tokens: tokens)
   }
 
-  /// For tests: the same client over another transport.
+  /// For tests: the same clients over another transport.
   init(serverURL: URL, transport: any ClientTransport, tokens: any TokenStore) {
+    let refresher = SessionRefresher(serverURL: serverURL, transport: transport, tokens: tokens)
     self.client = Client(
       serverURL: serverURL,
       configuration: APIClientFactory.clientConfiguration,
       transport: transport,
-      middlewares: [AuthenticationMiddleware { await tokens.load()?.accessToken }])
+      middlewares: [AuthenticationMiddleware(tokens: refresher)])
     self.tokens = tokens
+    self.refresher = refresher
   }
+
+  public var sessionExpirations: AsyncStream<Void> { refresher.expirations }
 
   public func signUp(email: String, password: String) async throws(ServiceError) -> User {
     let output = try await send { try await client.signUp(body: .json(.init(email: email, password: password))) }
@@ -67,6 +72,7 @@ public struct AuthAPIRepository: AuthRepository {
     case .badRequest(let r): throw problem(400) { try r.body.applicationProblemJson }
     case .unauthorized(let r): throw problem(401) { try r.body.applicationProblemJson }
     case .contentTooLarge(let r): throw problem(413) { try r.body.applicationProblemJson }
+    case .tooManyRequests(let r): throw problem(429) { try r.body.applicationProblemJson }
     case .internalServerError: throw .unexpected(status: 500)
     case .undocumented(let status, _): throw .unexpected(status: status)
     }
@@ -79,7 +85,7 @@ public struct AuthAPIRepository: AuthRepository {
     case .ok(let ok):
       return try UserMapper.user(decoding { try ok.body.json })
     case .unauthorized:
-      // Refreshing comes with #11; for now an expired Session signs out.
+      // The middleware already tried a refresh, and it failed.
       await tokens.clear()
       return nil
     case .internalServerError: throw .unexpected(status: 500)
@@ -87,7 +93,10 @@ public struct AuthAPIRepository: AuthRepository {
     }
   }
 
-  public func forgetSession() async {
+  public func signOut() async {
+    // Best effort: the Session is forgotten on this device whatever the
+    // server answers; if it can't be reached, the Session expires on its own.
+    _ = try? await client.signOut(headers: .init(idempotencyKey: UUID().uuidString))
     await tokens.clear()
   }
 
