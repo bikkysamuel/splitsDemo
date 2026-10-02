@@ -17,7 +17,9 @@ struct SplitsApp: App {
     // token refresher (ADR-0011).
     let api = APISession(configuration: Self.apiConfiguration(), tokens: KeychainTokenStore())
     _session = State(initialValue: AppSession(repository: AuthAPIRepository(api: api)))
-    dependencies = AppDependencies(groups: GroupsAPIRepository(api: api), preferences: UserDefaultsPreferences())
+    dependencies = AppDependencies(
+      groups: GroupsAPIRepository(api: api), expenses: ExpensesAPIRepository(api: api),
+      preferences: UserDefaultsPreferences())
   }
 
   var body: some Scene {

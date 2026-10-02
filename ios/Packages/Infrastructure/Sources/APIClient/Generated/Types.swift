@@ -161,6 +161,42 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/groups/{groupId}/members/{memberId}`.
     /// - Remark: Generated from `#/paths//v1/groups/{groupId}/members/{memberId}/patch(updateMember)`.
     func updateMember(_ input: Operations.UpdateMember.Input) async throws -> Operations.UpdateMember.Output
+    /// Preview an Expense's Shares
+    ///
+    /// Computes the exact Shares an Expense would get, without saving it
+    /// (FR-E4, ADR-0006). The same code computes them on save, so the
+    /// preview always matches. Reads only, so it takes no Idempotency-Key.
+    /// Refuses the input exactly as creating would.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups/{groupId}/expenses/preview`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/preview/post(previewExpense)`.
+    func previewExpense(_ input: Operations.PreviewExpense.Input) async throws -> Operations.PreviewExpense.Output
+    /// A Group's Expenses
+    ///
+    /// Newest first by date, then by when they were recorded, a page at a time.
+    ///
+    /// - Remark: HTTP `GET /v1/groups/{groupId}/expenses`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/get(listExpenses)`.
+    func listExpenses(_ input: Operations.ListExpenses.Input) async throws -> Operations.ListExpenses.Output
+    /// Record an Expense
+    ///
+    /// Any active Member records an Expense, for any payer (FR-E1, FR-E3).
+    /// In M1 it is accepted at once (D9). The Expense, its Shares and its
+    /// Activity History event are saved in one transaction (NFR-R2). Once
+    /// a Group has an Expense its Group Currency can't change (D3).
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups/{groupId}/expenses`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/post(createExpense)`.
+    func createExpense(_ input: Operations.CreateExpense.Input) async throws -> Operations.CreateExpense.Output
+    /// An Expense
+    ///
+    /// The Expense with its Shares. `404` unless the User is an active Member of its Group.
+    ///
+    /// - Remark: HTTP `GET /v1/expenses/{expenseId}`.
+    /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/get(getExpense)`.
+    func getExpense(_ input: Operations.GetExpense.Input) async throws -> Operations.GetExpense.Output
     /// The signed-in User
     ///
     /// The app's launch check (FR-U1). Works for unverified Users too.
@@ -420,6 +456,80 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// Preview an Expense's Shares
+    ///
+    /// Computes the exact Shares an Expense would get, without saving it
+    /// (FR-E4, ADR-0006). The same code computes them on save, so the
+    /// preview always matches. Reads only, so it takes no Idempotency-Key.
+    /// Refuses the input exactly as creating would.
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups/{groupId}/expenses/preview`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/preview/post(previewExpense)`.
+    public func previewExpense(
+        path: Operations.PreviewExpense.Input.Path,
+        headers: Operations.PreviewExpense.Input.Headers = .init(),
+        body: Operations.PreviewExpense.Input.Body
+    ) async throws -> Operations.PreviewExpense.Output {
+        try await previewExpense(Operations.PreviewExpense.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// A Group's Expenses
+    ///
+    /// Newest first by date, then by when they were recorded, a page at a time.
+    ///
+    /// - Remark: HTTP `GET /v1/groups/{groupId}/expenses`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/get(listExpenses)`.
+    public func listExpenses(
+        path: Operations.ListExpenses.Input.Path,
+        query: Operations.ListExpenses.Input.Query = .init(),
+        headers: Operations.ListExpenses.Input.Headers = .init()
+    ) async throws -> Operations.ListExpenses.Output {
+        try await listExpenses(Operations.ListExpenses.Input(
+            path: path,
+            query: query,
+            headers: headers
+        ))
+    }
+    /// Record an Expense
+    ///
+    /// Any active Member records an Expense, for any payer (FR-E1, FR-E3).
+    /// In M1 it is accepted at once (D9). The Expense, its Shares and its
+    /// Activity History event are saved in one transaction (NFR-R2). Once
+    /// a Group has an Expense its Group Currency can't change (D3).
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/groups/{groupId}/expenses`.
+    /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/post(createExpense)`.
+    public func createExpense(
+        path: Operations.CreateExpense.Input.Path,
+        headers: Operations.CreateExpense.Input.Headers,
+        body: Operations.CreateExpense.Input.Body
+    ) async throws -> Operations.CreateExpense.Output {
+        try await createExpense(Operations.CreateExpense.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// An Expense
+    ///
+    /// The Expense with its Shares. `404` unless the User is an active Member of its Group.
+    ///
+    /// - Remark: HTTP `GET /v1/expenses/{expenseId}`.
+    /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/get(getExpense)`.
+    public func getExpense(
+        path: Operations.GetExpense.Input.Path,
+        headers: Operations.GetExpense.Input.Headers = .init()
+    ) async throws -> Operations.GetExpense.Output {
+        try await getExpense(Operations.GetExpense.Input(
+            path: path,
+            headers: headers
         ))
     }
     /// The signed-in User

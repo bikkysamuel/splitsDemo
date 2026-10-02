@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/bikkysamuel/splitsDemo/server/internal/auth"
+	"github.com/bikkysamuel/splitsDemo/server/internal/expenses"
 	"github.com/bikkysamuel/splitsDemo/server/internal/groups"
 	"github.com/bikkysamuel/splitsDemo/server/internal/httpapi"
 	"github.com/bikkysamuel/splitsDemo/server/internal/idempotency"
@@ -62,6 +63,7 @@ func New(ctx context.Context, cfg platform.Config, logger *slog.Logger, opts ...
 		return nil, err
 	}
 	ids := platform.NewIDGenerator(o.clock)
+	groupsService := groups.NewService(groups.Deps{Repository: db.Groups(), Clock: o.clock, IDs: ids})
 	api := httpapi.New(httpapi.Deps{
 		Logger:    logger,
 		Readiness: db,
@@ -73,8 +75,11 @@ func New(ctx context.Context, cfg platform.Config, logger *slog.Logger, opts ...
 			PasswordParams: o.passwordParams,
 		}),
 		Idempotency: idempotency.NewService(db.Idempotency(), o.clock),
-		Groups:      groups.NewService(groups.Deps{Repository: db.Groups(), Clock: o.clock, IDs: ids}),
-		IDs:         ids,
+		Groups:      groupsService,
+		Expenses: expenses.NewService(expenses.Deps{
+			Repository: db.Expenses(), Groups: groupsService, Clock: o.clock, IDs: ids,
+		}),
+		IDs: ids,
 	})
 	return &App{db: db, api: api}, nil
 }

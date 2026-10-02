@@ -4,10 +4,14 @@ import Domain
 /// composition root (ADR-0015).
 public struct AppDependencies: Sendable {
   public let groups: any GroupsRepository
+  public let expenses: any ExpensesRepository
   public let preferences: any PreferencesRepository
 
-  public init(groups: any GroupsRepository, preferences: any PreferencesRepository) {
+  public init(
+    groups: any GroupsRepository, expenses: any ExpensesRepository, preferences: any PreferencesRepository
+  ) {
     self.groups = groups
+    self.expenses = expenses
     self.preferences = preferences
   }
 }

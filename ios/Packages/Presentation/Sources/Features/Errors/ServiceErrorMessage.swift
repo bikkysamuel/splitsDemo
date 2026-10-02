@@ -56,6 +56,12 @@ enum ServiceErrorMessage {
     case ("display_name", .tooLong): "Use at most 50 characters."
     case ("display_name", .taken): "Someone in this Group already has this name."
     case ("currency", _): "Choose a currency."
+    case ("amount/minor", _): "Enter an amount above zero."
+    case ("amount/currency", _): "Use the Group Currency."
+    case ("payer_member_id", _): "Choose who paid from the Group's Members."
+    case ("note", .tooLong): "Use at most 500 characters."
+    case ("split/members", _): "Choose at least one Member to share it."
+    case (let field, _) where field.hasPrefix("split/"): "Check who shares this Expense."
     default: "This field is invalid."
     }
   }
@@ -64,7 +70,10 @@ enum ServiceErrorMessage {
   static var allKeys: [String] {
     var keys = [generic, unreachable, checkFields] + ProblemKind.allCases.map(key(for:))
     let reasons: [FieldIssue.Reason] = [.required, .invalid, .tooShort, .tooLong, .tooCommon, .taken, .other("x")]
-    for field in ["email", "password", "name", "display_name", "currency", "other"] {
+    for field in [
+      "email", "password", "name", "display_name", "currency", "amount/minor", "amount/currency", "payer_member_id",
+      "note", "split/members", "split/members/0/member_id", "other",
+    ] {
       keys += reasons.map { key(for: FieldIssue(field: field, reason: $0)) }
     }
     return Array(Set(keys)).sorted()

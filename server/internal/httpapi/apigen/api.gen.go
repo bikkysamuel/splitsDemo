@@ -18,6 +18,78 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for Category.
+const (
+	CategoryAccommodation Category = "accommodation"
+	CategoryEntertainment Category = "entertainment"
+	CategoryFoodDrink     Category = "food_drink"
+	CategoryGroceries     Category = "groceries"
+	CategoryHealth        Category = "health"
+	CategoryOther         Category = "other"
+	CategoryRent          Category = "rent"
+	CategoryShopping      Category = "shopping"
+	CategoryTransport     Category = "transport"
+	CategoryTravel        Category = "travel"
+	CategoryUtilities     Category = "utilities"
+)
+
+// Valid indicates whether the value is a known member of the Category enum.
+func (e Category) Valid() bool {
+	switch e {
+	case CategoryAccommodation:
+		return true
+	case CategoryEntertainment:
+		return true
+	case CategoryFoodDrink:
+		return true
+	case CategoryGroceries:
+		return true
+	case CategoryHealth:
+		return true
+	case CategoryOther:
+		return true
+	case CategoryRent:
+		return true
+	case CategoryShopping:
+		return true
+	case CategoryTransport:
+		return true
+	case CategoryTravel:
+		return true
+	case CategoryUtilities:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExpenseState.
+const (
+	ExpenseStateAccepted          ExpenseState = "accepted"
+	ExpenseStateDisputed          ExpenseState = "disputed"
+	ExpenseStatePending           ExpenseState = "pending"
+	ExpenseStateWithdrawalPending ExpenseState = "withdrawal_pending"
+	ExpenseStateWithdrawn         ExpenseState = "withdrawn"
+)
+
+// Valid indicates whether the value is a known member of the ExpenseState enum.
+func (e ExpenseState) Valid() bool {
+	switch e {
+	case ExpenseStateAccepted:
+		return true
+	case ExpenseStateDisputed:
+		return true
+	case ExpenseStatePending:
+		return true
+	case ExpenseStateWithdrawalPending:
+		return true
+	case ExpenseStateWithdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GroupState.
 const (
 	GroupStateActive  GroupState = "active"
@@ -105,6 +177,21 @@ func (e ReadinessStatusStatus) Valid() bool {
 	}
 }
 
+// Defines values for SplitMethod.
+const (
+	SplitMethodEqual SplitMethod = "equal"
+)
+
+// Valid indicates whether the value is a known member of the SplitMethod enum.
+func (e SplitMethod) Valid() bool {
+	switch e {
+	case SplitMethodEqual:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateMemberRequestRole.
 const (
 	UpdateMemberRequestRoleAdmin UpdateMemberRequestRole = "admin"
@@ -159,6 +246,11 @@ type AuthSession struct {
 	User User `json:"user"`
 }
 
+// Category The fixed Category list (D7); the app localizes the names.
+//
+// Examples: food_drink
+type Category string
+
 // CreateGroupRequest Create-Group input (FR-G1).
 type CreateGroupRequest struct {
 	// Currency An active ISO 4217 code. Field error code: `invalid`.
@@ -204,6 +296,150 @@ type Email = string
 //
 // Examples: 83.25
 type ExchangeRate = string
+
+// Expense An Expense with its Shares (FR-E1).
+type Expense struct {
+	// Amount An amount in integer minor units of an ISO 4217 currency (ADR-0002).
+	// Never a floating-point number.
+	Amount Money `json:"amount"`
+
+	// Category The fixed Category list (D7); the app localizes the names.
+	//
+	// Examples: food_drink
+	Category Category `json:"category"`
+
+	// CreatedAt Examples: 2026-10-01T19:30:00Z
+	CreatedAt time.Time `json:"created_at"`
+
+	// CreatedByMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	CreatedByMemberId openapi_types.UUID `json:"created_by_member_id"`
+
+	// GroupId Examples: 0190b6c4-0000-7000-8000-0000000000c1
+	GroupId openapi_types.UUID `json:"group_id"`
+
+	// Id Examples: 0190b6c4-0000-7000-8000-0000000000e1
+	Id openapi_types.UUID `json:"id"`
+
+	// Note Examples: Dinner at the beach shack
+	Note *string `json:"note,omitempty"`
+
+	// PayerMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	PayerMemberId openapi_types.UUID `json:"payer_member_id"`
+
+	// Shares Every Member in the Split, in joining order.
+	//
+	// Examples: [{"member_id":"0190b6c4-0000-7000-8000-0000000000d1","share":{"currency":"INR","minor":100001}}]
+	Shares []ShareLine `json:"shares"`
+
+	// SpentOn Examples: 2026-10-01
+	SpentOn openapi_types.Date `json:"spent_on"`
+
+	// SplitMethod How the Expense is divided (FR-E2). Equal only for now; exact,
+	// percentage and ratio follow (#18).
+	//
+	//
+	// Examples: equal
+	SplitMethod SplitMethod `json:"split_method"`
+
+	// State Where the Expense is in its life (doc 06). In M1 every Expense is
+	// accepted at once (D9); the agreement states arrive with M2.
+	//
+	//
+	// Examples: accepted
+	State ExpenseState `json:"state"`
+
+	// Version Examples: 1
+	Version int32 `json:"version"`
+}
+
+// ExpenseInput An Expense as entered (FR-E1). Previews and creates take the same input.
+type ExpenseInput struct {
+	// Amount > 0, in the Group Currency for now (foreign currencies: #19).
+	//
+	// Examples: {"currency":"INR","minor":100001}
+	Amount Money `json:"amount"`
+
+	// Category The fixed Category list (D7); the app localizes the names.
+	//
+	// Examples: food_drink
+	Category Category `json:"category"`
+
+	// Note Optional, at most 500 characters after trimming (D1).
+	//
+	// Examples: Dinner at the beach shack
+	Note *string `json:"note,omitempty"`
+
+	// PayerMemberId Any active Member, Placeholders included (FR-E3).
+	//
+	// Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	PayerMemberId openapi_types.UUID `json:"payer_member_id"`
+
+	// SpentOn The day the money was spent.
+	//
+	// Examples: 2026-10-01
+	SpentOn openapi_types.Date `json:"spent_on"`
+
+	// Split Who shares the Expense, and how.
+	Split SplitInput `json:"split"`
+}
+
+// ExpensePage One page of a Group's Expenses.
+type ExpensePage struct {
+	// Items Examples: [{"amount":{"currency":"INR","minor":100001},"category":"food_drink","id":"0190b6c4-0000-7000-8000-0000000000e1","payer_member_id":"0190b6c4-0000-7000-8000-0000000000d1","spent_on":"2026-10-01","state":"accepted"}]
+	Items []ExpenseSummary `json:"items"`
+
+	// NextCursor The cursor of the next page of Expenses; null on the last page.
+	//
+	// Examples: null
+	NextCursor *string `json:"next_cursor"`
+}
+
+// ExpensePreview The Shares an Expense would get, in the Split's order.
+type ExpensePreview struct {
+	// Amount An amount in integer minor units of an ISO 4217 currency (ADR-0002).
+	// Never a floating-point number.
+	Amount Money `json:"amount"`
+
+	// Shares Examples: [{"member_id":"0190b6c4-0000-7000-8000-0000000000d1","share":{"currency":"INR","minor":100001}}]
+	Shares []ShareLine `json:"shares"`
+}
+
+// ExpenseState Where the Expense is in its life (doc 06). In M1 every Expense is
+// accepted at once (D9); the agreement states arrive with M2.
+//
+// Examples: accepted
+type ExpenseState string
+
+// ExpenseSummary An Expense in a list.
+type ExpenseSummary struct {
+	// Amount An amount in integer minor units of an ISO 4217 currency (ADR-0002).
+	// Never a floating-point number.
+	Amount Money `json:"amount"`
+
+	// Category The fixed Category list (D7); the app localizes the names.
+	//
+	// Examples: food_drink
+	Category Category `json:"category"`
+
+	// Id Examples: 0190b6c4-0000-7000-8000-0000000000e1
+	Id openapi_types.UUID `json:"id"`
+
+	// Note Examples: Dinner at the beach shack
+	Note *string `json:"note,omitempty"`
+
+	// PayerMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	PayerMemberId openapi_types.UUID `json:"payer_member_id"`
+
+	// SpentOn Examples: 2026-10-01
+	SpentOn openapi_types.Date `json:"spent_on"`
+
+	// State Where the Expense is in its life (doc 06). In M1 every Expense is
+	// accepted at once (D9); the agreement states arrive with M2.
+	//
+	//
+	// Examples: accepted
+	State ExpenseState `json:"state"`
+}
 
 // FieldError One invalid field in a request body.
 type FieldError struct {
@@ -392,6 +628,11 @@ type Password = string
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type Problem struct {
 	// Detail Explanation of this occurrence; not for display.
@@ -451,6 +692,16 @@ type ResendVerificationCodeRequest struct {
 	Email Email `json:"email"`
 }
 
+// ShareLine One Member's Share.
+type ShareLine struct {
+	// MemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	MemberId openapi_types.UUID `json:"member_id"`
+
+	// Share An amount in integer minor units of an ISO 4217 currency (ADR-0002).
+	// Never a floating-point number.
+	Share Money `json:"share"`
+}
+
 // SignInRequest Sign-in input (FR-A4). The password is not checked against the sign-up
 // rules, so a wrong one always answers `invalid-credentials`.
 type SignInRequest struct {
@@ -482,6 +733,29 @@ type SignUpRequest struct {
 	// Examples: correct horse battery
 	Password Password `json:"password"`
 }
+
+// SplitInput Who shares the Expense, and how.
+type SplitInput struct {
+	// Members 1–50 distinct active Members.
+	//
+	// Examples: [{"member_id":"0190b6c4-0000-7000-8000-0000000000d1"}]
+	Members []struct {
+		MemberId openapi_types.UUID `json:"member_id"`
+	} `json:"members"`
+
+	// Method How the Expense is divided (FR-E2). Equal only for now; exact,
+	// percentage and ratio follow (#18).
+	//
+	//
+	// Examples: equal
+	Method SplitMethod `json:"method"`
+}
+
+// SplitMethod How the Expense is divided (FR-E2). Equal only for now; exact,
+// percentage and ratio follow (#18).
+//
+// Examples: equal
+type SplitMethod string
 
 // UpdateMemberRequest Grant-Admin input (FR-G3).
 type UpdateMemberRequest struct {
@@ -529,6 +803,9 @@ type VerifyEmailRequest struct {
 // Cursor defines model for Cursor.
 type Cursor = string
 
+// ExpenseId defines model for ExpenseId.
+type ExpenseId = openapi_types.UUID
+
 // GroupId defines model for GroupId.
 type GroupId = openapi_types.UUID
 
@@ -566,6 +843,11 @@ type MemberId = openapi_types.UUID
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type BadRequest = Problem
 
@@ -594,6 +876,11 @@ type BadRequest = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type Conflict = Problem
 
@@ -622,6 +909,11 @@ type Conflict = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type EmailNotVerified = Problem
 
@@ -650,6 +942,11 @@ type EmailNotVerified = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type EmailTaken = Problem
 
@@ -678,6 +975,11 @@ type EmailTaken = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type Forbidden = Problem
 
@@ -706,6 +1008,11 @@ type Forbidden = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type IdempotencyKeyInProgress = Problem
 
@@ -734,6 +1041,11 @@ type IdempotencyKeyInProgress = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type IdempotencyKeyReused = Problem
 
@@ -762,6 +1074,11 @@ type IdempotencyKeyReused = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type InternalError = Problem
 
@@ -790,6 +1107,11 @@ type InternalError = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type InvalidCredentials = Problem
 
@@ -818,6 +1140,11 @@ type InvalidCredentials = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type NotFound = Problem
 
@@ -846,6 +1173,11 @@ type NotFound = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type NotReady = Problem
 
@@ -874,6 +1206,11 @@ type NotReady = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type RequestTooLarge = Problem
 
@@ -902,6 +1239,11 @@ type RequestTooLarge = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type TooManyAttempts = Problem
 
@@ -930,6 +1272,11 @@ type TooManyAttempts = Problem
 // - `member-limit-reached`: the Group already has 50 Members (409).
 // - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
 // - `group-closed`: the Group is Closed and read-only (409).
+//
+// Field error codes of an Expense (`errors[].code`): `required`,
+// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+// `not_a_member` (payer or Split Member isn't an active Member),
+// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
 // - `internal`: an unexpected server failure (500).
 type Unauthenticated = Problem
 
@@ -968,6 +1315,27 @@ type CreateGroupParams struct {
 
 // RenameGroupParams defines parameters for RenameGroup.
 type RenameGroupParams struct {
+	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
+	// (NFR-R1). Repeating a request with the same key within 24 hours
+	// returns the original response; reusing a key for a different request
+	// answers `idempotency-key-reused`, and repeating it while the first is
+	// still running answers `idempotency-key-in-progress`. Responses with a
+	// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+	// it: their responses carry tokens, which are never stored (ADR-0011).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// ListExpensesParams defines parameters for ListExpenses.
+type ListExpensesParams struct {
+	// Cursor The `next_cursor` of the previous page; omit for the first page.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size, 1–200 (default 50).
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CreateExpenseParams defines parameters for CreateExpense.
+type CreateExpenseParams struct {
 	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
 	// (NFR-R1). Repeating a request with the same key within 24 hours
 	// returns the original response; reusing a key for a different request
@@ -1023,6 +1391,12 @@ type CreateGroupJSONRequestBody = CreateGroupRequest
 // RenameGroupJSONRequestBody defines body for RenameGroup for application/json ContentType.
 type RenameGroupJSONRequestBody = RenameGroupRequest
 
+// CreateExpenseJSONRequestBody defines body for CreateExpense for application/json ContentType.
+type CreateExpenseJSONRequestBody = ExpenseInput
+
+// PreviewExpenseJSONRequestBody defines body for PreviewExpense for application/json ContentType.
+type PreviewExpenseJSONRequestBody = ExpenseInput
+
 // AddMemberJSONRequestBody defines body for AddMember for application/json ContentType.
 type AddMemberJSONRequestBody = AddMemberRequest
 
@@ -1055,6 +1429,9 @@ type ServerInterface interface {
 	// ResendVerificationCode Send a new verification code
 	// (POST /v1/auth/verify-email/resend)
 	ResendVerificationCode(w http.ResponseWriter, r *http.Request)
+	// GetExpense An Expense
+	// (GET /v1/expenses/{expenseId})
+	GetExpense(w http.ResponseWriter, r *http.Request, expenseId ExpenseId)
 	// ListGroups My Groups
 	// (GET /v1/groups)
 	ListGroups(w http.ResponseWriter, r *http.Request, params ListGroupsParams)
@@ -1067,6 +1444,15 @@ type ServerInterface interface {
 	// RenameGroup Rename a Group
 	// (PATCH /v1/groups/{groupId})
 	RenameGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params RenameGroupParams)
+	// ListExpenses A Group's Expenses
+	// (GET /v1/groups/{groupId}/expenses)
+	ListExpenses(w http.ResponseWriter, r *http.Request, groupId GroupId, params ListExpensesParams)
+	// CreateExpense Record an Expense
+	// (POST /v1/groups/{groupId}/expenses)
+	CreateExpense(w http.ResponseWriter, r *http.Request, groupId GroupId, params CreateExpenseParams)
+	// PreviewExpense Preview an Expense's Shares
+	// (POST /v1/groups/{groupId}/expenses/preview)
+	PreviewExpense(w http.ResponseWriter, r *http.Request, groupId GroupId)
 	// AddMember Add a Member
 	// (POST /v1/groups/{groupId}/members)
 	AddMember(w http.ResponseWriter, r *http.Request, groupId GroupId, params AddMemberParams)
@@ -1221,6 +1607,32 @@ func (siw *ServerInterfaceWrapper) ResendVerificationCode(w http.ResponseWriter,
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ResendVerificationCode(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetExpense operation middleware
+func (siw *ServerInterfaceWrapper) GetExpense(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "expenseId" -------------
+	var expenseId ExpenseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "expenseId", r.PathValue("expenseId"), &expenseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "expenseId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExpense(w, r, expenseId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1392,6 +1804,141 @@ func (siw *ServerInterfaceWrapper) RenameGroup(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RenameGroup(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListExpenses operation middleware
+func (siw *ServerInterfaceWrapper) ListExpenses(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListExpensesParams
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListExpenses(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateExpense operation middleware
+func (siw *ServerInterfaceWrapper) CreateExpense(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateExpenseParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateExpense(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PreviewExpense operation middleware
+func (siw *ServerInterfaceWrapper) PreviewExpense(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", r.PathValue("groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PreviewExpense(w, r, groupId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1666,6 +2213,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/v1/groups/{groupId}", wrapper.RenameGroup)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/groups/{groupId}/members", wrapper.AddMember)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/v1/groups/{groupId}/members/{memberId}", wrapper.UpdateMember)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/groups/{groupId}/expenses/preview", wrapper.PreviewExpense)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/groups/{groupId}/expenses", wrapper.ListExpenses)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/groups/{groupId}/expenses", wrapper.CreateExpense)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/expenses/{expenseId}", wrapper.GetExpense)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
 
 	return m
@@ -2317,6 +2868,108 @@ func (response ResendVerificationCode500ApplicationProblemPlusJSONResponse) Visi
 	return err
 }
 
+type GetExpenseRequestObject struct {
+	ExpenseId ExpenseId `json:"expenseId"`
+}
+
+type GetExpenseResponseObject interface {
+	VisitGetExpenseResponse(w http.ResponseWriter) error
+}
+
+type GetExpense200JSONResponse Expense
+
+func (response GetExpense200JSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpense400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response GetExpense400ApplicationProblemPlusJSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpense401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response GetExpense401ApplicationProblemPlusJSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpense403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response GetExpense403ApplicationProblemPlusJSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpense404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response GetExpense404ApplicationProblemPlusJSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetExpense500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response GetExpense500ApplicationProblemPlusJSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListGroupsRequestObject struct {
 	Params ListGroupsParams
 }
@@ -2792,6 +3445,396 @@ func (response RenameGroup500ApplicationProblemPlusJSONResponse) VisitRenameGrou
 	return err
 }
 
+type ListExpensesRequestObject struct {
+	GroupId GroupId `json:"groupId"`
+	Params  ListExpensesParams
+}
+
+type ListExpensesResponseObject interface {
+	VisitListExpensesResponse(w http.ResponseWriter) error
+}
+
+type ListExpenses200JSONResponse ExpensePage
+
+func (response ListExpenses200JSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenses400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response ListExpenses400ApplicationProblemPlusJSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenses401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response ListExpenses401ApplicationProblemPlusJSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenses403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response ListExpenses403ApplicationProblemPlusJSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenses404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response ListExpenses404ApplicationProblemPlusJSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListExpenses500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response ListExpenses500ApplicationProblemPlusJSONResponse) VisitListExpensesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpenseRequestObject struct {
+	GroupId GroupId `json:"groupId"`
+	Params  CreateExpenseParams
+	Body    *CreateExpenseJSONRequestBody
+}
+
+type CreateExpenseResponseObject interface {
+	VisitCreateExpenseResponse(w http.ResponseWriter) error
+}
+
+type CreateExpense201JSONResponse Expense
+
+func (response CreateExpense201JSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response CreateExpense400ApplicationProblemPlusJSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateExpense401ApplicationProblemPlusJSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response CreateExpense403ApplicationProblemPlusJSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response CreateExpense404ApplicationProblemPlusJSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response CreateExpense409ApplicationProblemPlusJSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response CreateExpense413ApplicationProblemPlusJSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense422ApplicationProblemPlusJSONResponse struct {
+	IdempotencyKeyReusedApplicationProblemPlusJSONResponse
+}
+
+func (response CreateExpense422ApplicationProblemPlusJSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExpense500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response CreateExpense500ApplicationProblemPlusJSONResponse) VisitCreateExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewExpenseRequestObject struct {
+	GroupId GroupId `json:"groupId"`
+	Body    *PreviewExpenseJSONRequestBody
+}
+
+type PreviewExpenseResponseObject interface {
+	VisitPreviewExpenseResponse(w http.ResponseWriter) error
+}
+
+type PreviewExpense200JSONResponse ExpensePreview
+
+func (response PreviewExpense200JSONResponse) VisitPreviewExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewExpense400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewExpense400ApplicationProblemPlusJSONResponse) VisitPreviewExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewExpense401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewExpense401ApplicationProblemPlusJSONResponse) VisitPreviewExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewExpense403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewExpense403ApplicationProblemPlusJSONResponse) VisitPreviewExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewExpense404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewExpense404ApplicationProblemPlusJSONResponse) VisitPreviewExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewExpense409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewExpense409ApplicationProblemPlusJSONResponse) VisitPreviewExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewExpense413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewExpense413ApplicationProblemPlusJSONResponse) VisitPreviewExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PreviewExpense500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response PreviewExpense500ApplicationProblemPlusJSONResponse) VisitPreviewExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type AddMemberRequestObject struct {
 	GroupId GroupId `json:"groupId"`
 	Params  AddMemberParams
@@ -3176,6 +4219,9 @@ type StrictServerInterface interface {
 	// ResendVerificationCode Send a new verification code
 	// (POST /v1/auth/verify-email/resend)
 	ResendVerificationCode(ctx context.Context, request ResendVerificationCodeRequestObject) (ResendVerificationCodeResponseObject, error)
+	// GetExpense An Expense
+	// (GET /v1/expenses/{expenseId})
+	GetExpense(ctx context.Context, request GetExpenseRequestObject) (GetExpenseResponseObject, error)
 	// ListGroups My Groups
 	// (GET /v1/groups)
 	ListGroups(ctx context.Context, request ListGroupsRequestObject) (ListGroupsResponseObject, error)
@@ -3188,6 +4234,15 @@ type StrictServerInterface interface {
 	// RenameGroup Rename a Group
 	// (PATCH /v1/groups/{groupId})
 	RenameGroup(ctx context.Context, request RenameGroupRequestObject) (RenameGroupResponseObject, error)
+	// ListExpenses A Group's Expenses
+	// (GET /v1/groups/{groupId}/expenses)
+	ListExpenses(ctx context.Context, request ListExpensesRequestObject) (ListExpensesResponseObject, error)
+	// CreateExpense Record an Expense
+	// (POST /v1/groups/{groupId}/expenses)
+	CreateExpense(ctx context.Context, request CreateExpenseRequestObject) (CreateExpenseResponseObject, error)
+	// PreviewExpense Preview an Expense's Shares
+	// (POST /v1/groups/{groupId}/expenses/preview)
+	PreviewExpense(ctx context.Context, request PreviewExpenseRequestObject) (PreviewExpenseResponseObject, error)
 	// AddMember Add a Member
 	// (POST /v1/groups/{groupId}/members)
 	AddMember(ctx context.Context, request AddMemberRequestObject) (AddMemberResponseObject, error)
@@ -3467,6 +4522,32 @@ func (sh *strictHandler) ResendVerificationCode(w http.ResponseWriter, r *http.R
 	}
 }
 
+// GetExpense operation middleware
+func (sh *strictHandler) GetExpense(w http.ResponseWriter, r *http.Request, expenseId ExpenseId) {
+	var request GetExpenseRequestObject
+
+	request.ExpenseId = expenseId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetExpense(ctx, request.(GetExpenseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetExpense")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetExpenseResponseObject); ok {
+		if err := validResponse.VisitGetExpenseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListGroups operation middleware
 func (sh *strictHandler) ListGroups(w http.ResponseWriter, r *http.Request, params ListGroupsParams) {
 	var request ListGroupsRequestObject
@@ -3579,6 +4660,100 @@ func (sh *strictHandler) RenameGroup(w http.ResponseWriter, r *http.Request, gro
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RenameGroupResponseObject); ok {
 		if err := validResponse.VisitRenameGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListExpenses operation middleware
+func (sh *strictHandler) ListExpenses(w http.ResponseWriter, r *http.Request, groupId GroupId, params ListExpensesParams) {
+	var request ListExpensesRequestObject
+
+	request.GroupId = groupId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListExpenses(ctx, request.(ListExpensesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListExpenses")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListExpensesResponseObject); ok {
+		if err := validResponse.VisitListExpensesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateExpense operation middleware
+func (sh *strictHandler) CreateExpense(w http.ResponseWriter, r *http.Request, groupId GroupId, params CreateExpenseParams) {
+	var request CreateExpenseRequestObject
+
+	request.GroupId = groupId
+	request.Params = params
+
+	var body CreateExpenseJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateExpense(ctx, request.(CreateExpenseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateExpense")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateExpenseResponseObject); ok {
+		if err := validResponse.VisitCreateExpenseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PreviewExpense operation middleware
+func (sh *strictHandler) PreviewExpense(w http.ResponseWriter, r *http.Request, groupId GroupId) {
+	var request PreviewExpenseRequestObject
+
+	request.GroupId = groupId
+
+	var body PreviewExpenseJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PreviewExpense(ctx, request.(PreviewExpenseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PreviewExpense")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PreviewExpenseResponseObject); ok {
+		if err := validResponse.VisitPreviewExpenseResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

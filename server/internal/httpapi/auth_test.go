@@ -527,7 +527,7 @@ func TestBearerAuthMatchesTheContract(t *testing.T) {
 func TestEveryAuthenticatedWriteDeclaresAnIdempotencyKey(t *testing.T) {
 	for _, op := range apptest.Operations(t) {
 		write := op.Method != http.MethodGet && op.Method != http.MethodHead
-		if write && op.BearerAuth && !op.IdempotencyKey {
+		if write && op.BearerAuth && !op.ReadOnly && !op.IdempotencyKey {
 			t.Errorf("%s %s requires bearerAuth but does not declare the Idempotency-Key header", op.Method, op.Path)
 		}
 	}
@@ -596,5 +596,30 @@ func TestSignInRefusesARequestItCannotDecode(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			wantProblem(t, srv.Post(t, "/v1/auth/signin", body), http.StatusBadRequest, "invalid-request")
 		})
+	}
+}
+
+// A read-only POST (x-splits-read-only) declares no Idempotency-Key, and the
+// server doesn't ask for one.
+func TestReadOnlyOperationsTakeNoIdempotencyKey(t *testing.T) {
+	srv := apptest.Start(t)
+	s := signUpVerified(t, srv, "alice@example.com")
+
+	found := false
+	for _, op := range apptest.Operations(t) {
+		if !op.ReadOnly {
+			continue
+		}
+		found = true
+		if op.IdempotencyKey {
+			t.Errorf("%s %s is read-only but declares Idempotency-Key", op.Method, op.Path)
+		}
+		resp := srv.Do(t, op.Method, op.Path, []byte(`{}`), "Content-Type", "application/json", "Authorization", "Bearer "+s.AccessToken)
+		if resp.ProblemType(t) == "idempotency-key-required" {
+			t.Errorf("%s %s asked for an Idempotency-Key", op.Method, op.Path)
+		}
+	}
+	if !found {
+		t.Fatal("no read-only operation in the contract; has the extension been renamed?")
 	}
 }

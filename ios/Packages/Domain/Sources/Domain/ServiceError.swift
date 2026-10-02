@@ -58,6 +58,11 @@ public struct FieldIssue: Equatable, Hashable, Sendable {
     case tooLong
     case tooCommon
     case taken
+    case notPositive
+    case notGroupCurrency
+    case notAMember
+    case duplicateMember
+    case noMembers
     case other(String)
 
     public init(code: String) {
@@ -68,6 +73,11 @@ public struct FieldIssue: Equatable, Hashable, Sendable {
       case "too_long": self = .tooLong
       case "too_common": self = .tooCommon
       case "taken": self = .taken
+      case "not_positive": self = .notPositive
+      case "not_group_currency": self = .notGroupCurrency
+      case "not_a_member": self = .notAMember
+      case "duplicate_member": self = .duplicateMember
+      case "no_members": self = .noMembers
       default: self = .other(code)
       }
     }

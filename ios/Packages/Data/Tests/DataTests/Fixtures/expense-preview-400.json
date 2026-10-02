@@ -1,0 +1,15 @@
+{
+  "errors": [
+    {
+      "code": "not_positive",
+      "field": "/amount/minor"
+    },
+    {
+      "code": "not_group_currency",
+      "field": "/amount/currency"
+    }
+  ],
+  "status": 400,
+  "title": "Validation failed",
+  "type": "https://splits.dev/problems/validation-failed"
+}

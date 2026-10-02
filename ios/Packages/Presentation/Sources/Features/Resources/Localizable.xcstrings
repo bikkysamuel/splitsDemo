@@ -1,6 +1,18 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ paid · %@": {
+      "comment": "Expense row subtitle: the payer's name and the date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ paid · %@"
+          }
+        }
+      }
+    },
     "%@ will be able to rename the Group, remove Members and grant Admin.": {
       "comment": "Confirmation message before granting Admin; %@ is the Member's name",
       "extractionState": "manual",
@@ -21,6 +33,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "(you)"
+          }
+        }
+      }
+    },
+    "Accommodation": {
+      "comment": "Category: accommodation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accommodation"
           }
         }
       }
@@ -49,6 +73,18 @@
         }
       }
     },
+    "Add Expense": {
+      "comment": "Title and button for recording an Expense",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Expense"
+          }
+        }
+      }
+    },
     "Add Member": {
       "comment": "Title and button for adding a Member",
       "extractionState": "manual",
@@ -69,6 +105,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Admin"
+          }
+        }
+      }
+    },
+    "Amount": {
+      "comment": "Label of the Expense amount field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amount"
           }
         }
       }
@@ -133,6 +181,18 @@
         }
       }
     },
+    "Category": {
+      "comment": "Label of the Category picker",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Category"
+          }
+        }
+      }
+    },
     "Check the fields marked below.": {
       "comment": "Error message when the server refused one or more form fields",
       "extractionState": "manual",
@@ -141,6 +201,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Check the fields marked below."
+          }
+        }
+      }
+    },
+    "Check who shares this Expense.": {
+      "comment": "Field error: a Member in the Split is invalid",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check who shares this Expense."
           }
         }
       }
@@ -165,6 +237,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choose a currency."
+          }
+        }
+      }
+    },
+    "Choose at least one Member to share it.": {
+      "comment": "Field error: nobody shares the Expense",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose at least one Member to share it."
+          }
+        }
+      }
+    },
+    "Choose who paid from the Group's Members.": {
+      "comment": "Field error: the payer isn't a Member",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose who paid from the Group's Members."
           }
         }
       }
@@ -201,6 +297,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Create account"
+          }
+        }
+      }
+    },
+    "Date": {
+      "comment": "Label of the Expense date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date"
           }
         }
       }
@@ -277,6 +385,30 @@
         }
       }
     },
+    "Enter an amount above zero.": {
+      "comment": "Field error: the Expense amount isn't above zero",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter an amount above zero."
+          }
+        }
+      }
+    },
+    "Enter an amount, like 250 or 99.50.": {
+      "comment": "Shown under the amount when it can't be read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter an amount, like 250 or 99.50."
+          }
+        }
+      }
+    },
     "Enter your email address.": {
       "comment": "Field error: the email is empty",
       "extractionState": "manual",
@@ -289,6 +421,54 @@
         }
       }
     },
+    "Entertainment": {
+      "comment": "Category: entertainment",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entertainment"
+          }
+        }
+      }
+    },
+    "Expense": {
+      "comment": "Title of the Expense detail screen",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expense"
+          }
+        }
+      }
+    },
+    "Expenses": {
+      "comment": "Section header of a Group's Expenses",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expenses"
+          }
+        }
+      }
+    },
+    "Food & drink": {
+      "comment": "Category: food and drink",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Food & drink"
+          }
+        }
+      }
+    },
     "Goa trip": {
       "comment": "Placeholder of the Group name field",
       "extractionState": "manual",
@@ -297,6 +477,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Goa trip"
+          }
+        }
+      }
+    },
+    "Groceries": {
+      "comment": "Category: groceries",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groceries"
           }
         }
       }
@@ -333,6 +525,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Groups you create or join will show here."
+          }
+        }
+      }
+    },
+    "Health": {
+      "comment": "Category: health",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health"
           }
         }
       }
@@ -433,6 +637,18 @@
         }
       }
     },
+    "No Expenses yet. Add the first with +.": {
+      "comment": "Shown when a Group has no Expenses",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Expenses yet. Add the first with +."
+          }
+        }
+      }
+    },
     "No Groups yet": {
       "comment": "Home tab placeholder title",
       "extractionState": "manual",
@@ -441,6 +657,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "No Groups yet"
+          }
+        }
+      }
+    },
+    "Note (optional)": {
+      "comment": "Label of the Expense note field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note (optional)"
           }
         }
       }
@@ -493,6 +721,18 @@
         }
       }
     },
+    "Other": {
+      "comment": "Category: other",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
+          }
+        }
+      }
+    },
     "Others in the Group see this name.": {
       "comment": "Footer under the display name field",
       "extractionState": "manual",
@@ -501,6 +741,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Others in the Group see this name."
+          }
+        }
+      }
+    },
+    "Paid by": {
+      "comment": "Label of the payer picker",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paid by"
           }
         }
       }
@@ -565,6 +817,18 @@
         }
       }
     },
+    "Rent": {
+      "comment": "Category: rent",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rent"
+          }
+        }
+      }
+    },
     "Report": {
       "comment": "Tab title: Report",
       "extractionState": "manual",
@@ -601,6 +865,18 @@
         }
       }
     },
+    "Save Expense": {
+      "comment": "Button that records the Expense",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save Expense"
+          }
+        }
+      }
+    },
     "Send a new code": {
       "comment": "Button that sends a new verification code",
       "extractionState": "manual",
@@ -633,6 +909,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Settings"
+          }
+        }
+      }
+    },
+    "Shares": {
+      "comment": "Header of each Member's Share on the Expense screen",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shares"
+          }
+        }
+      }
+    },
+    "Shares from the server, exactly as they'll be saved.": {
+      "comment": "Footer under the live split preview",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shares from the server, exactly as they'll be saved."
+          }
+        }
+      }
+    },
+    "Shopping": {
+      "comment": "Category: shopping",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shopping"
+          }
+        }
+      }
+    },
+    "Show more": {
+      "comment": "Button that loads more Expenses",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show more"
           }
         }
       }
@@ -769,6 +1093,18 @@
         }
       }
     },
+    "Split equally between": {
+      "comment": "Header above the Members who share the Expense",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Split equally between"
+          }
+        }
+      }
+    },
     "Splits": {
       "comment": "App name on the launch screen",
       "extractionState": "manual",
@@ -889,6 +1225,30 @@
         }
       }
     },
+    "Transport": {
+      "comment": "Category: transport",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transport"
+          }
+        }
+      }
+    },
+    "Travel": {
+      "comment": "Category: travel",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Travel"
+          }
+        }
+      }
+    },
     "Try again": {
       "comment": "Button on the launch screen that re-checks the saved session",
       "extractionState": "manual",
@@ -897,6 +1257,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Try again"
+          }
+        }
+      }
+    },
+    "Unknown Member": {
+      "comment": "Shown for a Member the Group no longer lists",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown Member"
           }
         }
       }
@@ -957,6 +1329,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Use at most 50 characters."
+          }
+        }
+      }
+    },
+    "Use at most 500 characters.": {
+      "comment": "Field error: the note is too long",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use at most 500 characters."
+          }
+        }
+      }
+    },
+    "Use the Group Currency.": {
+      "comment": "Field error: the Expense isn't in the Group Currency",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the Group Currency."
+          }
+        }
+      }
+    },
+    "Utilities": {
+      "comment": "Category: utilities",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilities"
           }
         }
       }

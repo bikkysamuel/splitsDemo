@@ -8,20 +8,43 @@ struct GroupView: View {
   @State private var renaming = false
   @State private var newName = ""
   @State private var addMember: AddMemberViewModel?
+  @State private var addExpense: AddExpenseViewModel?
   @State private var promoting: Member?
 
   var body: some View {
     content
       .navigationTitle(Text(verbatim: viewModel.state.value?.name ?? ""))
       .toolbar {
-        if viewModel.canRename {
+        if let group = viewModel.state.value {
+          // FR-U4: Add Expense is the Group screen's one primary action.
           ToolbarItem(placement: .primaryAction) {
+            Button {
+              addExpense = AddExpenseViewModel(group: group, repository: viewModel.expensesRepository)
+            } label: {
+              Label {
+                Text(LocalizedStringKey(AddExpenseView.title), bundle: .module)
+              } icon: {
+                Image(systemName: "plus")
+              }
+            }
+          }
+        }
+        if viewModel.canRename {
+          ToolbarItem(placement: .secondaryAction) {
             Button {
               newName = viewModel.state.value?.name ?? ""
               renaming = true
             } label: {
               Text(LocalizedStringKey(Self.rename), bundle: .module)
             }
+          }
+        }
+      }
+      .sheet(item: $addExpense) { model in
+        NavigationStack {
+          AddExpenseView(viewModel: model) { _ in
+            addExpense = nil
+            Task { await viewModel.expenseAdded() }
           }
         }
       }
@@ -89,6 +112,32 @@ struct GroupView: View {
           }
         }
         Section {
+          if viewModel.expenses.isEmpty {
+            Text(LocalizedStringKey(Self.noExpenses), bundle: .module).foregroundStyle(.secondary)
+          }
+          ForEach(viewModel.expenses) { e in
+            NavigationLink {
+              ExpenseDetailView(
+                viewModel: ExpenseDetailViewModel(
+                  expenseID: e.id, group: group, repository: viewModel.expensesRepository))
+            } label: {
+              ExpenseRow(expense: e, payerName: group.member(e.payerID)?.displayName)
+            }
+          }
+          if viewModel.hasMoreExpenses {
+            Button {
+              Task { await viewModel.loadMoreExpenses() }
+            } label: {
+              Text(LocalizedStringKey(Self.loadMore), bundle: .module).frame(minHeight: 44)
+            }
+          }
+          if let key = viewModel.expensesError {
+            FieldErrorText(key: key)
+          }
+        } header: {
+          Text(LocalizedStringKey(Self.expenses), bundle: .module)
+        }
+        Section {
           ForEach(group.members) { member in
             MemberRow(member: member, isMe: member.id == group.myMemberID)
               .swipeActions {
@@ -135,8 +184,15 @@ struct GroupView: View {
     String(format: String(localized: String.LocalizationValue(makeAdminMessage), bundle: .module), name)
   }
   nonisolated static let members = "Members"
+  nonisolated static let expenses = "Expenses"
+  nonisolated static let noExpenses = "No Expenses yet. Add the first with +."
+  nonisolated static let loadMore = "Show more"
   nonisolated static let allKeys =
-    [rename, renameTitle, renameFailed, members, makeAdmin, makeAdminTitle, makeAdminMessage] + MemberRow.allKeys
+    [
+      rename, renameTitle, renameFailed, members, makeAdmin, makeAdminTitle, makeAdminMessage, expenses, noExpenses,
+      loadMore,
+    ]
+    + MemberRow.allKeys
 }
 
 /// One Member, with Admin, Placeholder and "you" badges.

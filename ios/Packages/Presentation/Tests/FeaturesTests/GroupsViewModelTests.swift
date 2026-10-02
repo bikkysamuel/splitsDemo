@@ -128,7 +128,8 @@ struct CreateGroupViewModelTests {
 @MainActor
 struct GroupViewModelTests {
   @Test func loadsTheGroup() async {
-    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: FakeGroupsRepository())
+    let viewModel = GroupViewModel(
+      groupID: Group.trip.id, repository: FakeGroupsRepository(), expenses: FakeExpensesRepository())
 
     await viewModel.load()
 
@@ -139,7 +140,7 @@ struct GroupViewModelTests {
   @Test func aGroupICannotSeeShowsNotFound() async {
     let repository = FakeGroupsRepository()
     await repository.set(group: .failure(.problem(.notFound)))
-    let viewModel = GroupViewModel(groupID: UUID(), repository: repository)
+    let viewModel = GroupViewModel(groupID: UUID(), repository: repository, expenses: FakeExpensesRepository())
 
     await viewModel.load()
 
@@ -149,7 +150,7 @@ struct GroupViewModelTests {
   @Test func onlyAdminsMayRename() async {
     let repository = FakeGroupsRepository()
     await repository.set(group: .success(Group.trip.with(name: "Goa trip", version: 1, role: .member)))
-    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository)
+    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository, expenses: FakeExpensesRepository())
 
     await viewModel.load()
 
@@ -159,7 +160,7 @@ struct GroupViewModelTests {
   @Test func renamesWithTheVersionLastRead() async {
     let repository = FakeGroupsRepository()
     await repository.set(renames: [.success(Group.trip.with(name: "Goa 2026", version: 2))])
-    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository)
+    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository, expenses: FakeExpensesRepository())
     await viewModel.load()
 
     await viewModel.rename(to: "Goa 2026")
@@ -174,7 +175,7 @@ struct GroupViewModelTests {
   @Test func aVersionConflictReloads() async {
     let repository = FakeGroupsRepository()
     await repository.set(renames: [.failure(.problem(.versionConflict))])
-    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository)
+    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository, expenses: FakeExpensesRepository())
     await viewModel.load()
     await repository.set(group: .success(Group.trip.with(name: "Renamed elsewhere", version: 2)))
 
@@ -257,7 +258,7 @@ struct AddMemberViewModelTests {
 struct GrantAdminTests {
   @Test func anAdminMayMakeLinkedMembersAdmins() async {
     let repository = FakeGroupsRepository()
-    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository)
+    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository, expenses: FakeExpensesRepository())
     await viewModel.load()
 
     #expect(viewModel.canMakeAdmin(.bob))
@@ -267,7 +268,7 @@ struct GrantAdminTests {
   @Test func aMemberWhoIsNotAnAdminMayNot() async {
     let repository = FakeGroupsRepository()
     await repository.set(group: .success(Group.trip.with(name: "Goa trip", version: 1, role: .member)))
-    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository)
+    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository, expenses: FakeExpensesRepository())
     await viewModel.load()
 
     #expect(!viewModel.canMakeAdmin(.bob))
@@ -275,7 +276,7 @@ struct GrantAdminTests {
 
   @Test func makeAdminSendsTheMembersVersion() async {
     let repository = FakeGroupsRepository()
-    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository)
+    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository, expenses: FakeExpensesRepository())
     await viewModel.load()
 
     await viewModel.makeAdmin(.bob)
@@ -288,7 +289,7 @@ struct GrantAdminTests {
   @Test func aRefusalIsShown() async {
     let repository = FakeGroupsRepository()
     await repository.set(admin: .failure(.problem(.memberNotEligible)))
-    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository)
+    let viewModel = GroupViewModel(groupID: Group.trip.id, repository: repository, expenses: FakeExpensesRepository())
     await viewModel.load()
 
     await viewModel.makeAdmin(.grandma)

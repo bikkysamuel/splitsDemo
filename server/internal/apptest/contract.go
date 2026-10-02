@@ -97,6 +97,9 @@ type Operation struct {
 	// IdempotencyKey reports whether the operation declares the
 	// Idempotency-Key header.
 	IdempotencyKey bool
+	// ReadOnly reports `x-splits-read-only: true`: a POST that changes
+	// nothing.
+	ReadOnly bool
 }
 
 // Operations lists every operation in api/openapi.yaml, so tests can sweep
@@ -115,7 +118,7 @@ func Operations(t testing.TB) []Operation {
 			if op.Security != nil {
 				security = *op.Security
 			}
-			o := Operation{Method: method, Path: filled}
+			o := Operation{Method: method, Path: filled, ReadOnly: op.Extensions["x-splits-read-only"] == true}
 			for _, req := range security {
 				if _, ok := req["bearerAuth"]; ok {
 					o.BearerAuth = true

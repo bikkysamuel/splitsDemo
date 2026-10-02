@@ -16,6 +16,10 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/parameters/GroupId`.
         public typealias GroupId = Swift.String
+        /// The Expense's ID.
+        ///
+        /// - Remark: Generated from `#/components/parameters/ExpenseId`.
+        public typealias ExpenseId = Swift.String
         /// The Member's ID.
         ///
         /// - Remark: Generated from `#/components/parameters/MemberId`.

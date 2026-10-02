@@ -99,6 +99,11 @@ extension Components {
         /// - `member-limit-reached`: the Group already has 50 Members (409).
         /// - `member-not-eligible`: a Placeholder or Former Member can't be an Admin (409).
         /// - `group-closed`: the Group is Closed and read-only (409).
+        ///
+        /// Field error codes of an Expense (`errors[].code`): `required`,
+        /// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
+        /// `not_a_member` (payer or Split Member isn't an active Member),
+        /// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
         /// - `internal`: an unexpected server failure (500).
         ///
         ///
@@ -1034,6 +1039,585 @@ extension Components {
                 try decoder.ensureNoAdditionalProperties(knownKeys: [
                     "name",
                     "version"
+                ])
+            }
+        }
+        /// The fixed Category list (D7); the app localizes the names.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Category`.
+        @frozen public enum Category: String, Codable, Hashable, Sendable, CaseIterable {
+            case foodDrink = "food_drink"
+            case groceries = "groceries"
+            case transport = "transport"
+            case accommodation = "accommodation"
+            case rent = "rent"
+            case utilities = "utilities"
+            case entertainment = "entertainment"
+            case shopping = "shopping"
+            case health = "health"
+            case travel = "travel"
+            case other = "other"
+        }
+        /// How the Expense is divided (FR-E2). Equal only for now; exact,
+        /// percentage and ratio follow (#18).
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/SplitMethod`.
+        @frozen public enum SplitMethod: String, Codable, Hashable, Sendable, CaseIterable {
+            case equal = "equal"
+        }
+        /// Where the Expense is in its life (doc 06). In M1 every Expense is
+        /// accepted at once (D9); the agreement states arrive with M2.
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/ExpenseState`.
+        @frozen public enum ExpenseState: String, Codable, Hashable, Sendable, CaseIterable {
+            case pending = "pending"
+            case accepted = "accepted"
+            case disputed = "disputed"
+            case withdrawalPending = "withdrawal_pending"
+            case withdrawn = "withdrawn"
+        }
+        /// Who shares the Expense, and how.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SplitInput`.
+        public struct SplitInput: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/SplitInput/method`.
+            public var method: Components.Schemas.SplitMethod
+            /// - Remark: Generated from `#/components/schemas/SplitInput/MembersPayload`.
+            public struct MembersPayloadPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/SplitInput/MembersPayload/member_id`.
+                public var memberId: Swift.String
+                /// Creates a new `MembersPayloadPayload`.
+                ///
+                /// - Parameters:
+                ///   - memberId:
+                public init(memberId: Swift.String) {
+                    self.memberId = memberId
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case memberId = "member_id"
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    let container = try decoder.container(keyedBy: CodingKeys.self)
+                    self.memberId = try container.decode(
+                        Swift.String.self,
+                        forKey: .memberId
+                    )
+                    try decoder.ensureNoAdditionalProperties(knownKeys: [
+                        "member_id"
+                    ])
+                }
+            }
+            /// 1–50 distinct active Members.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SplitInput/members`.
+            public typealias MembersPayload = [Components.Schemas.SplitInput.MembersPayloadPayload]
+            /// 1–50 distinct active Members.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SplitInput/members`.
+            public var members: Components.Schemas.SplitInput.MembersPayload
+            /// Creates a new `SplitInput`.
+            ///
+            /// - Parameters:
+            ///   - method:
+            ///   - members: 1–50 distinct active Members.
+            public init(
+                method: Components.Schemas.SplitMethod,
+                members: Components.Schemas.SplitInput.MembersPayload
+            ) {
+                self.method = method
+                self.members = members
+            }
+            public enum CodingKeys: String, CodingKey {
+                case method
+                case members
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.method = try container.decode(
+                    Components.Schemas.SplitMethod.self,
+                    forKey: .method
+                )
+                self.members = try container.decode(
+                    Components.Schemas.SplitInput.MembersPayload.self,
+                    forKey: .members
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "method",
+                    "members"
+                ])
+            }
+        }
+        /// An Expense as entered (FR-E1). Previews and creates take the same input.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ExpenseInput`.
+        public struct ExpenseInput: Codable, Hashable, Sendable {
+            /// Any active Member, Placeholders included (FR-E3).
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpenseInput/payer_member_id`.
+            public var payerMemberId: Swift.String
+            /// > 0, in the Group Currency for now (foreign currencies: #19).
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpenseInput/amount`.
+            public var amount: Components.Schemas.Money
+            /// - Remark: Generated from `#/components/schemas/ExpenseInput/category`.
+            public var category: Components.Schemas.Category
+            /// Optional, at most 500 characters after trimming (D1).
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpenseInput/note`.
+            public var note: Swift.String?
+            /// The day the money was spent.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpenseInput/spent_on`.
+            public var spentOn: Swift.String
+            /// - Remark: Generated from `#/components/schemas/ExpenseInput/split`.
+            public var split: Components.Schemas.SplitInput
+            /// Creates a new `ExpenseInput`.
+            ///
+            /// - Parameters:
+            ///   - payerMemberId: Any active Member, Placeholders included (FR-E3).
+            ///   - amount: > 0, in the Group Currency for now (foreign currencies: #19).
+            ///   - category:
+            ///   - note: Optional, at most 500 characters after trimming (D1).
+            ///   - spentOn: The day the money was spent.
+            ///   - split:
+            public init(
+                payerMemberId: Swift.String,
+                amount: Components.Schemas.Money,
+                category: Components.Schemas.Category,
+                note: Swift.String? = nil,
+                spentOn: Swift.String,
+                split: Components.Schemas.SplitInput
+            ) {
+                self.payerMemberId = payerMemberId
+                self.amount = amount
+                self.category = category
+                self.note = note
+                self.spentOn = spentOn
+                self.split = split
+            }
+            public enum CodingKeys: String, CodingKey {
+                case payerMemberId = "payer_member_id"
+                case amount
+                case category
+                case note
+                case spentOn = "spent_on"
+                case split
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.payerMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .payerMemberId
+                )
+                self.amount = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .amount
+                )
+                self.category = try container.decode(
+                    Components.Schemas.Category.self,
+                    forKey: .category
+                )
+                self.note = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .note
+                )
+                self.spentOn = try container.decode(
+                    Swift.String.self,
+                    forKey: .spentOn
+                )
+                self.split = try container.decode(
+                    Components.Schemas.SplitInput.self,
+                    forKey: .split
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "payer_member_id",
+                    "amount",
+                    "category",
+                    "note",
+                    "spent_on",
+                    "split"
+                ])
+            }
+        }
+        /// One Member's Share.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ShareLine`.
+        public struct ShareLine: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ShareLine/member_id`.
+            public var memberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/ShareLine/share`.
+            public var share: Components.Schemas.Money
+            /// Creates a new `ShareLine`.
+            ///
+            /// - Parameters:
+            ///   - memberId:
+            ///   - share:
+            public init(
+                memberId: Swift.String,
+                share: Components.Schemas.Money
+            ) {
+                self.memberId = memberId
+                self.share = share
+            }
+            public enum CodingKeys: String, CodingKey {
+                case memberId = "member_id"
+                case share
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.memberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .memberId
+                )
+                self.share = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .share
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "member_id",
+                    "share"
+                ])
+            }
+        }
+        /// The Shares an Expense would get, in the Split's order.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ExpensePreview`.
+        public struct ExpensePreview: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ExpensePreview/amount`.
+            public var amount: Components.Schemas.Money
+            /// - Remark: Generated from `#/components/schemas/ExpensePreview/shares`.
+            public var shares: [Components.Schemas.ShareLine]
+            /// Creates a new `ExpensePreview`.
+            ///
+            /// - Parameters:
+            ///   - amount:
+            ///   - shares:
+            public init(
+                amount: Components.Schemas.Money,
+                shares: [Components.Schemas.ShareLine]
+            ) {
+                self.amount = amount
+                self.shares = shares
+            }
+            public enum CodingKeys: String, CodingKey {
+                case amount
+                case shares
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.amount = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .amount
+                )
+                self.shares = try container.decode(
+                    [Components.Schemas.ShareLine].self,
+                    forKey: .shares
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "amount",
+                    "shares"
+                ])
+            }
+        }
+        /// An Expense in a list.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ExpenseSummary`.
+        public struct ExpenseSummary: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ExpenseSummary/id`.
+            public var id: Swift.String
+            /// - Remark: Generated from `#/components/schemas/ExpenseSummary/payer_member_id`.
+            public var payerMemberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/ExpenseSummary/amount`.
+            public var amount: Components.Schemas.Money
+            /// - Remark: Generated from `#/components/schemas/ExpenseSummary/category`.
+            public var category: Components.Schemas.Category
+            /// - Remark: Generated from `#/components/schemas/ExpenseSummary/note`.
+            public var note: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/ExpenseSummary/spent_on`.
+            public var spentOn: Swift.String
+            /// - Remark: Generated from `#/components/schemas/ExpenseSummary/state`.
+            public var state: Components.Schemas.ExpenseState
+            /// Creates a new `ExpenseSummary`.
+            ///
+            /// - Parameters:
+            ///   - id:
+            ///   - payerMemberId:
+            ///   - amount:
+            ///   - category:
+            ///   - note:
+            ///   - spentOn:
+            ///   - state:
+            public init(
+                id: Swift.String,
+                payerMemberId: Swift.String,
+                amount: Components.Schemas.Money,
+                category: Components.Schemas.Category,
+                note: Swift.String? = nil,
+                spentOn: Swift.String,
+                state: Components.Schemas.ExpenseState
+            ) {
+                self.id = id
+                self.payerMemberId = payerMemberId
+                self.amount = amount
+                self.category = category
+                self.note = note
+                self.spentOn = spentOn
+                self.state = state
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case payerMemberId = "payer_member_id"
+                case amount
+                case category
+                case note
+                case spentOn = "spent_on"
+                case state
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.id = try container.decode(
+                    Swift.String.self,
+                    forKey: .id
+                )
+                self.payerMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .payerMemberId
+                )
+                self.amount = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .amount
+                )
+                self.category = try container.decode(
+                    Components.Schemas.Category.self,
+                    forKey: .category
+                )
+                self.note = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .note
+                )
+                self.spentOn = try container.decode(
+                    Swift.String.self,
+                    forKey: .spentOn
+                )
+                self.state = try container.decode(
+                    Components.Schemas.ExpenseState.self,
+                    forKey: .state
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "id",
+                    "payer_member_id",
+                    "amount",
+                    "category",
+                    "note",
+                    "spent_on",
+                    "state"
+                ])
+            }
+        }
+        /// One page of a Group's Expenses.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ExpensePage`.
+        public struct ExpensePage: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ExpensePage/items`.
+            public var items: [Components.Schemas.ExpenseSummary]
+            /// The cursor of the next page of Expenses; null on the last page.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpensePage/next_cursor`.
+            public var nextCursor: Swift.String?
+            /// Creates a new `ExpensePage`.
+            ///
+            /// - Parameters:
+            ///   - items:
+            ///   - nextCursor: The cursor of the next page of Expenses; null on the last page.
+            public init(
+                items: [Components.Schemas.ExpenseSummary],
+                nextCursor: Swift.String? = nil
+            ) {
+                self.items = items
+                self.nextCursor = nextCursor
+            }
+            public enum CodingKeys: String, CodingKey {
+                case items
+                case nextCursor = "next_cursor"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.items = try container.decode(
+                    [Components.Schemas.ExpenseSummary].self,
+                    forKey: .items
+                )
+                self.nextCursor = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .nextCursor
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "items",
+                    "next_cursor"
+                ])
+            }
+        }
+        /// An Expense with its Shares (FR-E1).
+        ///
+        /// - Remark: Generated from `#/components/schemas/Expense`.
+        public struct Expense: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Expense/id`.
+            public var id: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Expense/group_id`.
+            public var groupId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Expense/payer_member_id`.
+            public var payerMemberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Expense/created_by_member_id`.
+            public var createdByMemberId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Expense/amount`.
+            public var amount: Components.Schemas.Money
+            /// - Remark: Generated from `#/components/schemas/Expense/category`.
+            public var category: Components.Schemas.Category
+            /// - Remark: Generated from `#/components/schemas/Expense/note`.
+            public var note: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/Expense/spent_on`.
+            public var spentOn: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Expense/split_method`.
+            public var splitMethod: Components.Schemas.SplitMethod
+            /// - Remark: Generated from `#/components/schemas/Expense/state`.
+            public var state: Components.Schemas.ExpenseState
+            /// - Remark: Generated from `#/components/schemas/Expense/version`.
+            public var version: Swift.Int32
+            /// - Remark: Generated from `#/components/schemas/Expense/created_at`.
+            public var createdAt: Foundation.Date
+            /// Every Member in the Split, in joining order.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Expense/shares`.
+            public var shares: [Components.Schemas.ShareLine]
+            /// Creates a new `Expense`.
+            ///
+            /// - Parameters:
+            ///   - id:
+            ///   - groupId:
+            ///   - payerMemberId:
+            ///   - createdByMemberId:
+            ///   - amount:
+            ///   - category:
+            ///   - note:
+            ///   - spentOn:
+            ///   - splitMethod:
+            ///   - state:
+            ///   - version:
+            ///   - createdAt:
+            ///   - shares: Every Member in the Split, in joining order.
+            public init(
+                id: Swift.String,
+                groupId: Swift.String,
+                payerMemberId: Swift.String,
+                createdByMemberId: Swift.String,
+                amount: Components.Schemas.Money,
+                category: Components.Schemas.Category,
+                note: Swift.String? = nil,
+                spentOn: Swift.String,
+                splitMethod: Components.Schemas.SplitMethod,
+                state: Components.Schemas.ExpenseState,
+                version: Swift.Int32,
+                createdAt: Foundation.Date,
+                shares: [Components.Schemas.ShareLine]
+            ) {
+                self.id = id
+                self.groupId = groupId
+                self.payerMemberId = payerMemberId
+                self.createdByMemberId = createdByMemberId
+                self.amount = amount
+                self.category = category
+                self.note = note
+                self.spentOn = spentOn
+                self.splitMethod = splitMethod
+                self.state = state
+                self.version = version
+                self.createdAt = createdAt
+                self.shares = shares
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case groupId = "group_id"
+                case payerMemberId = "payer_member_id"
+                case createdByMemberId = "created_by_member_id"
+                case amount
+                case category
+                case note
+                case spentOn = "spent_on"
+                case splitMethod = "split_method"
+                case state
+                case version
+                case createdAt = "created_at"
+                case shares
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.id = try container.decode(
+                    Swift.String.self,
+                    forKey: .id
+                )
+                self.groupId = try container.decode(
+                    Swift.String.self,
+                    forKey: .groupId
+                )
+                self.payerMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .payerMemberId
+                )
+                self.createdByMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .createdByMemberId
+                )
+                self.amount = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .amount
+                )
+                self.category = try container.decode(
+                    Components.Schemas.Category.self,
+                    forKey: .category
+                )
+                self.note = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .note
+                )
+                self.spentOn = try container.decode(
+                    Swift.String.self,
+                    forKey: .spentOn
+                )
+                self.splitMethod = try container.decode(
+                    Components.Schemas.SplitMethod.self,
+                    forKey: .splitMethod
+                )
+                self.state = try container.decode(
+                    Components.Schemas.ExpenseState.self,
+                    forKey: .state
+                )
+                self.version = try container.decode(
+                    Swift.Int32.self,
+                    forKey: .version
+                )
+                self.createdAt = try container.decode(
+                    Foundation.Date.self,
+                    forKey: .createdAt
+                )
+                self.shares = try container.decode(
+                    [Components.Schemas.ShareLine].self,
+                    forKey: .shares
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "id",
+                    "group_id",
+                    "payer_member_id",
+                    "created_by_member_id",
+                    "amount",
+                    "category",
+                    "note",
+                    "spent_on",
+                    "split_method",
+                    "state",
+                    "version",
+                    "created_at",
+                    "shares"
                 ])
             }
         }
