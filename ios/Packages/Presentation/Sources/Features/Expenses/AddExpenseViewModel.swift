@@ -96,7 +96,8 @@ public final class AddExpenseViewModel {
   /// don't add up to 100.
   var splitError: String? { fieldError("split") }
 
-  /// A refused field, from the last save or else the last preview.
+  /// A refused field, from the last save (until the next preview answers)
+  /// or else the last preview.
   func fieldError(_ field: String) -> String? { errors[field] ?? previewFields[field] }
 
   public var canSubmit: Bool { input != nil && !isSubmitting }
@@ -127,9 +128,13 @@ public final class AddExpenseViewModel {
         preview = p
         previewError = nil
         previewFields = FormErrors()
+        errors = FormErrors()
       }
     } catch {
       if self.input == input {
+        // The preview speaks for the input now on screen; a refused save's
+        // field errors may point at Split indexes that moved.
+        errors = FormErrors()
         preview = nil
         previewFields = FormErrors(error)
         previewError = Self.shownAtAField(error) ? nil : ServiceErrorMessage.key(for: error)

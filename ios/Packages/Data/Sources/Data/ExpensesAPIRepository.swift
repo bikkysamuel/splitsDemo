@@ -96,7 +96,7 @@ enum ExpenseMapper {
       note: i.note,
       spentOn: i.spentOn,
       split: .init(
-        method: Components.Schemas.SplitMethod(rawValue: i.method.rawValue) ?? .equal,
+        method: splitMethod(i.method),
         members: i.members.map { .init(memberId: $0.memberID.uuidString.lowercased(), input: $0.input) }))
   }
 
@@ -124,6 +124,15 @@ enum ExpenseMapper {
 
   private static func category(_ c: Components.Schemas.Category) -> Domain.Category {
     Domain.Category(rawValue: c.rawValue) ?? .other
+  }
+
+  private static func splitMethod(_ m: SplitMethod) -> Components.Schemas.SplitMethod {
+    switch m {
+    case .equal: .equal
+    case .exact: .exact
+    case .percentage: .percentage
+    case .ratio: .ratio
+    }
   }
 
   /// An unknown method would show Shares the app can't explain: refuse it.

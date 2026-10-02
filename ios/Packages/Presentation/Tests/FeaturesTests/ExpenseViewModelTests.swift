@@ -125,6 +125,16 @@ struct AddExpenseViewModelTests {
     #expect(viewModel.input?.members.map(\.input) == ["250", "700", "50"])
   }
 
+  @Test func aRatioSplitSendsWholeParts() {
+    let viewModel = makeViewModel(FakeExpensesRepository())
+    viewModel.amountText = "10"
+    viewModel.method = .ratio
+    viewModel.entryTexts = [Group.me: "2", Member.bob.id: "1", Member.grandma.id: " 1 "]
+
+    #expect(viewModel.input?.method == .ratio)
+    #expect(viewModel.input?.members.map(\.input) == ["2", "1", "1"])
+  }
+
   // Form validation checks well-formedness only; sums are the server's.
   @Test func aMissingOrMalformedEntryMeansNoInput() {
     let viewModel = makeViewModel(FakeExpensesRepository())
@@ -176,6 +186,26 @@ struct AddExpenseViewModelTests {
 
     // Index 1 of the Split is Grandma, since Alice isn't sharing.
     #expect(viewModel.entryError(for: Member.grandma.id) == "Use at most 2 decimal places.")
+    #expect(viewModel.entryError(for: Member.bob.id) == nil)
+  }
+
+  // A refused save's entry error goes once the next preview answers: it
+  // points at a Split index that may no longer be the same Member.
+  @Test func theNextPreviewReplacesASavesFieldErrors() async {
+    let repository = FakeExpensesRepository()
+    await repository.set(
+      create: .failure(.invalidFields([FieldIssue(field: "split/members/1/input", reason: .ratioNotInteger)])))
+    let viewModel = makeViewModel(repository)
+    viewModel.amountText = "10"
+    viewModel.method = .ratio
+    viewModel.entryTexts = [Group.me: "2", Member.bob.id: "1", Member.grandma.id: "1"]
+    _ = await viewModel.submit()
+    #expect(viewModel.entryError(for: Member.bob.id) == "Use a whole number.")
+
+    viewModel.toggle(Group.me)
+    await viewModel.refreshPreview()
+
+    #expect(viewModel.entryError(for: Member.grandma.id) == nil)
     #expect(viewModel.entryError(for: Member.bob.id) == nil)
   }
 

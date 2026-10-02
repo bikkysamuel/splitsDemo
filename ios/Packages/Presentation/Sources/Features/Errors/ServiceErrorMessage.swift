@@ -84,6 +84,7 @@ enum ServiceErrorMessage {
     case .notWholeMinorUnits: "Use the currency's decimal places at most."
     case .tooManyDecimals: "Use at most 2 decimal places."
     case .ratioNotInteger: "Use a whole number."
+    case .unexpectedInput: "Check who shares this Expense."
     default: "Enter a number, like 2 or 33.33."
     }
   }

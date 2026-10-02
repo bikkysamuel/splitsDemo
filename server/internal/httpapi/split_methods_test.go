@@ -2,6 +2,7 @@ package httpapi_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -54,8 +55,13 @@ func (tr trip) wantSplitError(t *testing.T, in map[string]any, want string) {
 		t.Errorf("errors = %+v; want %s", p.Errors, want)
 	}
 	created := tr.create(t, tr.alice.AccessToken, in)
-	if created.StatusCode != http.StatusBadRequest {
-		t.Errorf("create = %d; want 400 like the preview", created.StatusCode)
+	wantProblem(t, created, http.StatusBadRequest, "validation-failed")
+	var c struct {
+		Errors []struct{ Field, Code string } `json:"errors"`
+	}
+	created.JSON(t, &c)
+	if len(c.Errors) != 1 || c.Errors[0] != p.Errors[0] {
+		t.Errorf("create errors = %+v; want %s like the preview", c.Errors, want)
 	}
 }
 
@@ -132,7 +138,8 @@ func TestInputsAreCheckedAgainstTheMethod(t *testing.T) {
 
 	tr.wantSplitError(t, tr.split(1000, "ratio", tr.aliceID, "2", tr.bobID, ""), "/split/members/1/input missing_input")
 	tr.wantSplitError(t, tr.split(1000, "equal", tr.aliceID, "2", tr.bobID, ""), "/split/members/0/input unexpected_input")
-	for _, bad := range []string{"1/3", "-2", "1e3", "2.", " 2"} {
+	// At most 30 whole digits and 8 decimals, as the contract says.
+	for _, bad := range []string{"1/3", "-2", "1e3", "2.", " 2", "1.123456789", strings.Repeat("1", 31)} {
 		tr.wantSplitError(t, tr.split(1000, "ratio", tr.aliceID, bad, tr.bobID, "1"), "/split/members/0/input invalid")
 	}
 }

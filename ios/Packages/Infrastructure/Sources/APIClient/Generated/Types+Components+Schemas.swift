@@ -1278,11 +1278,9 @@ extension Components {
         /// a JSON number): for `exact`, minor units of the Group Currency
         /// ("25050"); for `percentage`, a percentage with at most 2 decimal
         /// places ("33.33"); for `ratio`, a positive integer weight ("2").
-        /// Absent for `equal`. Field error codes come from `ledger`:
-        /// `missing_input`, `unexpected_input`, `input_not_positive`,
-        /// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`,
-        /// `invalid`; whole-Split codes at `/split`: `exact_sum_mismatch`,
-        /// `percentages_not_100`.
+        /// Absent for `equal`. At most 30 whole digits and 8 decimals; anything
+        /// else is `invalid`. Returned as saved: leading zeros dropped, scale
+        /// kept ("33.30"). Field error codes: see `Problem`.
         ///
         ///
         /// - Remark: Generated from `#/components/schemas/SplitInputValue`.

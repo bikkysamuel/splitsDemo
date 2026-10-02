@@ -23,6 +23,8 @@ struct SplitMethodTests {
     ("33.33", "en_US", "33.33"),
     ("33,3", "de_DE", "33.3"),
     ("50", "en_US", "50"),
+    ("25%", "en_US", "25"),
+    ("12,5 %", "de_DE", "12.5"),
   ])
   func aPercentageIsSentWithAPoint(text: String, locale: String, expected: String) {
     #expect(SplitMethod.percentage.input(from: text, currency: "INR", locale: Locale(identifier: locale)) == expected)

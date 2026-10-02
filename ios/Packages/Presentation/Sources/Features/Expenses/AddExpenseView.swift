@@ -121,9 +121,17 @@ private struct SplitMemberRow: View {
   private var isSharing: Bool { viewModel.splitMembers.contains(member.id) }
   private var method: SplitMethod { viewModel.method }
 
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+  @Environment(\.locale) private var locale
+
+  /// Side by side, or stacked at accessibility text sizes so nothing is cut.
+  private var layout: AnyLayout {
+    dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading)) : AnyLayout(HStackLayout())
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      HStack {
+      layout {
         Button {
           viewModel.toggle(member.id)
         } label: {
@@ -136,18 +144,15 @@ private struct SplitMemberRow: View {
         .buttonStyle(.borderless)
         .foregroundStyle(.primary)
         .accessibilityAddTraits(isSharing ? .isSelected : [])
-        Spacer()
+        if !dynamicTypeSize.isAccessibilitySize { Spacer() }
         if method.takesInput && isSharing {
-          TextField(text: entry, prompt: Text(verbatim: method == .ratio ? "1" : "0")) {
+          TextField(text: entry, prompt: Text(verbatim: prompt)) {
             Text(Self.entryLabel(method, name: member.displayName), bundle: .module)
           }
           .multilineTextAlignment(.trailing)
           .monospacedDigit()
           .decimalEntry()
-          .frame(maxWidth: 120)
-          if method == .percentage {
-            Text(verbatim: "%").foregroundStyle(.secondary).accessibilityHidden(true)
-          }
+          .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 120)
         }
         if let share = viewModel.preview?.shares.first(where: { $0.memberID == member.id }) {
           Text(verbatim: share.amount.formatted()).monospacedDigit().foregroundStyle(.secondary)
@@ -158,6 +163,16 @@ private struct SplitMemberRow: View {
         FieldErrorText(key: Self.entryInvalid(method))
       }
       FieldErrorText(key: viewModel.entryError(for: member.id))
+    }
+  }
+
+  /// An example in the field: "0", "0%" (as the locale writes a percent) or
+  /// "1" for a ratio part.
+  private var prompt: String {
+    switch method {
+    case .percentage: Decimal(0).formatted(.percent.scale(1).locale(locale))
+    case .ratio: Decimal(1).formatted(.number.locale(locale))
+    case .equal, .exact: Decimal(0).formatted(.number.locale(locale))
     }
   }
 
