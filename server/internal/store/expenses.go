@@ -182,8 +182,20 @@ func insertShares(ctx context.Context, q *sqlcgen.Queries, e expenses.Expense) e
 }
 
 // List implements expenses.Repository.
-func (r *ExpensesRepository) List(ctx context.Context, groupID platform.ID, after *expenses.Cursor, limit int) ([]expenses.Summary, error) {
-	params := sqlcgen.ListExpensesParams{GroupID: uuid(groupID), MaxRows: int32(limit)} //nolint:gosec // ≤ 201
+func (r *ExpensesRepository) List(ctx context.Context, groupID platform.ID, f expenses.Filter, after *expenses.Cursor, limit int) ([]expenses.Summary, error) {
+	params := sqlcgen.ListExpensesParams{
+		GroupID: uuid(groupID), MaxRows: int32(limit), //nolint:gosec // ≤ 201
+		Category: optionalFilter(f.Category), State: optionalFilter(f.State),
+	}
+	if f.Member != nil {
+		params.Member = uuid(*f.Member)
+	}
+	if f.From != nil {
+		params.FromDate = date(*f.From)
+	}
+	if f.To != nil {
+		params.ToDate = date(*f.To)
+	}
 	if after != nil {
 		params.HasCursor = true
 		params.AfterSpentOn = date(after.SpentOn)
@@ -202,6 +214,9 @@ func (r *ExpensesRepository) List(ctx context.Context, groupID platform.ID, afte
 	}
 	return items, nil
 }
+
+// optionalFilter is NULL for an empty filter, which doesn't filter.
+func optionalFilter(s string) pgtype.Text { return pgtype.Text{String: s, Valid: s != ""} }
 
 func text(s *string) pgtype.Text {
 	if s == nil {
