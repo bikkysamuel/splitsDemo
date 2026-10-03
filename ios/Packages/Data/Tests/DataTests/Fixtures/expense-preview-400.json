@@ -5,8 +5,8 @@
       "field": "/amount/minor"
     },
     {
-      "code": "not_group_currency",
-      "field": "/amount/currency"
+      "code": "required",
+      "field": "/exchange_rate"
     }
   ],
   "status": 400,

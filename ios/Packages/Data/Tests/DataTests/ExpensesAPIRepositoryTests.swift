@@ -58,6 +58,39 @@ struct ExpensesAPIRepositoryTests {
     #expect(members.first?["member_id"] as? String == Self.me.uuidString.lowercased())
   }
 
+  // FR-E5: the Original Amount goes with its Exchange Rate, a decimal
+  // string; the preview answers in the Group Currency.
+  @Test func previewSendsTheRateAndMapsTheConvertedAmount() async throws {
+    let transport = try PathTransport(["POST \(Self.base)/expenses/preview": .fixture("expense-foreign-preview-200")])
+    let repository = try makeRepository(transport)
+    var abroad = input
+    abroad.amount = Money(minorUnits: 1050, currency: "USD")
+    abroad.exchangeRate = "83.25"
+
+    let preview = try await repository.preview(groupID: Self.groupID, input: abroad)
+
+    #expect(preview.amount == Money(minorUnits: 87413, currency: "INR"))
+    #expect(preview.originalAmount == Money(minorUnits: 1050, currency: "USD"))
+    #expect(preview.exchangeRate == "83.25")
+    let sent = try #require(await transport.sent.first)
+    let body = try #require(try JSONSerialization.jsonObject(with: sent.body) as? [String: Any])
+    #expect(body["exchange_rate"] as? String == "83.25")
+    #expect((body["amount"] as? [String: Any])?["currency"] as? String == "USD")
+  }
+
+  @Test func aGroupCurrencyInputSendsNoRate() async throws {
+    let transport = try PathTransport(["POST \(Self.base)/expenses/preview": .fixture("expense-preview-200")])
+    let repository = try makeRepository(transport)
+
+    let preview = try await repository.preview(groupID: Self.groupID, input: input)
+
+    let sent = try #require(await transport.sent.first)
+    let body = try #require(try JSONSerialization.jsonObject(with: sent.body) as? [String: Any])
+    #expect(body["exchange_rate"] == nil)
+    #expect(preview.originalAmount == preview.amount)
+    #expect(preview.exchangeRate == nil)
+  }
+
   @Test func aSplitThatDoesNotAddUpIsAFieldIssueOnTheSplit() async throws {
     let transport = try PathTransport([
       "POST \(Self.base)/expenses/preview": .fixture("expense-preview-400-split", status: .badRequest, problem: true)
@@ -78,7 +111,7 @@ struct ExpensesAPIRepositoryTests {
     await #expect(
       throws: ServiceError.invalidFields([
         FieldIssue(field: "amount/minor", reason: .notPositive),
-        FieldIssue(field: "amount/currency", reason: .notGroupCurrency),
+        FieldIssue(field: "exchange_rate", reason: .required),
       ])
     ) {
       try await repository.preview(groupID: Self.groupID, input: input)
@@ -127,6 +160,22 @@ struct ExpensesAPIRepositoryTests {
     #expect(expense.payerID == Self.me)
     #expect(expense.shares.count == 2)
     #expect(expense.splitMethod == .equal)
+    #expect(expense.originalAmount == expense.amount)
+    #expect(expense.exchangeRate == nil)
+  }
+
+  @Test func getMapsTheOriginalAmountAndExchangeRate() async throws {
+    let transport = try PathTransport([
+      "GET /v1/expenses/\(Self.expenseID.uuidString.lowercased())": .fixture("expense-foreign-get-200")
+    ])
+    let repository = try makeRepository(transport)
+
+    let expense = try await repository.expense(id: Self.expenseID)
+
+    #expect(expense.amount == Money(minorUnits: 87413, currency: "INR"))
+    #expect(expense.originalAmount == Money(minorUnits: 1050, currency: "USD"))
+    #expect(expense.exchangeRate == "83.25")
+    #expect(expense.shares.map(\.amount.minorUnits) == [43707, 43706])
   }
 
   @Test func getMapsTheSplitMethodAndEntries() async throws {
