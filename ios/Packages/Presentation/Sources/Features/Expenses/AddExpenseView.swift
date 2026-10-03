@@ -65,12 +65,22 @@ struct AddExpenseView: View {
       }
       Section {
         FormMessage(key: viewModel.errors.message)
-        SubmitButton(titleKey: Self.save, isSubmitting: viewModel.isSubmitting, isEnabled: viewModel.canSubmit) {
+        if viewModel.isStale {
+          Button {
+            Task { await viewModel.reload() }
+          } label: {
+            Text(LocalizedStringKey(Self.reload), bundle: .module).frame(minHeight: 44)
+          }
+        }
+        SubmitButton(
+          titleKey: viewModel.isEditing ? Self.saveChanges : Self.save, isSubmitting: viewModel.isSubmitting,
+          isEnabled: viewModel.canSubmit
+        ) {
           if let expense = await viewModel.submit() { onAdded(expense) }
         }
       }
     }
-    .navigationTitle(Text(LocalizedStringKey(Self.title), bundle: .module))
+    .navigationTitle(Text(LocalizedStringKey(viewModel.isEditing ? Self.editTitle : Self.title), bundle: .module))
     .toolbar {
       ToolbarItem(placement: .cancellationAction) {
         Button {
@@ -100,8 +110,14 @@ struct AddExpenseView: View {
   nonisolated static let sharedBy = "Shared by"
   nonisolated static let previewFooter = "Shares from the server, exactly as they'll be saved."
   nonisolated static let save = "Save Expense"
+  nonisolated static let editTitle = "Edit Expense"
+  nonisolated static let saveChanges = "Save Changes"
+  nonisolated static let reload = "Reload"
   nonisolated static let allKeys =
-    [title, amount, currency, amountInvalid, paidBy, category, date, note, split, sharedBy, previewFooter, save]
+    [
+      title, amount, currency, amountInvalid, paidBy, category, date, note, split, sharedBy, previewFooter, save,
+      editTitle, saveChanges, reload,
+    ]
     + SplitMethod.allCases.map(methodName) + SplitMemberRow.allKeys + ExchangeRateRows.allKeys
 
   /// The catalog key naming a Split method.

@@ -3,13 +3,60 @@ import SwiftUI
 
 /// An Expense: amount (and, if paid in another currency, its Original Amount
 /// and Exchange Rate), payer, Category, date, note and each Member's Share.
+/// Its creator may Edit or Withdraw it (FR-E6).
 struct ExpenseDetailView: View {
   @Bindable var viewModel: ExpenseDetailViewModel
+  /// Called after an edit or withdrawal, so the Group reloads.
+  var onChanged: () -> Void = {}
+  @State private var confirmsWithdraw = false
+  @State private var editing: AddExpenseViewModel?
 
   var body: some View {
     content
       .navigationTitle(Text(LocalizedStringKey(Self.title), bundle: .module))
       .task { await viewModel.load() }
+      .toolbar {
+        if viewModel.canEdit, let e = viewModel.state.value {
+          ToolbarItem(placement: .primaryAction) {
+            Button {
+              editing = AddExpenseViewModel(editing: e, group: viewModel.group, repository: viewModel.repository)
+            } label: {
+              Text(LocalizedStringKey(Self.edit), bundle: .module)
+            }
+          }
+        }
+      }
+      .sheet(item: $editing) { model in
+        NavigationStack {
+          AddExpenseView(viewModel: model) { saved in
+            editing = nil
+            viewModel.edited(saved)
+            onChanged()
+          }
+        }
+      }
+      .confirmationDialog(
+        Text(LocalizedStringKey(Self.withdrawTitle), bundle: .module), isPresented: $confirmsWithdraw,
+        titleVisibility: .visible
+      ) {
+        Button(role: .destructive) {
+          Task { if await viewModel.withdraw() { onChanged() } }
+        } label: {
+          Text(LocalizedStringKey(SettlementDetailView.withdraw), bundle: .module)
+        }
+      }
+      .alert(
+        Text(LocalizedStringKey(SettlementDetailView.withdrawFailed), bundle: .module),
+        isPresented: Binding(get: { viewModel.actionError != nil }, set: { if !$0 { viewModel.dismissError() } })
+      ) {
+        Button {
+          viewModel.dismissError()
+        } label: {
+          Text(LocalizedStringKey(CommonKeys.ok), bundle: .module)
+        }
+      } message: {
+        Text(LocalizedStringKey(viewModel.actionError ?? ""), bundle: .module)
+      }
   }
 
   @ViewBuilder private var content: some View {
@@ -22,6 +69,14 @@ struct ExpenseDetailView: View {
       List {
         Section {
           Text(verbatim: e.amount.formatted()).font(.largeTitle.monospacedDigit())
+            .strikethrough(e.state == .withdrawn)
+          if e.state == .withdrawn {
+            Label {
+              Text(LocalizedStringKey(SettlementDetailView.withdrawn), bundle: .module)
+            } icon: {
+              Image(systemName: "arrow.uturn.backward.circle").accessibilityHidden(true)
+            }
+          }
           if let rate = e.exchangeRate {
             LabeledContent {
               Text(verbatim: e.originalAmount.formatted()).monospacedDigit()
@@ -69,6 +124,18 @@ struct ExpenseDetailView: View {
         } header: {
           Text(LocalizedStringKey(Self.shares), bundle: .module)
         }
+        if viewModel.canWithdraw {
+          Section {
+            Button(role: .destructive) {
+              confirmsWithdraw = true
+            } label: {
+              Text(LocalizedStringKey(SettlementDetailView.withdraw), bundle: .module).frame(minHeight: 44)
+            }
+            .disabled(viewModel.isWithdrawing)
+          } footer: {
+            Text(LocalizedStringKey(SettlementDetailView.withdrawFooter), bundle: .module)
+          }
+        }
       }
     }
   }
@@ -93,8 +160,10 @@ struct ExpenseDetailView: View {
   /// The catalog key of the rate row: rate, Group Currency, Expense's
   /// currency.
   nonisolated static let rateFormat = "%@ %@ per 1 %@"
+  nonisolated static let edit = "Edit"
+  nonisolated static let withdrawTitle = "Withdraw this Expense?"
   nonisolated static let allKeys = [
-    title, shares, ratioPartFormat, originalAmount, exchangeRate, rateFormat, MemberName.unknown,
+    title, shares, ratioPartFormat, originalAmount, exchangeRate, rateFormat, MemberName.unknown, edit, withdrawTitle,
   ]
 }
 
@@ -135,7 +204,13 @@ struct ExpenseRow: View {
         .font(.footnote).foregroundStyle(.secondary)
       }
       Spacer()
-      Text(verbatim: expense.amount.formatted()).monospacedDigit()
+      VStack(alignment: .trailing, spacing: 2) {
+        Text(verbatim: expense.amount.formatted()).monospacedDigit().strikethrough(expense.state == .withdrawn)
+        if expense.state == .withdrawn {
+          Text(LocalizedStringKey(SettlementDetailView.withdrawn), bundle: .module).font(.footnote)
+            .foregroundStyle(.secondary)
+        }
+      }
     }
     .accessibilityElement(children: .combine)
   }

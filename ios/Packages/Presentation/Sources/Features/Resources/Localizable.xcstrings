@@ -529,6 +529,30 @@
         }
       }
     },
+    "Edit": {
+      "comment": "Button that opens the edit form of an Expense",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        }
+      }
+    },
+    "Edit Expense": {
+      "comment": "Title of the form that edits an Expense",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit Expense"
+          }
+        }
+      }
+    },
     "Email": {
       "comment": "Label of the email field",
       "extractionState": "manual",
@@ -1285,6 +1309,18 @@
         }
       }
     },
+    "Reload": {
+      "comment": "Button that fetches the Expense someone else changed into the edit form",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reload"
+          }
+        }
+      }
+    },
     "Rename": {
       "comment": "Button that renames a Group",
       "extractionState": "manual",
@@ -1353,6 +1389,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Save"
+          }
+        }
+      }
+    },
+    "Save Changes": {
+      "comment": "Button that saves an edited Expense",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save Changes"
           }
         }
       }
@@ -2133,6 +2181,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Withdraw"
+          }
+        }
+      }
+    },
+    "Withdraw this Expense?": {
+      "comment": "Confirmation title before withdrawing an Expense",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Withdraw this Expense?"
           }
         }
       }

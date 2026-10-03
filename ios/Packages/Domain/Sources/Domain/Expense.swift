@@ -20,6 +20,9 @@ public struct Expense: Equatable, Hashable, Identifiable, Sendable {
   /// The day the money was spent, as "yyyy-MM-dd" (a date, not a moment).
   public let spentOn: String
   public let state: ExpenseState
+  /// 1, then one more per edit (FR-E6); the Activity History keeps each
+  /// revision's changes.
+  public let revision: Int
   public let version: Int
   public let splitMethod: SplitMethod
   /// Every Member in the Split, in joining order.
@@ -27,8 +30,8 @@ public struct Expense: Equatable, Hashable, Identifiable, Sendable {
 
   public init(
     id: UUID, groupID: UUID, payerID: UUID, createdByID: UUID, amount: Money, originalAmount: Money? = nil,
-    exchangeRate: String? = nil, category: Category, note: String?, spentOn: String, state: ExpenseState, version: Int,
-    splitMethod: SplitMethod = .equal, shares: [Share]
+    exchangeRate: String? = nil, category: Category, note: String?, spentOn: String, state: ExpenseState, revision: Int = 1,
+    version: Int, splitMethod: SplitMethod = .equal, shares: [Share]
   ) {
     self.id = id
     self.groupID = groupID
@@ -41,6 +44,7 @@ public struct Expense: Equatable, Hashable, Identifiable, Sendable {
     self.note = note
     self.spentOn = spentOn
     self.state = state
+    self.revision = revision
     self.version = version
     self.splitMethod = splitMethod
     self.shares = shares
@@ -164,4 +168,11 @@ public protocol ExpensesRepository: Sendable {
   func createExpense(groupID: UUID, input: ExpenseInput, key: WriteKey) async throws(ServiceError) -> Expense
   func expenses(groupID: UUID, cursor: String?) async throws(ServiceError) -> ExpensePage
   func expense(id: UUID) async throws(ServiceError) -> Expense
+  /// Saves the creator's edit of the Expense at `version` as its next
+  /// revision (FR-E6); `.problem(.versionConflict)` if someone else changed
+  /// it since.
+  func editExpense(id: UUID, version: Int, input: ExpenseInput, key: WriteKey) async throws(ServiceError) -> Expense
+  /// Withdraws the creator's Expense at `version` (FR-E6): it stays, but no
+  /// longer counts toward Balances.
+  func withdrawExpense(id: UUID, version: Int, key: WriteKey) async throws(ServiceError) -> Expense
 }
