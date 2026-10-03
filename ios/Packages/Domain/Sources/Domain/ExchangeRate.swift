@@ -31,6 +31,15 @@ public enum ExchangeRate {
     return text[range.upperBound...].prefix { $0.isNumber }.count
   }
 
+  /// A stored rate as editable text in the User's locale, its scale kept
+  /// and without grouping ("1234,5", "83.20"), to pre-fill a form;
+  /// `input(from:locale:)` reads it back.
+  public static func editableText(_ rate: String, locale: Locale = .current) -> String {
+    guard let value = Decimal(string: rate, locale: Locale(identifier: "en_US_POSIX")) else { return rate }
+    let scale = rate.split(separator: ".").dropFirst().first?.count ?? 0
+    return value.formatted(.number.grouping(.never).precision(.fractionLength(scale)).locale(locale))
+  }
+
   /// A stored rate ("1234.5", "83.20") as the User's locale writes it,
   /// its scale kept ("1.234,5", "83,20").
   public static func display(_ rate: String, locale: Locale = .current) -> String {

@@ -150,6 +150,19 @@ func TestSendingWhatIsSavedChangesNothing(t *testing.T) {
 	}
 }
 
+// The app reads a pre-filled "33.30" back as "33.3": the same entry, so
+// no new revision.
+func TestTheSameSplitEntriesWrittenDifferentlyChangeNothing(t *testing.T) {
+	tr := newTrip(t)
+	e := tr.mustCreate(t, tr.split(1000, "percentage", tr.aliceID, "33.30", tr.bobID, "66.70"))
+
+	got, status, _ := tr.edit(t, tr.alice.AccessToken, e.ID, edited(tr.split(1000, "percentage", tr.aliceID, "33.3", tr.bobID, "66.7"), e.Version))
+
+	if status != http.StatusOK || got.Revision != 1 || got.Version != 1 {
+		t.Errorf("edit = %d %+v; want 200, revision 1, version 1", status, got)
+	}
+}
+
 func TestAnExchangeRateChangeIsAnEdit(t *testing.T) {
 	tr := newTrip(t)
 	e := tr.mustCreate(t, tr.abroad(1050, "USD", "83.25"))

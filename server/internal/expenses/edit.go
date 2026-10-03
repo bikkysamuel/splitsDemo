@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"slices"
 
 	"github.com/bikkysamuel/splitsDemo/server/internal/groups"
@@ -114,8 +115,22 @@ func diff(old, e Expense) []Change {
 	return out
 }
 
+// sameShare compares entries by value: "33.30" and "33.3" are one entry,
+// as the app reads a pre-filled entry back without its trailing zeros.
 func sameShare(a, b Share) bool {
-	return a.MemberID == b.MemberID && a.Amount == b.Amount && deref(a.Input) == deref(b.Input)
+	return a.MemberID == b.MemberID && a.Amount == b.Amount && sameValue(a.Input, b.Input)
+}
+
+func sameValue(a, b *string) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	x, okX := new(big.Rat).SetString(*a)
+	y, okY := new(big.Rat).SetString(*b)
+	if !okX || !okY {
+		return *a == *b
+	}
+	return x.Cmp(y) == 0
 }
 
 // shareParts is the Shares as the Activity History keeps them.

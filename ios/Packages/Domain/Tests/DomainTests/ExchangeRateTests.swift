@@ -33,4 +33,13 @@ struct ExchangeRateTests {
     // Shown as stored, its scale kept.
     #expect(ExchangeRate.display("83.20", locale: Locale(identifier: "de_DE")) == "83,20")
   }
+
+  /// Editing an Expense pre-fills its rate as typed text that reads back to
+  /// the same stored rate (FR-E6).
+  @Test(arguments: [("1234.5", "de_DE", "1234,5"), ("83.20", "en_US", "83.20"), ("84", "de_DE", "84")])
+  func aStoredRateBecomesEditableTextThatReadsBack(rate: String, locale: String, expected: String) {
+    let l = Locale(identifier: locale)
+    #expect(ExchangeRate.editableText(rate, locale: l) == expected)
+    #expect(ExchangeRate.input(from: expected, locale: l) == rate)
+  }
 }

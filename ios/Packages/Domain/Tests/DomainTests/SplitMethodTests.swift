@@ -53,4 +53,15 @@ struct SplitMethodTests {
     #expect(SplitMethod.percentage.displayInput("33.5", locale: de).contains("33,5"))
     #expect(SplitMethod.ratio.displayInput("2", locale: us) == "2")
   }
+
+  /// Editing an Expense pre-fills each entry as typed text that reads back
+  /// to the same stored entry (FR-E6).
+  @Test(arguments: [
+    (SplitMethod.exact, "25050", "250,50"), (.percentage, "33.5", "33,5"), (.ratio, "2", "2"),
+    (.exact, "1234567", "12345,67"),
+  ])
+  func aStoredEntryBecomesEditableTextThatReadsBack(method: SplitMethod, stored: String, expected: String) {
+    #expect(method.editableInput(stored, currency: "EUR", locale: de) == expected)
+    #expect(method.input(from: expected, currency: "EUR", locale: de) == stored)
+  }
 }

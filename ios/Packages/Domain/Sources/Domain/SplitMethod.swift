@@ -34,6 +34,18 @@ public enum SplitMethod: String, CaseIterable, Hashable, Sendable {
     }
   }
 
+  /// A stored entry as editable text in the User's locale, to pre-fill a
+  /// form: for `exact`, the amount in `currency` ("25050" → "250,50");
+  /// otherwise the number without grouping ("33,5"). `input(from:currency:
+  /// locale:)` reads it back.
+  public func editableInput(_ input: String, currency: String, locale: Locale = .current) -> String {
+    if self == .exact, let minor = Int64(input) {
+      return Money(minorUnits: minor, currency: currency).editableText(locale: locale)
+    }
+    guard let value = Decimal(string: input, locale: Locale(identifier: "en_US_POSIX")) else { return input }
+    return value.formatted(.number.grouping(.never).locale(locale))
+  }
+
   /// A stored entry ("33.33", "2") as the User's locale writes it, such as
   /// "33,33 %"; an exact amount is shown by its Share instead.
   public func displayInput(_ input: String, locale: Locale = .current) -> String {
