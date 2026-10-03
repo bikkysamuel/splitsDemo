@@ -2,14 +2,15 @@ import Domain
 import Foundation
 import Observation
 
-/// Add Expense, or Edit Expense for its creator (FR-E6), pre-filled and
-/// saved as a new revision with the version it changes (FR-E1–E3, FR-E5): amount in the Group Currency or, with an
-/// Exchange Rate, in another currency, payer, Category,
-/// optional note, date, the Split method and the Members who share it, with
-/// an entry each for an exact, percentage or ratio Split. The form checks
-/// only that entries are well-formed; whether they add up is the server's
-/// check (ADR-0006). The live preview shows the exact Shares from the server, the same
-/// calculation the save uses (FR-E4, ADR-0006).
+/// Add Expense (FR-E1–E3, FR-E5), or Edit Expense for its creator: the
+/// form pre-filled, saved as a new revision with the version it changes
+/// (FR-E6). Amount in the Group Currency or, with an Exchange Rate, in
+/// another currency, payer, Category, optional note, date, the Split method
+/// and the Members who share it, with an entry each for an exact,
+/// percentage or ratio Split. The form checks only that entries are
+/// well-formed; whether they add up is the server's check. The live preview
+/// shows the exact Shares from the server, the same calculation the save
+/// uses (FR-E4, ADR-0006).
 @MainActor
 @Observable
 public final class AddExpenseViewModel {

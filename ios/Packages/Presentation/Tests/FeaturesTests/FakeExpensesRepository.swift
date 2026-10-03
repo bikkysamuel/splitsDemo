@@ -50,7 +50,9 @@ actor FakeExpensesRepository: ExpensesRepository {
 
   func expense(id: UUID) async throws(ServiceError) -> Expense { try expenseResult.get() }
 
-  func editExpense(id: UUID, version: Int, input: ExpenseInput, key: WriteKey) async throws(ServiceError)
+  func editExpense(
+    id: UUID, version: Int, input: ExpenseInput, key: WriteKey
+  ) async throws(ServiceError)
     -> Expense
   {
     edits.append((id, version, input, key))

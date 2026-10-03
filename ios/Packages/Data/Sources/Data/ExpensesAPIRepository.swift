@@ -87,7 +87,9 @@ public struct ExpensesAPIRepository: ExpensesRepository {
     }
   }
 
-  public func editExpense(id: UUID, version: Int, input: ExpenseInput, key: WriteKey) async throws(ServiceError)
+  public func editExpense(
+    id: UUID, version: Int, input: ExpenseInput, key: WriteKey
+  ) async throws(ServiceError)
     -> Expense
   {
     let i = ExpenseMapper.input(input)

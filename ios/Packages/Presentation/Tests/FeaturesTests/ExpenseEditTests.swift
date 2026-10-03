@@ -40,7 +40,9 @@ struct EditExpenseViewModelTests {
         == ExpenseInput(
           payerID: Member.bob.id, amount: Money(minorUnits: 1050, currency: "USD"), exchangeRate: "83.25",
           category: .travel, note: "Taxi", spentOn: "2026-09-30", method: .percentage,
-          members: [SplitEntry(memberID: Group.me, input: "66.67"), SplitEntry(memberID: Member.bob.id, input: "33.33")]
+          members: [
+            SplitEntry(memberID: Group.me, input: "66.67"), SplitEntry(memberID: Member.bob.id, input: "33.33"),
+          ]
         ))
   }
 

@@ -30,7 +30,8 @@ public struct Expense: Equatable, Hashable, Identifiable, Sendable {
 
   public init(
     id: UUID, groupID: UUID, payerID: UUID, createdByID: UUID, amount: Money, originalAmount: Money? = nil,
-    exchangeRate: String? = nil, category: Category, note: String?, spentOn: String, state: ExpenseState, revision: Int = 1,
+    exchangeRate: String? = nil, category: Category, note: String?, spentOn: String, state: ExpenseState,
+    revision: Int = 1,
     version: Int, splitMethod: SplitMethod = .equal, shares: [Share]
   ) {
     self.id = id
