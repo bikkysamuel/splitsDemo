@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -45,8 +47,12 @@ func (r *ExpensesRepository) Create(ctx context.Context, e expenses.Expense) err
 			return fmt.Errorf("insert expense: %w", err)
 		}
 		for _, s := range e.Shares {
-			err := q.InsertShare(ctx, sqlcgen.InsertShareParams{
-				ExpenseID: uuid(e.ID), MemberID: uuid(s.MemberID), ShareMinor: s.Amount,
+			input, err := numeric(s.Input)
+			if err != nil {
+				return err
+			}
+			err = q.InsertShare(ctx, sqlcgen.InsertShareParams{
+				ExpenseID: uuid(e.ID), MemberID: uuid(s.MemberID), ShareMinor: s.Amount, Input: input,
 			})
 			if err != nil {
 				return fmt.Errorf("insert share: %w", err)
@@ -78,7 +84,7 @@ func (r *ExpensesRepository) ExpenseForUser(ctx context.Context, expenseID, user
 		CreatedAt: row.CreatedAt.Time, Shares: make([]expenses.Share, len(shares)),
 	}
 	for i, s := range shares {
-		e.Shares[i] = expenses.Share{MemberID: id(s.MemberID), Amount: s.ShareMinor}
+		e.Shares[i] = expenses.Share{MemberID: id(s.MemberID), Amount: s.ShareMinor, Input: numericText(s.Input)}
 	}
 	return e, nil
 }
@@ -120,3 +126,38 @@ func optionalText(t pgtype.Text) *string {
 }
 
 func date(t time.Time) pgtype.Date { return pgtype.Date{Time: t, Valid: true} }
+
+// numericText is a NUMERIC's exact decimal text, its scale kept ("33.30");
+// NULL is nil.
+func numericText(n pgtype.Numeric) *string {
+	if !n.Valid || n.Int == nil {
+		return nil
+	}
+	digits := new(big.Int).Abs(n.Int).String()
+	if n.Exp >= 0 {
+		digits += strings.Repeat("0", int(n.Exp))
+	} else {
+		scale := int(-n.Exp)
+		if len(digits) <= scale {
+			digits = strings.Repeat("0", scale-len(digits)+1) + digits
+		}
+		digits = digits[:len(digits)-scale] + "." + digits[len(digits)-scale:]
+	}
+	if n.Int.Sign() < 0 {
+		digits = "-" + digits
+	}
+	return &digits
+}
+
+// numeric stores a decimal string exactly as NUMERIC (ADR-0014); nil is
+// NULL.
+func numeric(s *string) (pgtype.Numeric, error) {
+	var n pgtype.Numeric
+	if s == nil {
+		return n, nil
+	}
+	if err := n.Scan(*s); err != nil {
+		return n, fmt.Errorf("numeric %q: %w", *s, err)
+	}
+	return n, nil
+}

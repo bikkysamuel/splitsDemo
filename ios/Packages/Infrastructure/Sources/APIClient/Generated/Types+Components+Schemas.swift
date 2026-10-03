@@ -102,12 +102,16 @@ extension Components {
         /// - `not-creator`: only the item's creator may do this (403).
         /// - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
         /// - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+        /// - `internal`: an unexpected server failure (500).
         ///
         /// Field error codes of an Expense (`errors[].code`): `required`,
         /// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
         /// `not_a_member` (payer or Split Member isn't an active Member),
-        /// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-        /// - `internal`: an unexpected server failure (500).
+        /// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+        /// and `percentages_not_100`; at `/split/members/{i}/input`,
+        /// `missing_input`, `unexpected_input`, `input_not_positive`,
+        /// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+        /// and `invalid` (see `SplitInputValue`).
         ///
         ///
         /// - Remark: Generated from `#/components/schemas/Problem`.
@@ -1069,13 +1073,18 @@ extension Components {
             case travel = "travel"
             case other = "other"
         }
-        /// How the Expense is divided (FR-E2). Equal only for now; exact,
-        /// percentage and ratio follow (#18).
+        /// How the Expense is divided (FR-E2): `equal` among the Members;
+        /// `exact` amounts that sum to the total; `percentage`s with at most
+        /// 2 decimal places summing to exactly 100; `ratio` weights such as
+        /// 2:1:1.
         ///
         ///
         /// - Remark: Generated from `#/components/schemas/SplitMethod`.
         @frozen public enum SplitMethod: String, Codable, Hashable, Sendable, CaseIterable {
             case equal = "equal"
+            case exact = "exact"
+            case percentage = "percentage"
+            case ratio = "ratio"
         }
         /// Where the Expense is in its life (doc 06). In M1 every Expense is
         /// accepted at once (D9); the agreement states arrive with M2.
@@ -1099,15 +1108,23 @@ extension Components {
             public struct MembersPayloadPayload: Codable, Hashable, Sendable {
                 /// - Remark: Generated from `#/components/schemas/SplitInput/MembersPayload/member_id`.
                 public var memberId: Swift.String
+                /// - Remark: Generated from `#/components/schemas/SplitInput/MembersPayload/input`.
+                public var input: Components.Schemas.SplitInputValue?
                 /// Creates a new `MembersPayloadPayload`.
                 ///
                 /// - Parameters:
                 ///   - memberId:
-                public init(memberId: Swift.String) {
+                ///   - input:
+                public init(
+                    memberId: Swift.String,
+                    input: Components.Schemas.SplitInputValue? = nil
+                ) {
                     self.memberId = memberId
+                    self.input = input
                 }
                 public enum CodingKeys: String, CodingKey {
                     case memberId = "member_id"
+                    case input
                 }
                 public init(from decoder: any Swift.Decoder) throws {
                     let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -1115,8 +1132,13 @@ extension Components {
                         Swift.String.self,
                         forKey: .memberId
                     )
+                    self.input = try container.decodeIfPresent(
+                        Components.Schemas.SplitInputValue.self,
+                        forKey: .input
+                    )
                     try decoder.ensureNoAdditionalProperties(knownKeys: [
-                        "member_id"
+                        "member_id",
+                        "input"
                     ])
                 }
             }
@@ -1252,7 +1274,18 @@ extension Components {
                 ])
             }
         }
-        /// One Member's Share.
+        /// What was entered for one Member, as an exact decimal string (never
+        /// a JSON number): for `exact`, minor units of the Group Currency
+        /// ("25050"); for `percentage`, a percentage with at most 2 decimal
+        /// places ("33.33"); for `ratio`, a positive integer weight ("2").
+        /// Absent for `equal`. At most 30 whole digits and 8 decimals; anything
+        /// else is `invalid`. Returned as saved: leading zeros dropped, scale
+        /// kept ("33.30"). Field error codes: see `Problem`.
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/SplitInputValue`.
+        public typealias SplitInputValue = Swift.String
+        /// One Member's Share, and what was entered for them.
         ///
         /// - Remark: Generated from `#/components/schemas/ShareLine`.
         public struct ShareLine: Codable, Hashable, Sendable {
@@ -1260,21 +1293,27 @@ extension Components {
             public var memberId: Swift.String
             /// - Remark: Generated from `#/components/schemas/ShareLine/share`.
             public var share: Components.Schemas.Money
+            /// - Remark: Generated from `#/components/schemas/ShareLine/input`.
+            public var input: Components.Schemas.SplitInputValue?
             /// Creates a new `ShareLine`.
             ///
             /// - Parameters:
             ///   - memberId:
             ///   - share:
+            ///   - input:
             public init(
                 memberId: Swift.String,
-                share: Components.Schemas.Money
+                share: Components.Schemas.Money,
+                input: Components.Schemas.SplitInputValue? = nil
             ) {
                 self.memberId = memberId
                 self.share = share
+                self.input = input
             }
             public enum CodingKeys: String, CodingKey {
                 case memberId = "member_id"
                 case share
+                case input
             }
             public init(from decoder: any Swift.Decoder) throws {
                 let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -1286,9 +1325,14 @@ extension Components {
                     Components.Schemas.Money.self,
                     forKey: .share
                 )
+                self.input = try container.decodeIfPresent(
+                    Components.Schemas.SplitInputValue.self,
+                    forKey: .input
+                )
                 try decoder.ensureNoAdditionalProperties(knownKeys: [
                     "member_id",
-                    "share"
+                    "share",
+                    "input"
                 ])
             }
         }

@@ -67,18 +67,40 @@ enum ServiceErrorMessage {
     case ("from_member_id", _), ("to_member_id", _): "Choose a Member of this Group."
     case ("note", .tooLong): "Use at most 500 characters."
     case ("split/members", _): "Choose at least one Member to share it."
+    case ("split", .exactSumMismatch): "The amounts must add up to the total."
+    case ("split", .percentagesNot100): "The percentages must add up to exactly 100."
+    case (let field, let reason) where field.hasPrefix("split/members/") && field.hasSuffix("/input"):
+      inputKey(for: reason)
     case (let field, _) where field.hasPrefix("split/"): "Check who shares this Expense."
     default: "This field is invalid."
+    }
+  }
+
+  /// The message under one Member's refused entry.
+  private static func inputKey(for reason: FieldIssue.Reason) -> String {
+    switch reason {
+    case .missingInput: "Enter a value for this Member."
+    case .inputNotPositive: "Enter a number above zero."
+    case .notWholeMinorUnits: "Use the currency's decimal places at most."
+    case .tooManyDecimals: "Use at most 2 decimal places."
+    case .ratioNotInteger: "Use a whole number."
+    case .unexpectedInput: "Check who shares this Expense."
+    default: "Enter a number, like 2 or 33.33."
     }
   }
 
   /// Every key the catalog must hold, for StringCatalogTests.
   static var allKeys: [String] {
     var keys = [generic, unreachable, checkFields, confirmTitle] + ProblemKind.allCases.map(key(for:))
-    let reasons: [FieldIssue.Reason] = [.required, .invalid, .tooShort, .tooLong, .tooCommon, .taken, .other("x")]
+    let reasons: [FieldIssue.Reason] = [
+      .required, .invalid, .tooShort, .tooLong, .tooCommon, .taken, .exactSumMismatch, .percentagesNot100,
+      .missingInput, .unexpectedInput, .inputNotPositive, .notWholeMinorUnits, .tooManyDecimals, .ratioNotInteger,
+      .other("x"),
+    ]
     for field in [
       "email", "password", "name", "display_name", "currency", "amount/minor", "amount/currency", "payer_member_id",
-      "note", "split/members", "split/members/0/member_id", "from_member_id", "to_member_id", "other",
+      "note", "split", "split/members", "split/members/0/member_id", "split/members/0/input", "from_member_id",
+      "to_member_id", "other",
     ] {
       keys += reasons.map { key(for: FieldIssue(field: field, reason: $0)) }
     }

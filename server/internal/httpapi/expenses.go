@@ -151,7 +151,7 @@ func expenseInput(b apigen.ExpenseInput) expenses.Input {
 		Category: string(b.Category), Note: b.Note, SpentOn: b.SpentOn.Time, Method: string(b.Split.Method),
 	}
 	for _, m := range b.Split.Members {
-		in.Members = append(in.Members, platform.ID(m.MemberId))
+		in.Members = append(in.Members, expenses.SplitEntry{MemberID: platform.ID(m.MemberId), Input: m.Input})
 	}
 	return in
 }
@@ -174,7 +174,7 @@ func money(minor int64, currency string) apigen.Money {
 func shareLines(shares []expenses.Share, currency string) []apigen.ShareLine {
 	lines := make([]apigen.ShareLine, len(shares))
 	for i, s := range shares {
-		lines[i] = apigen.ShareLine{MemberId: openapi_types.UUID(s.MemberID), Share: money(s.Amount, currency)}
+		lines[i] = apigen.ShareLine{MemberId: openapi_types.UUID(s.MemberID), Share: money(s.Amount, currency), Input: s.Input}
 	}
 	return lines
 }

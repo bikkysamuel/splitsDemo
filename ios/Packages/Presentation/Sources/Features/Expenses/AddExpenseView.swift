@@ -19,7 +19,7 @@ struct AddExpenseView: View {
         if viewModel.amountIsInvalid {
           FieldErrorText(key: Self.amountInvalid)
         }
-        FieldErrorText(key: viewModel.errors["amount/minor"] ?? viewModel.errors["amount/currency"])
+        FieldErrorText(key: viewModel.fieldError("amount/minor") ?? viewModel.fieldError("amount/currency"))
         Picker(selection: $viewModel.payerID) {
           ForEach(viewModel.members) { m in Text(verbatim: m.displayName).tag(m.id) }
         } label: {
@@ -36,34 +36,26 @@ struct AddExpenseView: View {
         TextField(text: $viewModel.note, axis: .vertical) {
           Text(LocalizedStringKey(Self.note), bundle: .module)
         }
-        FieldErrorText(key: viewModel.errors["note"])
+        FieldErrorText(key: viewModel.fieldError("note"))
       } header: {
         Text(verbatim: CurrencyPicker.label(viewModel.group.currency))
       }
       Section {
-        ForEach(viewModel.members) { m in
-          Button {
-            viewModel.toggle(m.id)
-          } label: {
-            HStack {
-              Image(systemName: viewModel.splitMembers.contains(m.id) ? "checkmark.circle.fill" : "circle")
-                .accessibilityHidden(true)
-              Text(verbatim: m.displayName)
-              Spacer()
-              if let share = viewModel.preview?.shares.first(where: { $0.memberID == m.id }) {
-                Text(verbatim: share.amount.formatted()).monospacedDigit().foregroundStyle(.secondary)
-              }
-            }
-            .frame(minHeight: 44)
+        Picker(selection: $viewModel.method) {
+          ForEach(SplitMethod.allCases, id: \.self) { method in
+            Text(LocalizedStringKey(Self.methodName(method)), bundle: .module).tag(method)
           }
-          .foregroundStyle(.primary)
-          .accessibilityAddTraits(viewModel.splitMembers.contains(m.id) ? .isSelected : [])
+        } label: {
+          Text(LocalizedStringKey(Self.split), bundle: .module)
         }
-        FieldErrorText(key: viewModel.errors["split/members"])
+        ForEach(viewModel.members) { m in
+          SplitMemberRow(viewModel: viewModel, member: m)
+        }
+        FieldErrorText(key: viewModel.fieldError("split/members"))
       } header: {
-        Text(LocalizedStringKey(Self.splitEqually), bundle: .module)
+        Text(LocalizedStringKey(Self.sharedBy), bundle: .module)
       } footer: {
-        if let key = viewModel.previewError {
+        if let key = viewModel.splitError ?? viewModel.previewError {
           Text(LocalizedStringKey(key), bundle: .module)
         } else if viewModel.preview != nil {
           Text(LocalizedStringKey(Self.previewFooter), bundle: .module)
@@ -101,11 +93,123 @@ struct AddExpenseView: View {
   nonisolated static let category = "Category"
   nonisolated static let date = "Date"
   nonisolated static let note = "Note (optional)"
-  nonisolated static let splitEqually = "Split equally between"
+  nonisolated static let split = "Split"
+  nonisolated static let sharedBy = "Shared by"
   nonisolated static let previewFooter = "Shares from the server, exactly as they'll be saved."
   nonisolated static let save = "Save Expense"
+  nonisolated static let allKeys =
+    [title, amount, amountInvalid, paidBy, category, date, note, split, sharedBy, previewFooter, save]
+    + SplitMethod.allCases.map(methodName) + SplitMemberRow.allKeys
+
+  /// The catalog key naming a Split method.
+  nonisolated static func methodName(_ method: SplitMethod) -> String {
+    switch method {
+    case .equal: "Equally"
+    case .exact: "By exact amounts"
+    case .percentage: "By percentages"
+    case .ratio: "By ratio"
+    }
+  }
+}
+
+/// One Member in the Split: whether they share it, their entry for an
+/// exact, percentage or ratio Split, and their Share from the preview.
+private struct SplitMemberRow: View {
+  @Bindable var viewModel: AddExpenseViewModel
+  let member: Member
+
+  private var isSharing: Bool { viewModel.splitMembers.contains(member.id) }
+  private var method: SplitMethod { viewModel.method }
+
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+  @Environment(\.locale) private var locale
+
+  /// Side by side, or stacked at accessibility text sizes so nothing is cut.
+  private var layout: AnyLayout {
+    dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading)) : AnyLayout(HStackLayout())
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      layout {
+        Button {
+          viewModel.toggle(member.id)
+        } label: {
+          HStack {
+            Image(systemName: isSharing ? "checkmark.circle.fill" : "circle").accessibilityHidden(true)
+            Text(verbatim: member.displayName)
+          }
+          .frame(minHeight: 44)
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.primary)
+        .accessibilityAddTraits(isSharing ? .isSelected : [])
+        if !dynamicTypeSize.isAccessibilitySize { Spacer() }
+        if method.takesInput && isSharing {
+          TextField(text: entry, prompt: Text(verbatim: prompt)) {
+            Text(Self.entryLabel(method, name: member.displayName), bundle: .module)
+          }
+          .multilineTextAlignment(.trailing)
+          .monospacedDigit()
+          .decimalEntry()
+          .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 120)
+        }
+        if let share = viewModel.preview?.shares.first(where: { $0.memberID == member.id }) {
+          Text(verbatim: share.amount.formatted()).monospacedDigit().foregroundStyle(.secondary)
+            .accessibilityLabel(Text(LocalizedStringKey("Share \(share.amount.formatted())"), bundle: .module))
+        }
+      }
+      if viewModel.entryIsInvalid(member.id) {
+        FieldErrorText(key: Self.entryInvalid(method))
+      }
+      FieldErrorText(key: viewModel.entryError(for: member.id))
+    }
+  }
+
+  /// An example in the field: "0", "0%" (as the locale writes a percent) or
+  /// "1" for a ratio part.
+  private var prompt: String {
+    switch method {
+    case .percentage: Decimal(0).formatted(.percent.scale(1).locale(locale))
+    case .ratio: Decimal(1).formatted(.number.locale(locale))
+    case .equal, .exact: Decimal(0).formatted(.number.locale(locale))
+    }
+  }
+
+  private var entry: Binding<String> {
+    Binding(
+      get: { viewModel.entryTexts[member.id] ?? "" },
+      set: { viewModel.entryTexts[member.id] = $0 })
+  }
+
+  /// The entry field's label for VoiceOver, such as "Percentage for Bob";
+  /// the interpolations produce the `…For` catalog keys.
+  static func entryLabel(_ method: SplitMethod, name: String) -> LocalizedStringKey {
+    switch method {
+    case .percentage: "Percentage for \(name)"
+    case .ratio: "Ratio part for \(name)"
+    default: "Amount for \(name)"
+    }
+  }
+
+  /// Why a typed entry can't be read, for the method.
+  static func entryInvalid(_ method: SplitMethod) -> String {
+    switch method {
+    case .percentage: percentageInvalid
+    case .ratio: ratioInvalid
+    default: AddExpenseView.amountInvalid
+    }
+  }
+
+  // Catalog keys of the interpolated strings above and in `body`.
+  nonisolated static let amountFor = "Amount for %@"
+  nonisolated static let percentageFor = "Percentage for %@"
+  nonisolated static let ratioPartFor = "Ratio part for %@"
+  nonisolated static let shareFormat = "Share %@"
+  nonisolated static let percentageInvalid = "Enter a percentage with at most 2 decimal places, like 33.33."
+  nonisolated static let ratioInvalid = "Enter a whole number, like 2."
   nonisolated static let allKeys = [
-    title, amount, amountInvalid, paidBy, category, date, note, splitEqually, previewFooter, save,
+    amountFor, percentageFor, ratioPartFor, shareFormat, percentageInvalid, ratioInvalid,
   ]
 }
 

@@ -181,6 +181,18 @@
         }
       }
     },
+    "Amount for %@": {
+      "comment": "VoiceOver label of a Member's exact amount field; %@ is the Member's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amount for %@"
+          }
+        }
+      }
+    },
     "An account with this email already exists. Sign in instead.": {
       "comment": "Sign-up error: the email belongs to a verified account",
       "extractionState": "manual",
@@ -225,6 +237,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Balances and Settlements are in this currency. It can't change once there are Expenses."
+          }
+        }
+      }
+    },
+    "By exact amounts": {
+      "comment": "Split method: an exact amount for each Member",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "By exact amounts"
+          }
+        }
+      }
+    },
+    "By percentages": {
+      "comment": "Split method: a percentage for each Member",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "By percentages"
+          }
+        }
+      }
+    },
+    "By ratio": {
+      "comment": "Split method: a ratio part for each Member, such as 2:1:1",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "By ratio"
           }
         }
       }
@@ -469,6 +517,30 @@
         }
       }
     },
+    "Enter a number above zero.": {
+      "comment": "Error: a Member's entry is zero",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a number above zero."
+          }
+        }
+      }
+    },
+    "Enter a number, like 2 or 33.33.": {
+      "comment": "Error: a Member's entry can't be read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a number, like 2 or 33.33."
+          }
+        }
+      }
+    },
     "Enter a password.": {
       "comment": "Field error: the password is empty",
       "extractionState": "manual",
@@ -481,6 +553,18 @@
         }
       }
     },
+    "Enter a percentage with at most 2 decimal places, like 33.33.": {
+      "comment": "Error under a Member's unreadable percentage",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a percentage with at most 2 decimal places, like 33.33."
+          }
+        }
+      }
+    },
     "Enter a valid email address.": {
       "comment": "Field error: the email is malformed",
       "extractionState": "manual",
@@ -489,6 +573,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enter a valid email address."
+          }
+        }
+      }
+    },
+    "Enter a value for this Member.": {
+      "comment": "Error: a sharing Member has no entry",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a value for this Member."
+          }
+        }
+      }
+    },
+    "Enter a whole number, like 2.": {
+      "comment": "Error under a Member's unreadable ratio part",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a whole number, like 2."
           }
         }
       }
@@ -537,6 +645,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Entertainment"
+          }
+        }
+      }
+    },
+    "Equally": {
+      "comment": "Split method: divided equally",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Equally"
           }
         }
       }
@@ -949,6 +1069,18 @@
         }
       }
     },
+    "Percentage for %@": {
+      "comment": "VoiceOver label of a Member's percentage field; %@ is the Member's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Percentage for %@"
+          }
+        }
+      }
+    },
     "Placeholder": {
       "comment": "Badge on a Placeholder Member",
       "extractionState": "manual",
@@ -981,6 +1113,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pre-fills the Group Currency when you create a Group."
+          }
+        }
+      }
+    },
+    "Ratio part %@": {
+      "comment": "Expense detail: a Member's ratio part under their name; %@ is the number",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ratio part %@"
+          }
+        }
+      }
+    },
+    "Ratio part for %@": {
+      "comment": "VoiceOver label of a Member's ratio part field; %@ is the Member's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ratio part for %@"
           }
         }
       }
@@ -1201,6 +1357,30 @@
         }
       }
     },
+    "Share %@": {
+      "comment": "VoiceOver label of a Member's Share in the split preview; %@ is the amount",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share %@"
+          }
+        }
+      }
+    },
+    "Shared by": {
+      "comment": "Add Expense: header of the Members sharing the Expense",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared by"
+          }
+        }
+      }
+    },
     "Shares": {
       "comment": "Header of each Member's Share on the Expense screen",
       "extractionState": "manual",
@@ -1381,14 +1561,14 @@
         }
       }
     },
-    "Split equally between": {
-      "comment": "Header above the Members who share the Expense",
+    "Split": {
+      "comment": "Add Expense: label of the Split method picker; Expense detail: the Split method row",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Split equally between"
+            "value": "Split"
           }
         }
       }
@@ -1429,6 +1609,18 @@
         }
       }
     },
+    "The amounts must add up to the total.": {
+      "comment": "Error: exact amounts don't sum to the Expense amount",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The amounts must add up to the total."
+          }
+        }
+      }
+    },
     "The email or password is wrong.": {
       "comment": "Sign-in error: wrong email or password",
       "extractionState": "manual",
@@ -1437,6 +1629,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "The email or password is wrong."
+          }
+        }
+      }
+    },
+    "The percentages must add up to exactly 100.": {
+      "comment": "Error: percentages don't sum to 100",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The percentages must add up to exactly 100."
           }
         }
       }
@@ -1585,6 +1789,18 @@
         }
       }
     },
+    "Use a whole number.": {
+      "comment": "Error: a ratio part isn't a whole number",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a whole number."
+          }
+        }
+      }
+    },
     "Use another account": {
       "comment": "Button that leaves verification for sign-in with another account",
       "extractionState": "manual",
@@ -1633,6 +1849,18 @@
         }
       }
     },
+    "Use at most 2 decimal places.": {
+      "comment": "Error: a percentage has more than 2 decimals",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use at most 2 decimal places."
+          }
+        }
+      }
+    },
     "Use at most 50 characters.": {
       "comment": "Field error: the display name is too long",
       "extractionState": "manual",
@@ -1665,6 +1893,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Use the Group Currency."
+          }
+        }
+      }
+    },
+    "Use the currency's decimal places at most.": {
+      "comment": "Error: an exact amount has more decimals than the currency",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the currency's decimal places at most."
           }
         }
       }

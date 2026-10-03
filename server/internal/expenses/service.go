@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -174,37 +176,44 @@ func compute(g groups.Group, in Input) (Computed, *string, error) {
 	if in.SpentOn.IsZero() {
 		fields = append(fields, FieldError{"spent_on", CodeRequired})
 	}
-	if in.Method != MethodEqual {
+	method, ok := splitMethods[in.Method]
+	if !ok {
 		fields = append(fields, FieldError{"split/method", CodeInvalid})
 	}
 	members := make([]ledger.SplitMember, 0, len(in.Members))
+	entries := make([]*string, 0, len(in.Members))
 	seen := make(map[platform.ID]bool)
 	if len(in.Members) == 0 {
 		fields = append(fields, FieldError{"split/members", CodeNoMembers})
 	}
-	for i, id := range in.Members {
-		field := "split/members/" + strconv.Itoa(i) + "/member_id"
-		m, ok := active[id]
+	for i, e := range in.Members {
+		field := "split/members/" + strconv.Itoa(i)
+		m, ok := active[e.MemberID]
 		switch {
 		case !ok:
-			fields = append(fields, FieldError{field, CodeNotAMember})
-		case seen[id]:
-			fields = append(fields, FieldError{field, CodeDuplicateMember})
+			fields = append(fields, FieldError{field + "/member_id", CodeNotAMember})
+		case seen[e.MemberID]:
+			fields = append(fields, FieldError{field + "/member_id", CodeDuplicateMember})
 		default:
-			members = append(members, ledger.SplitMember{JoinSeq: m.JoinSeq})
+			input, text, valid := parseInput(e.Input)
+			if !valid {
+				fields = append(fields, FieldError{field + "/input", CodeInvalid})
+			}
+			members = append(members, ledger.SplitMember{JoinSeq: m.JoinSeq, Input: input})
+			entries = append(entries, text)
 		}
-		seen[id] = true
+		seen[e.MemberID] = true
 	}
 	if len(fields) > 0 {
 		return Computed{}, nil, &ValidationError{Fields: fields}
 	}
-	amounts, err := ledger.Shares(in.Amount, ledger.Equal, members)
+	amounts, err := ledger.Shares(in.Amount, method, members)
 	if err != nil {
 		var invalid *ledger.InvalidSplitError
 		if errors.As(err, &invalid) {
 			field := "split"
 			if invalid.MemberIndex >= 0 {
-				field = "split/members/" + strconv.Itoa(invalid.MemberIndex)
+				field = "split/members/" + strconv.Itoa(invalid.MemberIndex) + "/input"
 			}
 			return Computed{}, nil, &ValidationError{Fields: []FieldError{{field, string(invalid.Reason)}}}
 		}
@@ -212,9 +221,43 @@ func compute(g groups.Group, in Input) (Computed, *string, error) {
 	}
 	c := Computed{Amount: in.Amount, Currency: g.Currency, Shares: make([]Share, len(amounts))}
 	for i, a := range amounts {
-		c.Shares[i] = Share{MemberID: in.Members[i], Amount: a}
+		c.Shares[i] = Share{MemberID: in.Members[i].MemberID, Amount: a, Input: entries[i]}
 	}
 	return c, note, nil
+}
+
+var splitMethods = map[string]ledger.SplitMethod{
+	MethodEqual: ledger.Equal, MethodExact: ledger.Exact, MethodPercentage: ledger.Percentage, MethodRatio: ledger.Ratio,
+}
+
+// decimalInput is the only shape a Split input may take: digits with an
+// optional fraction, never a sign, exponent or "1/3" fraction.
+var decimalInput = regexp.MustCompile(`^[0-9]{1,30}(\.[0-9]{1,8})?$`)
+
+// parseInput reads a Split input exactly, and returns it as it will be
+// stored: leading zeros dropped, scale kept ("066.70" → "66.70", as
+// NUMERIC reads it back). nil stays nil (ledger decides whether the method
+// needs one). It reports false for a malformed one.
+func parseInput(raw *string) (*big.Rat, *string, bool) {
+	if raw == nil {
+		return nil, nil, true
+	}
+	if !decimalInput.MatchString(*raw) {
+		return nil, nil, false
+	}
+	r, ok := new(big.Rat).SetString(*raw)
+	if !ok {
+		return nil, nil, false
+	}
+	whole, fraction, hasFraction := strings.Cut(*raw, ".")
+	text := strings.TrimLeft(whole, "0")
+	if text == "" {
+		text = "0"
+	}
+	if hasFraction {
+		text += "." + fraction
+	}
+	return r, &text, true
 }
 
 func checkNote(raw *string) (*string, []FieldError) {

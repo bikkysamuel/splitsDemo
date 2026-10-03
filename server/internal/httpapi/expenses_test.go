@@ -18,8 +18,9 @@ type money struct {
 }
 
 type shareLine struct {
-	MemberID string `json:"member_id"`
-	Share    money  `json:"share"`
+	MemberID string  `json:"member_id"`
+	Share    money   `json:"share"`
+	Input    *string `json:"input"`
 }
 
 type expense struct {
@@ -238,8 +239,8 @@ func TestCreateValidatesTheInput(t *testing.T) {
 		{"no split members", func(in map[string]any) {
 			in["split"] = map[string]any{"method": "equal", "members": []map[string]string{}}
 		}, "/split/members no_members"},
-		{"other split method", func(in map[string]any) {
-			in["split"] = map[string]any{"method": "ratio", "members": []map[string]string{{"member_id": tr.aliceID}}}
+		{"unknown split method", func(in map[string]any) {
+			in["split"] = map[string]any{"method": "thirds", "members": []map[string]string{{"member_id": tr.aliceID}}}
 		}, "/split/method invalid"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

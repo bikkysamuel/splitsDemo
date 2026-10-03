@@ -206,13 +206,22 @@ func (e SettlementState) Valid() bool {
 
 // Defines values for SplitMethod.
 const (
-	SplitMethodEqual SplitMethod = "equal"
+	SplitMethodEqual      SplitMethod = "equal"
+	SplitMethodExact      SplitMethod = "exact"
+	SplitMethodPercentage SplitMethod = "percentage"
+	SplitMethodRatio      SplitMethod = "ratio"
 )
 
 // Valid indicates whether the value is a known member of the SplitMethod enum.
 func (e SplitMethod) Valid() bool {
 	switch e {
 	case SplitMethodEqual:
+		return true
+	case SplitMethodExact:
+		return true
+	case SplitMethodPercentage:
+		return true
+	case SplitMethodRatio:
 		return true
 	default:
 		return false
@@ -361,8 +370,10 @@ type Expense struct {
 	// SpentOn Examples: 2026-10-01
 	SpentOn openapi_types.Date `json:"spent_on"`
 
-	// SplitMethod How the Expense is divided (FR-E2). Equal only for now; exact,
-	// percentage and ratio follow (#18).
+	// SplitMethod How the Expense is divided (FR-E2): `equal` among the Members;
+	// `exact` amounts that sum to the total; `percentage`s with at most
+	// 2 decimal places summing to exactly 100; `ratio` weights such as
+	// 2:1:1.
 	//
 	//
 	// Examples: equal
@@ -681,12 +692,16 @@ type Password = string
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type Problem struct {
 	// Detail Explanation of this occurrence; not for display.
 	//
@@ -849,8 +864,20 @@ type SettlementPage struct {
 // Examples: accepted
 type SettlementState string
 
-// ShareLine One Member's Share.
+// ShareLine One Member's Share, and what was entered for them.
 type ShareLine struct {
+	// Input What was entered for one Member, as an exact decimal string (never
+	// a JSON number): for `exact`, minor units of the Group Currency
+	// ("25050"); for `percentage`, a percentage with at most 2 decimal
+	// places ("33.33"); for `ratio`, a positive integer weight ("2").
+	// Absent for `equal`. At most 30 whole digits and 8 decimals; anything
+	// else is `invalid`. Returned as saved: leading zeros dropped, scale
+	// kept ("33.30"). Field error codes: see `Problem`.
+	//
+	//
+	// Examples: 33.33
+	Input *SplitInputValue `json:"input,omitempty"`
+
 	// MemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
 	MemberId openapi_types.UUID `json:"member_id"`
 
@@ -897,19 +924,45 @@ type SplitInput struct {
 	//
 	// Examples: [{"member_id":"0190b6c4-0000-7000-8000-0000000000d1"}]
 	Members []struct {
+		// Input What was entered for one Member, as an exact decimal string (never
+		// a JSON number): for `exact`, minor units of the Group Currency
+		// ("25050"); for `percentage`, a percentage with at most 2 decimal
+		// places ("33.33"); for `ratio`, a positive integer weight ("2").
+		// Absent for `equal`. At most 30 whole digits and 8 decimals; anything
+		// else is `invalid`. Returned as saved: leading zeros dropped, scale
+		// kept ("33.30"). Field error codes: see `Problem`.
+		//
+		//
+		// Examples: 33.33
+		Input    *SplitInputValue   `json:"input,omitempty"`
 		MemberId openapi_types.UUID `json:"member_id"`
 	} `json:"members"`
 
-	// Method How the Expense is divided (FR-E2). Equal only for now; exact,
-	// percentage and ratio follow (#18).
+	// Method How the Expense is divided (FR-E2): `equal` among the Members;
+	// `exact` amounts that sum to the total; `percentage`s with at most
+	// 2 decimal places summing to exactly 100; `ratio` weights such as
+	// 2:1:1.
 	//
 	//
 	// Examples: equal
 	Method SplitMethod `json:"method"`
 }
 
-// SplitMethod How the Expense is divided (FR-E2). Equal only for now; exact,
-// percentage and ratio follow (#18).
+// SplitInputValue What was entered for one Member, as an exact decimal string (never
+// a JSON number): for `exact`, minor units of the Group Currency
+// ("25050"); for `percentage`, a percentage with at most 2 decimal
+// places ("33.33"); for `ratio`, a positive integer weight ("2").
+// Absent for `equal`. At most 30 whole digits and 8 decimals; anything
+// else is `invalid`. Returned as saved: leading zeros dropped, scale
+// kept ("33.30"). Field error codes: see `Problem`.
+//
+// Examples: 33.33
+type SplitInputValue = string
+
+// SplitMethod How the Expense is divided (FR-E2): `equal` among the Members;
+// `exact` amounts that sum to the total; `percentage`s with at most
+// 2 decimal places summing to exactly 100; `ratio` weights such as
+// 2:1:1.
 //
 // Examples: equal
 type SplitMethod string
@@ -1020,12 +1073,16 @@ type SettlementId = openapi_types.UUID
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type BadRequest = Problem
 
 // Conflict RFC 9457 problem details. `type` is a stable URI,
@@ -1056,12 +1113,16 @@ type BadRequest = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type Conflict = Problem
 
 // EmailNotVerified RFC 9457 problem details. `type` is a stable URI,
@@ -1092,12 +1153,16 @@ type Conflict = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type EmailNotVerified = Problem
 
 // EmailTaken RFC 9457 problem details. `type` is a stable URI,
@@ -1128,12 +1193,16 @@ type EmailNotVerified = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type EmailTaken = Problem
 
 // Forbidden RFC 9457 problem details. `type` is a stable URI,
@@ -1164,12 +1233,16 @@ type EmailTaken = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type Forbidden = Problem
 
 // IdempotencyKeyInProgress RFC 9457 problem details. `type` is a stable URI,
@@ -1200,12 +1273,16 @@ type Forbidden = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type IdempotencyKeyInProgress = Problem
 
 // IdempotencyKeyReused RFC 9457 problem details. `type` is a stable URI,
@@ -1236,12 +1313,16 @@ type IdempotencyKeyInProgress = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type IdempotencyKeyReused = Problem
 
 // InternalError RFC 9457 problem details. `type` is a stable URI,
@@ -1272,12 +1353,16 @@ type IdempotencyKeyReused = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type InternalError = Problem
 
 // InvalidCredentials RFC 9457 problem details. `type` is a stable URI,
@@ -1308,12 +1393,16 @@ type InternalError = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type InvalidCredentials = Problem
 
 // NotFound RFC 9457 problem details. `type` is a stable URI,
@@ -1344,12 +1433,16 @@ type InvalidCredentials = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type NotFound = Problem
 
 // NotReady RFC 9457 problem details. `type` is a stable URI,
@@ -1380,12 +1473,16 @@ type NotFound = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type NotReady = Problem
 
 // RequestTooLarge RFC 9457 problem details. `type` is a stable URI,
@@ -1416,12 +1513,16 @@ type NotReady = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type RequestTooLarge = Problem
 
 // TooManyAttempts RFC 9457 problem details. `type` is a stable URI,
@@ -1452,12 +1553,16 @@ type RequestTooLarge = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type TooManyAttempts = Problem
 
 // Unauthenticated RFC 9457 problem details. `type` is a stable URI,
@@ -1488,12 +1593,16 @@ type TooManyAttempts = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type Unauthenticated = Problem
 
 // Unprocessable RFC 9457 problem details. `type` is a stable URI,
@@ -1524,12 +1633,16 @@ type Unauthenticated = Problem
 // - `not-creator`: only the item's creator may do this (403).
 // - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
 // - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+// - `internal`: an unexpected server failure (500).
 //
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-// - `internal`: an unexpected server failure (500).
+// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `missing_input`, `unexpected_input`, `input_not_positive`,
+// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+// and `invalid` (see `SplitInputValue`).
 type Unprocessable = Problem
 
 // SignOutParams defines parameters for SignOut.

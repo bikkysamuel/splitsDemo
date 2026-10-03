@@ -95,7 +95,9 @@ enum ExpenseMapper {
       category: Components.Schemas.Category(rawValue: i.category.rawValue) ?? .other,
       note: i.note,
       spentOn: i.spentOn,
-      split: .init(method: .equal, members: i.members.map { .init(memberId: $0.uuidString.lowercased()) }))
+      split: .init(
+        method: splitMethod(i.method),
+        members: i.members.map { .init(memberId: $0.memberID.uuidString.lowercased(), input: $0.input) }))
   }
 
   static func money(_ m: Components.Schemas.Money) -> Money {
@@ -103,7 +105,7 @@ enum ExpenseMapper {
   }
 
   static func share(_ s: Components.Schemas.ShareLine) throws(ServiceError) -> Share {
-    Share(memberID: try uuid(s.memberId), amount: money(s.share))
+    Share(memberID: try uuid(s.memberId), amount: money(s.share), input: s.input)
   }
 
   static func expense(_ e: Components.Schemas.Expense) throws(ServiceError) -> Expense {
@@ -111,7 +113,7 @@ enum ExpenseMapper {
       id: try uuid(e.id), groupID: try uuid(e.groupId), payerID: try uuid(e.payerMemberId),
       createdByID: try uuid(e.createdByMemberId), amount: money(e.amount), category: category(e.category),
       note: e.note, spentOn: e.spentOn, state: try state(e.state), version: Int(e.version),
-      shares: try e.shares.map(share))
+      splitMethod: try splitMethod(e.splitMethod), shares: try e.shares.map(share))
   }
 
   static func summary(_ e: Components.Schemas.ExpenseSummary) throws(ServiceError) -> ExpenseSummary {
@@ -122,6 +124,21 @@ enum ExpenseMapper {
 
   private static func category(_ c: Components.Schemas.Category) -> Domain.Category {
     Domain.Category(rawValue: c.rawValue) ?? .other
+  }
+
+  private static func splitMethod(_ m: SplitMethod) -> Components.Schemas.SplitMethod {
+    switch m {
+    case .equal: .equal
+    case .exact: .exact
+    case .percentage: .percentage
+    case .ratio: .ratio
+    }
+  }
+
+  /// An unknown method would show Shares the app can't explain: refuse it.
+  private static func splitMethod(_ m: Components.Schemas.SplitMethod) throws(ServiceError) -> SplitMethod {
+    guard let method = SplitMethod(rawValue: m.rawValue) else { throw .unexpected(status: nil) }
+    return method
   }
 
   /// An unknown state is a server the app doesn't understand: refuse it

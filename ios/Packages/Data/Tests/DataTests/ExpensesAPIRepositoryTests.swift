@@ -17,7 +17,7 @@ struct ExpensesAPIRepositoryTests {
 
   private let input = ExpenseInput(
     payerID: me, amount: Money(minorUnits: 100001, currency: "INR"), category: .foodDrink, note: "Dinner",
-    spentOn: "2026-10-01", members: [me, grandma])
+    spentOn: "2026-10-01", members: [SplitEntry(memberID: me), SplitEntry(memberID: grandma)])
 
   @Test func previewSendsTheInputAndMapsTheShares() async throws {
     let transport = try PathTransport(["POST \(Self.base)/expenses/preview": .fixture("expense-preview-200")])
@@ -35,6 +35,38 @@ struct ExpensesAPIRepositoryTests {
     #expect(body["spent_on"] as? String == "2026-10-01")
     #expect((body["amount"] as? [String: Any])?["minor"] as? Int == 100001)
     #expect((body["split"] as? [String: Any])?["method"] as? String == "equal")
+  }
+
+  // FR-E2: the method and each Member's entry go as decimal strings.
+  @Test func previewSendsTheMethodAndEachEntry() async throws {
+    let transport = try PathTransport(["POST \(Self.base)/expenses/preview": .fixture("expense-preview-200")])
+    let repository = try makeRepository(transport)
+    var percentages = input
+    percentages.method = .percentage
+    percentages.members = [
+      SplitEntry(memberID: Self.me, input: "66.67"), SplitEntry(memberID: Self.grandma, input: "33.33"),
+    ]
+
+    _ = try await repository.preview(groupID: Self.groupID, input: percentages)
+
+    let sent = try #require(await transport.sent.first)
+    let body = try #require(try JSONSerialization.jsonObject(with: sent.body) as? [String: Any])
+    let split = try #require(body["split"] as? [String: Any])
+    #expect(split["method"] as? String == "percentage")
+    let members = try #require(split["members"] as? [[String: Any]])
+    #expect(members.map { $0["input"] as? String } == ["66.67", "33.33"])
+    #expect(members.first?["member_id"] as? String == Self.me.uuidString.lowercased())
+  }
+
+  @Test func aSplitThatDoesNotAddUpIsAFieldIssueOnTheSplit() async throws {
+    let transport = try PathTransport([
+      "POST \(Self.base)/expenses/preview": .fixture("expense-preview-400-split", status: .badRequest, problem: true)
+    ])
+    let repository = try makeRepository(transport)
+
+    await #expect(throws: ServiceError.invalidFields([FieldIssue(field: "split", reason: .percentagesNot100)])) {
+      try await repository.preview(groupID: Self.groupID, input: input)
+    }
   }
 
   @Test func refusedFieldsAreFieldIssues() async throws {
@@ -94,6 +126,20 @@ struct ExpensesAPIRepositoryTests {
 
     #expect(expense.payerID == Self.me)
     #expect(expense.shares.count == 2)
+    #expect(expense.splitMethod == .equal)
+  }
+
+  @Test func getMapsTheSplitMethodAndEntries() async throws {
+    let transport = try PathTransport([
+      "GET /v1/expenses/\(Self.expenseID.uuidString.lowercased())": .fixture("expense-ratio-get-200")
+    ])
+    let repository = try makeRepository(transport)
+
+    let expense = try await repository.expense(id: Self.expenseID)
+
+    #expect(expense.splitMethod == .ratio)
+    #expect(expense.shares.map(\.input) == ["2", "1"])
+    #expect(expense.shares.map(\.amount.minorUnits) == [667, 334])
   }
 
   private func makeRepository(_ transport: PathTransport) throws -> ExpensesAPIRepository {

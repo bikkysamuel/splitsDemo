@@ -2,9 +2,11 @@ import Domain
 import Foundation
 import Observation
 
-/// Add Expense (FR-E1, FR-E3): amount in the Group Currency, payer,
-/// Category, optional note, date, and the Members to split equally among.
-/// The live preview shows the exact Shares from the server, the same
+/// Add Expense (FR-E1–E3): amount in the Group Currency, payer, Category,
+/// optional note, date, the Split method and the Members who share it, with
+/// an entry each for an exact, percentage or ratio Split. The form checks
+/// only that entries are well-formed; whether they add up is the server's
+/// check (ADR-0006). The live preview shows the exact Shares from the server, the same
 /// calculation the save uses (FR-E4, ADR-0006).
 @MainActor
 @Observable
@@ -16,12 +18,23 @@ public final class AddExpenseViewModel {
   public var note = ""
   public var spentOn: Date
   public var splitMembers: Set<UUID>
+  /// How the Expense is divided. Changing it clears the entries, which mean
+  /// something else under another method.
+  public var method: SplitMethod = .equal {
+    didSet { if method != oldValue { entryTexts = [:] } }
+  }
+  /// What the User typed for each Member: an amount, a percentage or a ratio
+  /// part, depending on `method`.
+  public var entryTexts: [UUID: String] = [:]
   public private(set) var isSubmitting = false
   private(set) var errors = FormErrors()
   /// The latest preview's Shares, or nil before one arrives.
   private(set) var preview: ExpensePreview?
-  /// Why the latest preview failed (a catalog key), if it did.
+  /// Why the latest preview failed (a catalog key), if it isn't shown at a
+  /// field.
   private(set) var previewError: String?
+  /// The latest preview's refused fields.
+  private var previewFields = FormErrors()
 
   private let repository: any ExpensesRepository
   private let locale: Locale
@@ -39,16 +52,53 @@ public final class AddExpenseViewModel {
   /// The Members who can pay or share: active ones, in joining order.
   var members: [Member] { group.activeMembers }
 
-  /// The input as it stands, or nil while the amount isn't a valid amount
-  /// or nobody shares it.
+  /// The Members sharing the Expense, in joining order: the Split's order.
+  var sharingMembers: [Member] { members.filter { splitMembers.contains($0.id) } }
+
+  /// The input as it stands, or nil while the amount isn't a valid amount,
+  /// nobody shares it, or a sharing Member's entry is missing or malformed.
   var input: ExpenseInput? {
     guard let amount = Money.parse(amountText, currency: group.currency, locale: locale), !splitMembers.isEmpty
     else { return nil }
+    var entries: [SplitEntry] = []
+    for m in sharingMembers {
+      guard method.takesInput else {
+        entries.append(SplitEntry(memberID: m.id))
+        continue
+      }
+      guard let value = entry(for: m.id) else { return nil }
+      entries.append(SplitEntry(memberID: m.id, input: value))
+    }
     let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
     return ExpenseInput(
       payerID: payerID, amount: amount, category: category, note: trimmed.isEmpty ? nil : trimmed,
-      spentOn: Self.day(spentOn), members: members.map(\.id).filter(splitMembers.contains))
+      spentOn: Self.day(spentOn), method: method, members: entries)
   }
+
+  private func entry(for memberID: UUID) -> String? {
+    method.input(from: entryTexts[memberID] ?? "", currency: group.currency, locale: locale)
+  }
+
+  /// Whether a Member's typed entry is unreadable (blank isn't: it's not
+  /// filled in yet).
+  func entryIsInvalid(_ memberID: UUID) -> Bool {
+    let text = (entryTexts[memberID] ?? "").trimmingCharacters(in: .whitespaces)
+    return method.takesInput && !text.isEmpty && entry(for: memberID) == nil
+  }
+
+  /// The server's refusal of a sharing Member's entry, if any.
+  func entryError(for memberID: UUID) -> String? {
+    guard let i = sharingMembers.firstIndex(where: { $0.id == memberID }) else { return nil }
+    return fieldError("split/members/\(i)/input")
+  }
+
+  /// The server's refusal of the Split as a whole, such as percentages that
+  /// don't add up to 100.
+  var splitError: String? { fieldError("split") }
+
+  /// A refused field, from the last save (until the next preview answers)
+  /// or else the last preview.
+  func fieldError(_ field: String) -> String? { errors[field] ?? previewFields[field] }
 
   public var canSubmit: Bool { input != nil && !isSubmitting }
 
@@ -68,6 +118,7 @@ public final class AddExpenseViewModel {
     guard let input else {
       preview = nil
       previewError = nil
+      previewFields = FormErrors()
       return
     }
     do {
@@ -76,11 +127,17 @@ public final class AddExpenseViewModel {
       if self.input == input {
         preview = p
         previewError = nil
+        previewFields = FormErrors()
+        errors = FormErrors()
       }
     } catch {
       if self.input == input {
+        // The preview speaks for the input now on screen; a refused save's
+        // field errors may point at Split indexes that moved.
+        errors = FormErrors()
         preview = nil
-        previewError = ServiceErrorMessage.key(for: error)
+        previewFields = FormErrors(error)
+        previewError = Self.shownAtAField(error) ? nil : ServiceErrorMessage.key(for: error)
       }
     }
   }
@@ -100,6 +157,13 @@ public final class AddExpenseViewModel {
       errors = FormErrors(error)
       return nil
     }
+  }
+
+  /// Whether every refused field has a place on the form to show it.
+  private static func shownAtAField(_ error: ServiceError) -> Bool {
+    guard case .invalidFields(let issues) = error else { return false }
+    let shown: Set<String> = ["amount/minor", "amount/currency", "note", "split", "split/members"]
+    return issues.allSatisfy { shown.contains($0.field) || $0.field.hasSuffix("/input") }
   }
 
   /// "yyyy-MM-dd" of the day in the User's calendar.

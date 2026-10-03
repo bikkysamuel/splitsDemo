@@ -23,9 +23,10 @@ actor FakeExpensesRepository: ExpensesRepository {
     let left = input.amount.minorUnits - each * n
     return ExpensePreview(
       amount: input.amount,
-      shares: input.members.enumerated().map { i, id in
+      shares: input.members.enumerated().map { i, entry in
         Share(
-          memberID: id, amount: Money(minorUnits: each + (Int64(i) < left ? 1 : 0), currency: input.amount.currency))
+          memberID: entry.memberID,
+          amount: Money(minorUnits: each + (Int64(i) < left ? 1 : 0), currency: input.amount.currency))
       })
   }
 

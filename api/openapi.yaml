@@ -1252,12 +1252,16 @@ components:
         - `not-creator`: only the item's creator may do this (403).
         - `invalid-state`: the item's state doesn't allow this, such as withdrawing it twice (409).
         - `confirmation-required`: the request needs `acknowledge_warnings: true`; see `warnings` (422).
+        - `internal`: an unexpected server failure (500).
 
         Field error codes of an Expense (`errors[].code`): `required`,
         `invalid`, `too_long`, `not_positive`, `not_group_currency`,
         `not_a_member` (payer or Split Member isn't an active Member),
-        `duplicate_member`, `no_members`, plus `ledger`'s Split reasons.
-        - `internal`: an unexpected server failure (500).
+        `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
+        and `percentages_not_100`; at `/split/members/{i}/input`,
+        `missing_input`, `unexpected_input`, `input_not_positive`,
+        `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
+        and `invalid` (see `SplitInputValue`).
       type: object
       required: [type, title, status]
       properties:
@@ -1647,10 +1651,12 @@ components:
 
     SplitMethod:
       description: |
-        How the Expense is divided (FR-E2). Equal only for now; exact,
-        percentage and ratio follow (#18).
+        How the Expense is divided (FR-E2): `equal` among the Members;
+        `exact` amounts that sum to the total; `percentage`s with at most
+        2 decimal places summing to exactly 100; `ratio` weights such as
+        2:1:1.
       type: string
-      enum: [equal]
+      enum: [equal, exact, percentage, ratio]
       examples: ["equal"]
 
     ExpenseState:
@@ -1681,6 +1687,8 @@ components:
               member_id:
                 type: string
                 format: uuid
+              input:
+                $ref: "#/components/schemas/SplitInputValue"
           examples:
             - - member_id: 0190b6c4-0000-7000-8000-0000000000d1
 
@@ -1715,8 +1723,22 @@ components:
         split:
           $ref: "#/components/schemas/SplitInput"
 
+    SplitInputValue:
+      description: |
+        What was entered for one Member, as an exact decimal string (never
+        a JSON number): for `exact`, minor units of the Group Currency
+        ("25050"); for `percentage`, a percentage with at most 2 decimal
+        places ("33.33"); for `ratio`, a positive integer weight ("2").
+        Absent for `equal`. At most 30 whole digits and 8 decimals; anything
+        else is `invalid`. Returned as saved: leading zeros dropped, scale
+        kept ("33.30"). Field error codes: see `Problem`.
+      type: string
+      pattern: "^[0-9]{1,30}(\\.[0-9]{1,8})?$"
+      maxLength: 39
+      examples: ["33.33"]
+
     ShareLine:
-      description: One Member's Share.
+      description: One Member's Share, and what was entered for them.
       type: object
       required: [member_id, share]
       additionalProperties: false
@@ -1727,6 +1749,8 @@ components:
           examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
         share:
           $ref: "#/components/schemas/Money"
+        input:
+          $ref: "#/components/schemas/SplitInputValue"
 
     ExpensePreview:
       description: The Shares an Expense would get, in the Split's order.

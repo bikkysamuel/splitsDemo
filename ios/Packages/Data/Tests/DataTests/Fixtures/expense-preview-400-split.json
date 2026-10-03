@@ -1,0 +1,11 @@
+{
+  "errors": [
+    {
+      "code": "percentages_not_100",
+      "field": "/split"
+    }
+  ],
+  "status": 400,
+  "title": "Validation failed",
+  "type": "https://splits.dev/problems/validation-failed"
+}

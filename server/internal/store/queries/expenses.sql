@@ -28,7 +28,7 @@ JOIN members m ON m.group_id = e.group_id
 WHERE e.id = @id AND m.user_id = @user_id AND m.status = 'active';
 
 -- name: ExpenseShares :many
-SELECT s.member_id, s.share_minor
+SELECT s.member_id, s.share_minor, s.input
 FROM expense_shares s JOIN members m ON m.id = s.member_id
 WHERE s.expense_id = @expense_id
 ORDER BY m.join_seq;

@@ -70,6 +70,12 @@ public struct FieldIssue: Equatable, Hashable, Sendable {
     case duplicateMember
     case noMembers
     case sameMember
+    /// Exact amounts that don't sum to the total (on `split`).
+    case exactSumMismatch
+    /// Percentages that don't sum to exactly 100 (on `split`).
+    case percentagesNot100
+    /// A Member's entry the method can't use (on `split/members/N/input`).
+    case missingInput, unexpectedInput, inputNotPositive, notWholeMinorUnits, tooManyDecimals, ratioNotInteger
     case other(String)
 
     public init(code: String) {
@@ -86,6 +92,14 @@ public struct FieldIssue: Equatable, Hashable, Sendable {
       case "duplicate_member": self = .duplicateMember
       case "no_members": self = .noMembers
       case "same_member": self = .sameMember
+      case "exact_sum_mismatch": self = .exactSumMismatch
+      case "percentages_not_100": self = .percentagesNot100
+      case "missing_input": self = .missingInput
+      case "unexpected_input": self = .unexpectedInput
+      case "input_not_positive": self = .inputNotPositive
+      case "not_whole_minor_units": self = .notWholeMinorUnits
+      case "too_many_decimals": self = .tooManyDecimals
+      case "ratio_not_integer": self = .ratioNotInteger
       default: self = .other(code)
       }
     }
