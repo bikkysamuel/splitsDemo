@@ -250,6 +250,38 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/expenses/{expenseId}`.
     /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/get(getExpense)`.
     func getExpense(_ input: Operations.GetExpense.Input) async throws -> Operations.GetExpense.Output
+    /// Edit an Expense
+    ///
+    /// Only its creator edits an Expense (FR-E6); others get `not-creator`
+    /// (they use a Change Request, M2). The body is the whole Expense as
+    /// edited, with the `version` last read; a stale one answers
+    /// `version-conflict` (NFR-R4). Shares are recomputed exactly as on
+    /// create, and an Exchange Rate change is an edit (Q36). A change
+    /// adds a revision: `revision` and `version` go up by one and an
+    /// `expense_edited` Activity History event stores the field-level
+    /// diff, in the same transaction. Sending what is already saved
+    /// changes nothing. In M1 the Expense stays accepted (D9); with the
+    /// agreement flow (M2) an edit makes it Pending again. A withdrawn
+    /// Expense answers `invalid-state`; a Closed Group `group-closed`.
+    ///
+    ///
+    /// - Remark: HTTP `PATCH /v1/expenses/{expenseId}`.
+    /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)`.
+    func editExpense(_ input: Operations.EditExpense.Input) async throws -> Operations.EditExpense.Output
+    /// Withdraw an Expense
+    ///
+    /// Only its creator withdraws an Expense (FR-E6); others get
+    /// `not-creator`. Nothing is erased: the Expense stays in the list and
+    /// the Activity History (`expense_withdrawn`) but stops counting toward
+    /// Balances. In M1 it is Withdrawn at once; with the agreement flow
+    /// (M2) an accepted one becomes WithdrawalPending first. Already
+    /// withdrawn: `invalid-state`. Send the `version` you last read
+    /// (`version-conflict` if stale).
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/expenses/{expenseId}/withdraw`.
+    /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)`.
+    func withdrawExpense(_ input: Operations.WithdrawExpense.Input) async throws -> Operations.WithdrawExpense.Output
     /// The signed-in User
     ///
     /// The app's launch check (FR-U1). Works for unverified Users too.
@@ -682,6 +714,58 @@ extension APIProtocol {
         try await getExpense(Operations.GetExpense.Input(
             path: path,
             headers: headers
+        ))
+    }
+    /// Edit an Expense
+    ///
+    /// Only its creator edits an Expense (FR-E6); others get `not-creator`
+    /// (they use a Change Request, M2). The body is the whole Expense as
+    /// edited, with the `version` last read; a stale one answers
+    /// `version-conflict` (NFR-R4). Shares are recomputed exactly as on
+    /// create, and an Exchange Rate change is an edit (Q36). A change
+    /// adds a revision: `revision` and `version` go up by one and an
+    /// `expense_edited` Activity History event stores the field-level
+    /// diff, in the same transaction. Sending what is already saved
+    /// changes nothing. In M1 the Expense stays accepted (D9); with the
+    /// agreement flow (M2) an edit makes it Pending again. A withdrawn
+    /// Expense answers `invalid-state`; a Closed Group `group-closed`.
+    ///
+    ///
+    /// - Remark: HTTP `PATCH /v1/expenses/{expenseId}`.
+    /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)`.
+    public func editExpense(
+        path: Operations.EditExpense.Input.Path,
+        headers: Operations.EditExpense.Input.Headers,
+        body: Operations.EditExpense.Input.Body
+    ) async throws -> Operations.EditExpense.Output {
+        try await editExpense(Operations.EditExpense.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Withdraw an Expense
+    ///
+    /// Only its creator withdraws an Expense (FR-E6); others get
+    /// `not-creator`. Nothing is erased: the Expense stays in the list and
+    /// the Activity History (`expense_withdrawn`) but stops counting toward
+    /// Balances. In M1 it is Withdrawn at once; with the agreement flow
+    /// (M2) an accepted one becomes WithdrawalPending first. Already
+    /// withdrawn: `invalid-state`. Send the `version` you last read
+    /// (`version-conflict` if stale).
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/expenses/{expenseId}/withdraw`.
+    /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)`.
+    public func withdrawExpense(
+        path: Operations.WithdrawExpense.Input.Path,
+        headers: Operations.WithdrawExpense.Input.Headers,
+        body: Operations.WithdrawExpense.Input.Body
+    ) async throws -> Operations.WithdrawExpense.Output {
+        try await withdrawExpense(Operations.WithdrawExpense.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
     /// The signed-in User

@@ -1295,6 +1295,120 @@ extension Components {
                 ])
             }
         }
+        /// An Expense as edited (FR-E6): every field of `ExpenseInput`, sent
+        /// whole as the form shows it, plus the `version` it changes.
+        ///
+        ///
+        /// - Remark: Generated from `#/components/schemas/ExpenseEdit`.
+        public struct ExpenseEdit: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ExpenseEdit/version`.
+            public var version: Swift.Int32
+            /// - Remark: Generated from `#/components/schemas/ExpenseEdit/payer_member_id`.
+            public var payerMemberId: Swift.String
+            /// The Original Amount, as in `ExpenseInput`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpenseEdit/amount`.
+            public var amount: Components.Schemas.Money
+            /// Required when `amount` isn't in the Group Currency; not allowed when it is.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpenseEdit/exchange_rate`.
+            public var exchangeRate: Components.Schemas.ExchangeRate?
+            /// - Remark: Generated from `#/components/schemas/ExpenseEdit/category`.
+            public var category: Components.Schemas.Category
+            /// Optional, at most 500 characters after trimming (D1); absent or blank removes it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpenseEdit/note`.
+            public var note: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/ExpenseEdit/spent_on`.
+            public var spentOn: Swift.String
+            /// - Remark: Generated from `#/components/schemas/ExpenseEdit/split`.
+            public var split: Components.Schemas.SplitInput
+            /// Creates a new `ExpenseEdit`.
+            ///
+            /// - Parameters:
+            ///   - version:
+            ///   - payerMemberId:
+            ///   - amount: The Original Amount, as in `ExpenseInput`.
+            ///   - exchangeRate: Required when `amount` isn't in the Group Currency; not allowed when it is.
+            ///   - category:
+            ///   - note: Optional, at most 500 characters after trimming (D1); absent or blank removes it.
+            ///   - spentOn:
+            ///   - split:
+            public init(
+                version: Swift.Int32,
+                payerMemberId: Swift.String,
+                amount: Components.Schemas.Money,
+                exchangeRate: Components.Schemas.ExchangeRate? = nil,
+                category: Components.Schemas.Category,
+                note: Swift.String? = nil,
+                spentOn: Swift.String,
+                split: Components.Schemas.SplitInput
+            ) {
+                self.version = version
+                self.payerMemberId = payerMemberId
+                self.amount = amount
+                self.exchangeRate = exchangeRate
+                self.category = category
+                self.note = note
+                self.spentOn = spentOn
+                self.split = split
+            }
+            public enum CodingKeys: String, CodingKey {
+                case version
+                case payerMemberId = "payer_member_id"
+                case amount
+                case exchangeRate = "exchange_rate"
+                case category
+                case note
+                case spentOn = "spent_on"
+                case split
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.version = try container.decode(
+                    Swift.Int32.self,
+                    forKey: .version
+                )
+                self.payerMemberId = try container.decode(
+                    Swift.String.self,
+                    forKey: .payerMemberId
+                )
+                self.amount = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .amount
+                )
+                self.exchangeRate = try container.decodeIfPresent(
+                    Components.Schemas.ExchangeRate.self,
+                    forKey: .exchangeRate
+                )
+                self.category = try container.decode(
+                    Components.Schemas.Category.self,
+                    forKey: .category
+                )
+                self.note = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .note
+                )
+                self.spentOn = try container.decode(
+                    Swift.String.self,
+                    forKey: .spentOn
+                )
+                self.split = try container.decode(
+                    Components.Schemas.SplitInput.self,
+                    forKey: .split
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "version",
+                    "payer_member_id",
+                    "amount",
+                    "exchange_rate",
+                    "category",
+                    "note",
+                    "spent_on",
+                    "split"
+                ])
+            }
+        }
         /// What was entered for one Member, as an exact decimal string (never
         /// a JSON number): for `exact`, minor units of the Group Currency
         /// ("25050"), summing to the converted amount when the Expense is in
@@ -1597,6 +1711,10 @@ extension Components {
             public var splitMethod: Components.Schemas.SplitMethod
             /// - Remark: Generated from `#/components/schemas/Expense/state`.
             public var state: Components.Schemas.ExpenseState
+            /// Starts at 1 and goes up with every edit (FR-E6); the Activity History holds each revision's changes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Expense/revision`.
+            public var revision: Swift.Int32
             /// - Remark: Generated from `#/components/schemas/Expense/version`.
             public var version: Swift.Int32
             /// - Remark: Generated from `#/components/schemas/Expense/created_at`.
@@ -1620,6 +1738,7 @@ extension Components {
             ///   - spentOn:
             ///   - splitMethod:
             ///   - state:
+            ///   - revision: Starts at 1 and goes up with every edit (FR-E6); the Activity History holds each revision's changes.
             ///   - version:
             ///   - createdAt:
             ///   - shares: Every Member in the Split, in joining order.
@@ -1636,6 +1755,7 @@ extension Components {
                 spentOn: Swift.String,
                 splitMethod: Components.Schemas.SplitMethod,
                 state: Components.Schemas.ExpenseState,
+                revision: Swift.Int32,
                 version: Swift.Int32,
                 createdAt: Foundation.Date,
                 shares: [Components.Schemas.ShareLine]
@@ -1652,6 +1772,7 @@ extension Components {
                 self.spentOn = spentOn
                 self.splitMethod = splitMethod
                 self.state = state
+                self.revision = revision
                 self.version = version
                 self.createdAt = createdAt
                 self.shares = shares
@@ -1669,6 +1790,7 @@ extension Components {
                 case spentOn = "spent_on"
                 case splitMethod = "split_method"
                 case state
+                case revision
                 case version
                 case createdAt = "created_at"
                 case shares
@@ -1723,6 +1845,10 @@ extension Components {
                     Components.Schemas.ExpenseState.self,
                     forKey: .state
                 )
+                self.revision = try container.decode(
+                    Swift.Int32.self,
+                    forKey: .revision
+                )
                 self.version = try container.decode(
                     Swift.Int32.self,
                     forKey: .version
@@ -1748,6 +1874,7 @@ extension Components {
                     "spent_on",
                     "split_method",
                     "state",
+                    "revision",
                     "version",
                     "created_at",
                     "shares"

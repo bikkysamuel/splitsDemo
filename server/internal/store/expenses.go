@@ -84,7 +84,7 @@ func (r *ExpensesRepository) ExpenseForUser(ctx context.Context, expenseID, user
 			Amount: row.OriginalMinor, Currency: row.OriginalCurrency, ExchangeRate: numericText(row.ExchangeRate),
 		},
 		SpentOn: row.SpentOn.Time, Method: row.SplitMethod, State: row.State, Revision: int(row.Revision),
-		Version: int(row.Version),
+		Version:   int(row.Version),
 		CreatedAt: row.CreatedAt.Time, Shares: make([]expenses.Share, len(shares)),
 	}
 	for i, s := range shares {

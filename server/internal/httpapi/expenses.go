@@ -233,7 +233,7 @@ func apiExpense(e expenses.Expense) apigen.Expense {
 		ExchangeRate: e.Original.ExchangeRate, Category: apigen.Category(e.Category), Note: e.Note,
 		SpentOn: openapi_types.Date{Time: e.SpentOn}, SplitMethod: apigen.SplitMethod(e.Method),
 		State: apigen.ExpenseState(e.State), Revision: int32(e.Revision), //nolint:gosec // a revision
-		Version: int32(e.Version), //nolint:gosec // a version
+		Version:   int32(e.Version), //nolint:gosec // a version
 		CreatedAt: e.CreatedAt, Shares: shareLines(e.Shares, e.Currency),
 	}
 }
