@@ -219,6 +219,87 @@ struct AddExpenseViewModelTests {
 
     #expect(viewModel.errors["note"] == "Use at most 500 characters.")
   }
+
+  // --- Another currency (FR-E5) ---
+
+  @Test func startsInTheGroupCurrencyWithoutARate() {
+    let viewModel = makeViewModel(FakeExpensesRepository())
+    viewModel.amountText = "10"
+    viewModel.rateText = "83.25"
+
+    #expect(viewModel.currency == "INR")
+    #expect(!viewModel.needsRate)
+    #expect(viewModel.input?.exchangeRate == nil)
+  }
+
+  @Test func anotherCurrencySendsTheOriginalAmountWithItsRate() {
+    let viewModel = makeViewModel(FakeExpensesRepository())
+    viewModel.currency = "USD"
+    viewModel.amountText = "10.50"
+    #expect(viewModel.needsRate)
+    #expect(viewModel.input == nil)
+
+    viewModel.rateText = "83.25"
+
+    #expect(viewModel.input?.amount == Money(minorUnits: 1050, currency: "USD"))
+    #expect(viewModel.input?.exchangeRate == "83.25")
+  }
+
+  @Test func anUnreadableRateIsFlaggedAndNotSent() {
+    let viewModel = makeViewModel(FakeExpensesRepository())
+    viewModel.currency = "USD"
+    viewModel.amountText = "10"
+    viewModel.rateText = "83.255"
+
+    #expect(viewModel.rateIsInvalid)
+    #expect(viewModel.input == nil)
+  }
+
+  @Test func theAmountIsReadInTheChosenCurrency() {
+    let viewModel = makeViewModel(FakeExpensesRepository())
+    viewModel.currency = "JPY"
+    viewModel.rateText = "0.55"
+    viewModel.amountText = "1000.5"
+    #expect(viewModel.amountIsInvalid)
+
+    viewModel.amountText = "1000"
+
+    #expect(viewModel.input?.amount == Money(minorUnits: 1000, currency: "JPY"))
+  }
+
+  // ADR-0006: the converted amount comes from the server.
+  @Test func thePreviewShowsTheConvertedAmount() async {
+    let repository = FakeExpensesRepository()
+    await repository.set(
+      preview: .success(
+        ExpensePreview(
+          amount: Money(minorUnits: 87413, currency: "INR"), originalAmount: Money(minorUnits: 1050, currency: "USD"),
+          exchangeRate: "83.25", shares: [])))
+    let viewModel = makeViewModel(repository)
+    viewModel.currency = "USD"
+    viewModel.amountText = "10.50"
+    viewModel.rateText = "83.25"
+
+    await viewModel.refreshPreview()
+
+    #expect(viewModel.convertedAmount == Money(minorUnits: 87413, currency: "INR"))
+  }
+
+  @Test func aRefusedRateIsShownUnderTheRate() async {
+    let repository = FakeExpensesRepository()
+    await repository.set(
+      preview: .failure(.invalidFields([FieldIssue(field: "amount/minor", reason: .convertsToZero)])))
+    let viewModel = makeViewModel(repository)
+    viewModel.currency = "USD"
+    viewModel.amountText = "0.01"
+    viewModel.rateText = "0.49"
+
+    await viewModel.refreshPreview()
+
+    #expect(
+      viewModel.fieldError("amount/minor") == "This converts to less than the smallest unit of the Group Currency.")
+    #expect(viewModel.previewError == nil)
+  }
 }
 
 @MainActor

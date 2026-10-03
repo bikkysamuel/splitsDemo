@@ -60,8 +60,14 @@ enum ServiceErrorMessage {
     case ("display_name", .tooLong): "Use at most 50 characters."
     case ("display_name", .taken): "Someone in this Group already has this name."
     case ("currency", _): "Choose a currency."
+    case ("amount/minor", .convertsToZero): "This converts to less than the smallest unit of the Group Currency."
+    case ("amount/minor", .tooLarge): "This amount is too large."
     case ("amount/minor", _): "Enter an amount above zero."
+    case ("amount/currency", .invalid): "Choose a currency."
     case ("amount/currency", _): "Use the Group Currency."
+    case ("exchange_rate", .required): "Enter the Exchange Rate."
+    case ("exchange_rate", .notAllowed): "An amount in the Group Currency takes no Exchange Rate."
+    case ("exchange_rate", _): "Enter a rate above zero with at most 2 decimal places, like 83.25."
     case ("payer_member_id", _): "Choose who paid from the Group's Members."
     case ("to_member_id", .sameMember): "Choose someone other than the payer."
     case ("from_member_id", _), ("to_member_id", _): "Choose a Member of this Group."
@@ -95,10 +101,11 @@ enum ServiceErrorMessage {
     let reasons: [FieldIssue.Reason] = [
       .required, .invalid, .tooShort, .tooLong, .tooCommon, .taken, .exactSumMismatch, .percentagesNot100,
       .missingInput, .unexpectedInput, .inputNotPositive, .notWholeMinorUnits, .tooManyDecimals, .ratioNotInteger,
-      .other("x"),
+      .notAllowed, .convertsToZero, .tooLarge, .other("x"),
     ]
     for field in [
-      "email", "password", "name", "display_name", "currency", "amount/minor", "amount/currency", "payer_member_id",
+      "email", "password", "name", "display_name", "currency", "amount/minor", "amount/currency", "exchange_rate",
+      "payer_member_id",
       "note", "split", "split/members", "split/members/0/member_id", "split/members/0/input", "from_member_id",
       "to_member_id", "other",
     ] {

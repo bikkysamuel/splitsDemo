@@ -2,7 +2,8 @@ import Domain
 import Foundation
 import Observation
 
-/// Add Expense (FR-E1–E3): amount in the Group Currency, payer, Category,
+/// Add Expense (FR-E1–E3, FR-E5): amount in the Group Currency or, with an
+/// Exchange Rate, in another currency, payer, Category,
 /// optional note, date, the Split method and the Members who share it, with
 /// an entry each for an exact, percentage or ratio Split. The form checks
 /// only that entries are well-formed; whether they add up is the server's
@@ -13,6 +14,11 @@ import Observation
 public final class AddExpenseViewModel {
   public let group: Domain.Group
   public var amountText = ""
+  /// The currency the money was paid in; the Group Currency to start.
+  public var currency: String
+  /// The Exchange Rate typed, used only while `currency` isn't the Group
+  /// Currency: units of the Group Currency per one unit of `currency`.
+  public var rateText = ""
   public var payerID: UUID
   public var category: Domain.Category = .foodDrink
   public var note = ""
@@ -45,6 +51,7 @@ public final class AddExpenseViewModel {
     self.repository = repository
     self.locale = locale
     self.spentOn = today
+    self.currency = group.currency
     self.payerID = group.myMemberID
     self.splitMembers = Set(group.activeMembers.map(\.id))
   }
@@ -55,11 +62,31 @@ public final class AddExpenseViewModel {
   /// The Members sharing the Expense, in joining order: the Split's order.
   var sharingMembers: [Member] { members.filter { splitMembers.contains($0.id) } }
 
+  /// Whether the amount is in another currency than the Group Currency, so
+  /// it needs an Exchange Rate.
+  var needsRate: Bool { currency != group.currency }
+
+  /// The typed rate in the server's form, or nil while it isn't readable.
+  private var rate: String? { ExchangeRate.input(from: rateText, locale: locale) }
+
+  /// Whether the typed rate is unreadable (blank isn't: it's not filled in
+  /// yet).
+  var rateIsInvalid: Bool {
+    needsRate && !rateText.trimmingCharacters(in: .whitespaces).isEmpty && rate == nil
+  }
+
+  /// The amount in the Group Currency from the latest preview, while the
+  /// Expense is in another currency (ADR-0006: the server converts).
+  var convertedAmount: Money? { needsRate ? preview?.amount : nil }
+
   /// The input as it stands, or nil while the amount isn't a valid amount,
-  /// nobody shares it, or a sharing Member's entry is missing or malformed.
+  /// another currency's rate is missing or malformed, nobody shares it, or a
+  /// sharing Member's entry is missing or malformed.
   var input: ExpenseInput? {
-    guard let amount = Money.parse(amountText, currency: group.currency, locale: locale), !splitMembers.isEmpty
+    guard let amount = Money.parse(amountText, currency: currency, locale: locale), !splitMembers.isEmpty
     else { return nil }
+    let exchangeRate = needsRate ? rate : nil
+    if needsRate && exchangeRate == nil { return nil }
     var entries: [SplitEntry] = []
     for m in sharingMembers {
       guard method.takesInput else {
@@ -71,10 +98,13 @@ public final class AddExpenseViewModel {
     }
     let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
     return ExpenseInput(
-      payerID: payerID, amount: amount, category: category, note: trimmed.isEmpty ? nil : trimmed,
+      payerID: payerID, amount: amount, exchangeRate: exchangeRate, category: category,
+      note: trimmed.isEmpty ? nil : trimmed,
       spentOn: Self.day(spentOn), method: method, members: entries)
   }
 
+  /// Exact entries are in the Group Currency whatever the Expense's
+  /// currency (Q97): they divide the converted amount.
   private func entry(for memberID: UUID) -> String? {
     method.input(from: entryTexts[memberID] ?? "", currency: group.currency, locale: locale)
   }
@@ -105,7 +135,7 @@ public final class AddExpenseViewModel {
   /// Whether the typed amount is unreadable (shown under the field).
   var amountIsInvalid: Bool {
     !amountText.trimmingCharacters(in: .whitespaces).isEmpty
-      && Money.parse(amountText, currency: group.currency, locale: locale) == nil
+      && Money.parse(amountText, currency: currency, locale: locale) == nil
   }
 
   func toggle(_ memberID: UUID) {
@@ -162,7 +192,7 @@ public final class AddExpenseViewModel {
   /// Whether every refused field has a place on the form to show it.
   private static func shownAtAField(_ error: ServiceError) -> Bool {
     guard case .invalidFields(let issues) = error else { return false }
-    let shown: Set<String> = ["amount/minor", "amount/currency", "note", "split", "split/members"]
+    let shown: Set<String> = ["amount/minor", "amount/currency", "exchange_rate", "note", "split", "split/members"]
     return issues.allSatisfy { shown.contains($0.field) || $0.field.hasSuffix("/input") }
   }
 

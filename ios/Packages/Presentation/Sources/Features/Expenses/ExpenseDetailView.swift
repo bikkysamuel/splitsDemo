@@ -1,7 +1,8 @@
 import Domain
 import SwiftUI
 
-/// An Expense: amount, payer, Category, date, note and each Member's Share.
+/// An Expense: amount (and, if paid in another currency, its Original Amount
+/// and Exchange Rate), payer, Category, date, note and each Member's Share.
 struct ExpenseDetailView: View {
   @Bindable var viewModel: ExpenseDetailViewModel
 
@@ -21,6 +22,21 @@ struct ExpenseDetailView: View {
       List {
         Section {
           Text(verbatim: e.amount.formatted()).font(.largeTitle.monospacedDigit())
+          if let rate = e.exchangeRate {
+            LabeledContent {
+              Text(verbatim: e.originalAmount.formatted()).monospacedDigit()
+            } label: {
+              Text(LocalizedStringKey(Self.originalAmount), bundle: .module)
+            }
+            LabeledContent {
+              Text(
+                "\(ExchangeRate.display(rate)) \(e.amount.currency) per 1 \(e.originalAmount.currency)", bundle: .module
+              )
+              .monospacedDigit()
+            } label: {
+              Text(LocalizedStringKey(Self.exchangeRate), bundle: .module)
+            }
+          }
           if let note = e.note { Text(verbatim: note) }
           CategoryLabel(category: e.category)
           LabeledContent {
@@ -72,7 +88,14 @@ struct ExpenseDetailView: View {
   nonisolated static let shares = "Shares"
   /// The catalog key `entryText` produces for a ratio part.
   nonisolated static let ratioPartFormat = "Ratio part %@"
-  nonisolated static let allKeys = [title, shares, ratioPartFormat, MemberName.unknown]
+  nonisolated static let originalAmount = "Original Amount"
+  nonisolated static let exchangeRate = "Exchange Rate"
+  /// The catalog key of the rate row: rate, Group Currency, Expense's
+  /// currency.
+  nonisolated static let rateFormat = "%@ %@ per 1 %@"
+  nonisolated static let allKeys = [
+    title, shares, ratioPartFormat, originalAmount, exchangeRate, rateFormat, MemberName.unknown,
+  ]
 }
 
 /// A Member's display name, or "Unknown Member" if the Group no longer
