@@ -122,10 +122,10 @@ func (s *Service) Get(ctx context.Context, userID, expenseID platform.ID) (Expen
 // List returns one page of a Group's Expenses matching the Filter, newest
 // first (FR-E8).
 func (s *Service) List(ctx context.Context, userID, groupID platform.ID, f Filter, after *Cursor, limit int) (Page, error) {
-	if err := f.check(); err != nil {
+	if _, err := s.deps.Groups.Get(ctx, userID, groupID); err != nil {
 		return Page{}, err
 	}
-	if _, err := s.deps.Groups.Get(ctx, userID, groupID); err != nil {
+	if err := f.check(); err != nil {
 		return Page{}, err
 	}
 	items, err := s.deps.Repository.List(ctx, groupID, f, after, limit+1)

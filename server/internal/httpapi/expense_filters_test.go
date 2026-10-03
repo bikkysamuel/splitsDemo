@@ -152,3 +152,14 @@ func TestBadFiltersAreRefused(t *testing.T) {
 		}
 	}
 }
+
+// Authorization comes before the filter: outside the Group even a bad
+// filter is not-found.
+func TestFiltersOfAGroupIAmNotInAreNotFound(t *testing.T) {
+	tr := newTrip(t)
+	mallory := signUpVerified(t, tr.srv, "mallory@example.com")
+
+	resp := tr.srv.Get(t, "/v1/groups/"+tr.group.ID+"/expenses?state=lost", bearer(mallory.AccessToken)...)
+
+	wantProblem(t, resp, http.StatusNotFound, "not-found")
+}
