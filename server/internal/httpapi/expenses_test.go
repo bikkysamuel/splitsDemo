@@ -36,6 +36,7 @@ type expense struct {
 	SpentOn     string      `json:"spent_on"`
 	SplitMethod string      `json:"split_method"`
 	State       string      `json:"state"`
+	Revision    int         `json:"revision"`
 	Version     int         `json:"version"`
 	Shares      []shareLine `json:"shares"`
 }

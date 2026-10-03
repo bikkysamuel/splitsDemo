@@ -375,6 +375,11 @@ type Expense struct {
 	// PayerMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
 	PayerMemberId openapi_types.UUID `json:"payer_member_id"`
 
+	// Revision Starts at 1 and goes up with every edit (FR-E6); the Activity History holds each revision's changes.
+	//
+	// Examples: 1
+	Revision int32 `json:"revision"`
+
 	// Shares Every Member in the Split, in joining order.
 	//
 	// Examples: [{"member_id":"0190b6c4-0000-7000-8000-0000000000d1","share":{"currency":"INR","minor":100001}}]
@@ -398,6 +403,42 @@ type Expense struct {
 	//
 	// Examples: accepted
 	State ExpenseState `json:"state"`
+
+	// Version Examples: 1
+	Version int32 `json:"version"`
+}
+
+// ExpenseEdit An Expense as edited (FR-E6): every field of `ExpenseInput`, sent
+// whole as the form shows it, plus the `version` it changes.
+type ExpenseEdit struct {
+	// Amount The Original Amount, as in `ExpenseInput`.
+	//
+	// Examples: {"currency":"USD","minor":1050}
+	Amount Money `json:"amount"`
+
+	// Category The fixed Category list (D7); the app localizes the names.
+	//
+	// Examples: food_drink
+	Category Category `json:"category"`
+
+	// ExchangeRate Required when `amount` isn't in the Group Currency; not allowed when it is.
+	//
+	// Examples: 83.25
+	ExchangeRate *ExchangeRate `json:"exchange_rate,omitempty"`
+
+	// Note Optional, at most 500 characters after trimming (D1); absent or blank removes it.
+	//
+	// Examples: Dinner at the beach shack
+	Note *string `json:"note,omitempty"`
+
+	// PayerMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
+	PayerMemberId openapi_types.UUID `json:"payer_member_id"`
+
+	// SpentOn Examples: 2026-10-01
+	SpentOn openapi_types.Date `json:"spent_on"`
+
+	// Split Who shares the Expense, and how.
+	Split SplitInput `json:"split"`
 
 	// Version Examples: 1
 	Version int32 `json:"version"`
@@ -1757,6 +1798,30 @@ type SignOutParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// EditExpenseParams defines parameters for EditExpense.
+type EditExpenseParams struct {
+	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
+	// (NFR-R1). Repeating a request with the same key within 24 hours
+	// returns the original response; reusing a key for a different request
+	// answers `idempotency-key-reused`, and repeating it while the first is
+	// still running answers `idempotency-key-in-progress`. Responses with a
+	// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+	// it: their responses carry tokens, which are never stored (ADR-0011).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// WithdrawExpenseParams defines parameters for WithdrawExpense.
+type WithdrawExpenseParams struct {
+	// IdempotencyKey A client-generated UUID, required on every write by a signed-in User
+	// (NFR-R1). Repeating a request with the same key within 24 hours
+	// returns the original response; reusing a key for a different request
+	// answers `idempotency-key-reused`, and repeating it while the first is
+	// still running answers `idempotency-key-in-progress`. Responses with a
+	// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+	// it: their responses carry tokens, which are never stored (ADR-0011).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
 // ListGroupsParams defines parameters for ListGroups.
 type ListGroupsParams struct {
 	// Cursor The `next_cursor` of the previous page; omit for the first page.
@@ -1883,6 +1948,12 @@ type VerifyEmailJSONRequestBody = VerifyEmailRequest
 // ResendVerificationCodeJSONRequestBody defines body for ResendVerificationCode for application/json ContentType.
 type ResendVerificationCodeJSONRequestBody = ResendVerificationCodeRequest
 
+// EditExpenseJSONRequestBody defines body for EditExpense for application/json ContentType.
+type EditExpenseJSONRequestBody = ExpenseEdit
+
+// WithdrawExpenseJSONRequestBody defines body for WithdrawExpense for application/json ContentType.
+type WithdrawExpenseJSONRequestBody = VersionRequest
+
 // CreateGroupJSONRequestBody defines body for CreateGroup for application/json ContentType.
 type CreateGroupJSONRequestBody = CreateGroupRequest
 
@@ -1936,6 +2007,12 @@ type ServerInterface interface {
 	// GetExpense An Expense
 	// (GET /v1/expenses/{expenseId})
 	GetExpense(w http.ResponseWriter, r *http.Request, expenseId ExpenseId)
+	// EditExpense Edit an Expense
+	// (PATCH /v1/expenses/{expenseId})
+	EditExpense(w http.ResponseWriter, r *http.Request, expenseId ExpenseId, params EditExpenseParams)
+	// WithdrawExpense Withdraw an Expense
+	// (POST /v1/expenses/{expenseId}/withdraw)
+	WithdrawExpense(w http.ResponseWriter, r *http.Request, expenseId ExpenseId, params WithdrawExpenseParams)
 	// ListGroups My Groups
 	// (GET /v1/groups)
 	ListGroups(w http.ResponseWriter, r *http.Request, params ListGroupsParams)
@@ -2152,6 +2229,114 @@ func (siw *ServerInterfaceWrapper) GetExpense(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetExpense(w, r, expenseId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EditExpense operation middleware
+func (siw *ServerInterfaceWrapper) EditExpense(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "expenseId" -------------
+	var expenseId ExpenseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "expenseId", r.PathValue("expenseId"), &expenseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "expenseId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params EditExpenseParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EditExpense(w, r, expenseId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// WithdrawExpense operation middleware
+func (siw *ServerInterfaceWrapper) WithdrawExpense(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "expenseId" -------------
+	var expenseId ExpenseId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "expenseId", r.PathValue("expenseId"), &expenseId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "expenseId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params WithdrawExpenseParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WithdrawExpense(w, r, expenseId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2956,6 +3141,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/settlements/{settlementId}", wrapper.GetSettlement)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/settlements/{settlementId}/withdraw", wrapper.WithdrawSettlement)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/expenses/{expenseId}", wrapper.GetExpense)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/v1/expenses/{expenseId}", wrapper.EditExpense)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/expenses/{expenseId}/withdraw", wrapper.WithdrawExpense)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMe)
 
 	return m
@@ -3700,6 +3887,310 @@ type GetExpense500ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetExpense500ApplicationProblemPlusJSONResponse) VisitGetExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditExpenseRequestObject struct {
+	ExpenseId ExpenseId `json:"expenseId"`
+	Params    EditExpenseParams
+	Body      *EditExpenseJSONRequestBody
+}
+
+type EditExpenseResponseObject interface {
+	VisitEditExpenseResponse(w http.ResponseWriter) error
+}
+
+type EditExpense200JSONResponse Expense
+
+func (response EditExpense200JSONResponse) VisitEditExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditExpense400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response EditExpense400ApplicationProblemPlusJSONResponse) VisitEditExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditExpense401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response EditExpense401ApplicationProblemPlusJSONResponse) VisitEditExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditExpense403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response EditExpense403ApplicationProblemPlusJSONResponse) VisitEditExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditExpense404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response EditExpense404ApplicationProblemPlusJSONResponse) VisitEditExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditExpense409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response EditExpense409ApplicationProblemPlusJSONResponse) VisitEditExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditExpense413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response EditExpense413ApplicationProblemPlusJSONResponse) VisitEditExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditExpense422ApplicationProblemPlusJSONResponse struct {
+	IdempotencyKeyReusedApplicationProblemPlusJSONResponse
+}
+
+func (response EditExpense422ApplicationProblemPlusJSONResponse) VisitEditExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditExpense500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response EditExpense500ApplicationProblemPlusJSONResponse) VisitEditExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawExpenseRequestObject struct {
+	ExpenseId ExpenseId `json:"expenseId"`
+	Params    WithdrawExpenseParams
+	Body      *WithdrawExpenseJSONRequestBody
+}
+
+type WithdrawExpenseResponseObject interface {
+	VisitWithdrawExpenseResponse(w http.ResponseWriter) error
+}
+
+type WithdrawExpense200JSONResponse Expense
+
+func (response WithdrawExpense200JSONResponse) VisitWithdrawExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawExpense400ApplicationProblemPlusJSONResponse struct {
+	BadRequestApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawExpense400ApplicationProblemPlusJSONResponse) VisitWithdrawExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawExpense401ApplicationProblemPlusJSONResponse struct {
+	UnauthenticatedApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawExpense401ApplicationProblemPlusJSONResponse) VisitWithdrawExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawExpense403ApplicationProblemPlusJSONResponse struct {
+	ForbiddenApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawExpense403ApplicationProblemPlusJSONResponse) VisitWithdrawExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawExpense404ApplicationProblemPlusJSONResponse struct {
+	NotFoundApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawExpense404ApplicationProblemPlusJSONResponse) VisitWithdrawExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawExpense409ApplicationProblemPlusJSONResponse struct {
+	ConflictApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawExpense409ApplicationProblemPlusJSONResponse) VisitWithdrawExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawExpense413ApplicationProblemPlusJSONResponse struct {
+	RequestTooLargeApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawExpense413ApplicationProblemPlusJSONResponse) VisitWithdrawExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawExpense422ApplicationProblemPlusJSONResponse struct {
+	IdempotencyKeyReusedApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawExpense422ApplicationProblemPlusJSONResponse) VisitWithdrawExpenseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawExpense500ApplicationProblemPlusJSONResponse struct {
+	InternalErrorApplicationProblemPlusJSONResponse
+}
+
+func (response WithdrawExpense500ApplicationProblemPlusJSONResponse) VisitWithdrawExpenseResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -5574,6 +6065,12 @@ type StrictServerInterface interface {
 	// GetExpense An Expense
 	// (GET /v1/expenses/{expenseId})
 	GetExpense(ctx context.Context, request GetExpenseRequestObject) (GetExpenseResponseObject, error)
+	// EditExpense Edit an Expense
+	// (PATCH /v1/expenses/{expenseId})
+	EditExpense(ctx context.Context, request EditExpenseRequestObject) (EditExpenseResponseObject, error)
+	// WithdrawExpense Withdraw an Expense
+	// (POST /v1/expenses/{expenseId}/withdraw)
+	WithdrawExpense(ctx context.Context, request WithdrawExpenseRequestObject) (WithdrawExpenseResponseObject, error)
 	// ListGroups My Groups
 	// (GET /v1/groups)
 	ListGroups(ctx context.Context, request ListGroupsRequestObject) (ListGroupsResponseObject, error)
@@ -5908,6 +6405,74 @@ func (sh *strictHandler) GetExpense(w http.ResponseWriter, r *http.Request, expe
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetExpenseResponseObject); ok {
 		if err := validResponse.VisitGetExpenseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// EditExpense operation middleware
+func (sh *strictHandler) EditExpense(w http.ResponseWriter, r *http.Request, expenseId ExpenseId, params EditExpenseParams) {
+	var request EditExpenseRequestObject
+
+	request.ExpenseId = expenseId
+	request.Params = params
+
+	var body EditExpenseJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.EditExpense(ctx, request.(EditExpenseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "EditExpense")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(EditExpenseResponseObject); ok {
+		if err := validResponse.VisitEditExpenseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// WithdrawExpense operation middleware
+func (sh *strictHandler) WithdrawExpense(w http.ResponseWriter, r *http.Request, expenseId ExpenseId, params WithdrawExpenseParams) {
+	var request WithdrawExpenseRequestObject
+
+	request.ExpenseId = expenseId
+	request.Params = params
+
+	var body WithdrawExpenseJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.WithdrawExpense(ctx, request.(WithdrawExpenseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "WithdrawExpense")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(WithdrawExpenseResponseObject); ok {
+		if err := validResponse.VisitWithdrawExpenseResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -130,6 +130,64 @@ func (s *Server) GetExpense(ctx context.Context, req apigen.GetExpenseRequestObj
 	return apigen.GetExpense200JSONResponse(apiExpense(e)), nil
 }
 
+// EditExpense saves the creator's edit as the Expense's next revision
+// (FR-E6).
+func (s *Server) EditExpense(ctx context.Context, req apigen.EditExpenseRequestObject) (apigen.EditExpenseResponseObject, error) {
+	p, err := mustPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	b := req.Body
+	in := expenseInput(apigen.ExpenseInput{
+		PayerMemberId: b.PayerMemberId, Amount: b.Amount, ExchangeRate: b.ExchangeRate, Category: b.Category,
+		Note: b.Note, SpentOn: b.SpentOn, Split: b.Split,
+	})
+	e, err := s.deps.Expenses.Edit(ctx, p.UserID, platform.ID(req.ExpenseId), int(b.Version), in)
+	if err == nil {
+		return apigen.EditExpense200JSONResponse(apiExpense(e)), nil
+	}
+	prob, ok := expensesProblem(err)
+	if !ok {
+		return nil, err
+	}
+	switch prob.Status {
+	case http.StatusBadRequest:
+		return apigen.EditExpense400ApplicationProblemPlusJSONResponse{BadRequestApplicationProblemPlusJSONResponse: apigen.BadRequestApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusForbidden:
+		return apigen.EditExpense403ApplicationProblemPlusJSONResponse{ForbiddenApplicationProblemPlusJSONResponse: apigen.ForbiddenApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusNotFound:
+		return apigen.EditExpense404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: apigen.NotFoundApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusConflict:
+		return apigen.EditExpense409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: apigen.ConflictApplicationProblemPlusJSONResponse(prob)}, nil
+	}
+	return nil, err
+}
+
+// WithdrawExpense withdraws an Expense (its creator only; FR-E6).
+func (s *Server) WithdrawExpense(ctx context.Context, req apigen.WithdrawExpenseRequestObject) (apigen.WithdrawExpenseResponseObject, error) {
+	p, err := mustPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	e, err := s.deps.Expenses.Withdraw(ctx, p.UserID, platform.ID(req.ExpenseId), int(req.Body.Version))
+	if err == nil {
+		return apigen.WithdrawExpense200JSONResponse(apiExpense(e)), nil
+	}
+	prob, ok := expensesProblem(err)
+	if !ok {
+		return nil, err
+	}
+	switch prob.Status {
+	case http.StatusForbidden:
+		return apigen.WithdrawExpense403ApplicationProblemPlusJSONResponse{ForbiddenApplicationProblemPlusJSONResponse: apigen.ForbiddenApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusNotFound:
+		return apigen.WithdrawExpense404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: apigen.NotFoundApplicationProblemPlusJSONResponse(prob)}, nil
+	case http.StatusConflict:
+		return apigen.WithdrawExpense409ApplicationProblemPlusJSONResponse{ConflictApplicationProblemPlusJSONResponse: apigen.ConflictApplicationProblemPlusJSONResponse(prob)}, nil
+	}
+	return nil, err
+}
+
 // expensesProblem maps an expected Expense error to its problem.
 func expensesProblem(err error) (apigen.Problem, bool) {
 	var invalid *expenses.ValidationError
@@ -144,6 +202,14 @@ func expensesProblem(err error) (apigen.Problem, bool) {
 		return p, true
 	case errors.Is(err, expenses.ErrGroupClosed):
 		return problemGroupClosed.problem(""), true
+	case errors.Is(err, expenses.ErrNotFound):
+		return problemNotFound.problem(""), true
+	case errors.Is(err, expenses.ErrNotCreator):
+		return problemNotCreator.problem(""), true
+	case errors.Is(err, expenses.ErrInvalidState):
+		return problemInvalidState.problem(""), true
+	case errors.Is(err, expenses.ErrVersionConflict):
+		return problemVersionConflict.problem(""), true
 	}
 	return groupsProblem(err)
 }
@@ -166,7 +232,8 @@ func apiExpense(e expenses.Expense) apigen.Expense {
 		Amount: money(e.Amount, e.Currency), OriginalAmount: money(e.Original.Amount, e.Original.Currency),
 		ExchangeRate: e.Original.ExchangeRate, Category: apigen.Category(e.Category), Note: e.Note,
 		SpentOn: openapi_types.Date{Time: e.SpentOn}, SplitMethod: apigen.SplitMethod(e.Method),
-		State: apigen.ExpenseState(e.State), Version: int32(e.Version), //nolint:gosec // a version
+		State: apigen.ExpenseState(e.State), Revision: int32(e.Revision), //nolint:gosec // a revision
+		Version: int32(e.Version), //nolint:gosec // a version
 		CreatedAt: e.CreatedAt, Shares: shareLines(e.Shares, e.Currency),
 	}
 }

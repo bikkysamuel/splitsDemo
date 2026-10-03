@@ -50,17 +50,8 @@ func (r *ExpensesRepository) Create(ctx context.Context, e expenses.Expense) err
 		if err != nil {
 			return fmt.Errorf("insert expense: %w", err)
 		}
-		for _, s := range e.Shares {
-			input, err := numeric(s.Input)
-			if err != nil {
-				return err
-			}
-			err = q.InsertShare(ctx, sqlcgen.InsertShareParams{
-				ExpenseID: uuid(e.ID), MemberID: uuid(s.MemberID), ShareMinor: s.Amount, Input: input,
-			})
-			if err != nil {
-				return fmt.Errorf("insert share: %w", err)
-			}
+		if err := insertShares(ctx, q, e); err != nil {
+			return err
 		}
 		payload := map[string]any{"amount_minor": e.Amount, "currency": e.Currency, "category": e.Category}
 		if e.Original.ExchangeRate != nil {
@@ -92,13 +83,102 @@ func (r *ExpensesRepository) ExpenseForUser(ctx context.Context, expenseID, user
 		Original: expenses.Original{
 			Amount: row.OriginalMinor, Currency: row.OriginalCurrency, ExchangeRate: numericText(row.ExchangeRate),
 		},
-		SpentOn: row.SpentOn.Time, Method: row.SplitMethod, State: row.State, Version: int(row.Version),
+		SpentOn: row.SpentOn.Time, Method: row.SplitMethod, State: row.State, Revision: int(row.Revision),
+		Version: int(row.Version),
 		CreatedAt: row.CreatedAt.Time, Shares: make([]expenses.Share, len(shares)),
 	}
 	for i, s := range shares {
 		e.Shares[i] = expenses.Share{MemberID: id(s.MemberID), Amount: s.ShareMinor, Input: numericText(s.Input)}
 	}
 	return e, nil
+}
+
+// Update implements expenses.Repository.
+func (r *ExpensesRepository) Update(ctx context.Context, e expenses.Expense, fromState string, version int, changes []expenses.Change, actor platform.ID, now time.Time) (expenses.Expense, error) {
+	err := r.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		g, err := q.LockGroupShared(ctx, uuid(e.GroupID))
+		if err != nil {
+			return fmt.Errorf("lock group: %w", err)
+		}
+		if groups.State(g.State) == groups.StateClosed {
+			return expenses.ErrGroupClosed
+		}
+		// The Group Currency can't have changed: it is locked once an
+		// Expense exists (D3).
+		rate, err := numeric(e.Original.ExchangeRate)
+		if err != nil {
+			return err
+		}
+		row, err := q.UpdateExpense(ctx, sqlcgen.UpdateExpenseParams{
+			PayerID: uuid(e.PayerID), Category: e.Category, Note: text(e.Note), SpentOn: date(e.SpentOn),
+			OriginalMinor: e.Original.Amount, OriginalCurrency: e.Original.Currency, ExchangeRate: rate,
+			AmountMinor: e.Amount, SplitMethod: e.Method, State: e.State, Now: timestamptz(now), ID: uuid(e.ID),
+			Version: int32(version), FromState: fromState, //nolint:gosec // a version
+		})
+		if isNoRows(err) {
+			return expenses.ErrVersionConflict
+		}
+		if err != nil {
+			return fmt.Errorf("update expense: %w", err)
+		}
+		e.Revision, e.Version = int(row.Revision), int(row.Version)
+		if err := q.DeleteShares(ctx, uuid(e.ID)); err != nil {
+			return fmt.Errorf("delete shares: %w", err)
+		}
+		if err := insertShares(ctx, q, e); err != nil {
+			return err
+		}
+		diff := make(map[string]any, len(changes))
+		for _, c := range changes {
+			diff[c.Field] = map[string]any{"from": c.From, "to": c.To}
+		}
+		return insertEvent(ctx, q, e.GroupID, actor, "expense_edited", "expense", e.ID,
+			map[string]any{"revision": e.Revision, "changes": diff}, now)
+	})
+	return e, err
+}
+
+// Withdraw implements expenses.Repository.
+func (r *ExpensesRepository) Withdraw(ctx context.Context, e expenses.Expense, fromState string, version int, actor platform.ID, now time.Time) (expenses.Expense, error) {
+	err := r.db.inTx(ctx, func(q *sqlcgen.Queries) error {
+		g, err := q.LockGroupShared(ctx, uuid(e.GroupID))
+		if err != nil {
+			return fmt.Errorf("lock group: %w", err)
+		}
+		if groups.State(g.State) == groups.StateClosed {
+			return expenses.ErrGroupClosed
+		}
+		v, err := q.SetExpenseState(ctx, sqlcgen.SetExpenseStateParams{
+			State: expenses.StateWithdrawn, Now: timestamptz(now), ID: uuid(e.ID),
+			Version: int32(version), FromState: fromState, //nolint:gosec // a version
+		})
+		if isNoRows(err) {
+			return expenses.ErrVersionConflict
+		}
+		if err != nil {
+			return fmt.Errorf("set expense state: %w", err)
+		}
+		e.State, e.Version = expenses.StateWithdrawn, int(v)
+		return insertEvent(ctx, q, e.GroupID, actor, "expense_withdrawn", "expense", e.ID,
+			map[string]any{"revision": e.Revision}, now)
+	})
+	return e, err
+}
+
+func insertShares(ctx context.Context, q *sqlcgen.Queries, e expenses.Expense) error {
+	for _, s := range e.Shares {
+		input, err := numeric(s.Input)
+		if err != nil {
+			return err
+		}
+		err = q.InsertShare(ctx, sqlcgen.InsertShareParams{
+			ExpenseID: uuid(e.ID), MemberID: uuid(s.MemberID), ShareMinor: s.Amount, Input: input,
+		})
+		if err != nil {
+			return fmt.Errorf("insert share: %w", err)
+		}
+	}
+	return nil
 }
 
 // List implements expenses.Repository.

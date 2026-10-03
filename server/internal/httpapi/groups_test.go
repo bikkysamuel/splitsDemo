@@ -3,6 +3,7 @@ package httpapi_test
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -66,7 +67,10 @@ func writeWithKey(t *testing.T, srv *apptest.Server, method, path, token, key st
 	}
 	raw, ok := body.([]byte)
 	if !ok {
-		raw = []byte(fmt.Sprint(body))
+		var err error
+		if raw, err = json.Marshal(body); err != nil {
+			t.Fatalf("encode request body: %v", err)
+		}
 	}
 	return srv.Do(t, method, path, raw,
 		"Content-Type", "application/json", "Authorization", "Bearer "+token, "Idempotency-Key", key)
