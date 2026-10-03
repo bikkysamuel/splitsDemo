@@ -154,7 +154,9 @@ private struct ExchangeRateRows: View {
   nonisolated static let converted = "In the Group Currency"
   /// The catalog key of `unit`.
   nonisolated static let unitFormat = "%@ per 1 %@"
-  nonisolated static let rateInvalid = "Enter a rate above zero with at most 2 decimal places, like 83.25."
+  /// The same message as the server's refusal of the rate.
+  nonisolated static let rateInvalid = ServiceErrorMessage.key(
+    for: FieldIssue(field: "exchange_rate", reason: .invalid))
   nonisolated static let allKeys = [exchangeRate, converted, unitFormat, rateInvalid]
 }
 

@@ -164,7 +164,7 @@ func compute(g groups.Group, in Input) (Computed, *string, error) {
 	if _, ok := active[in.PayerID]; !ok {
 		fields = append(fields, FieldError{"payer_member_id", CodeNotAMember})
 	}
-	amount, original, f, err := convert(g, in)
+	amount, original, f, err := toGroupCurrency(g, in)
 	if err != nil {
 		return Computed{}, nil, err
 	}
@@ -230,9 +230,10 @@ func compute(g groups.Group, in Input) (Computed, *string, error) {
 // maxRateLength bounds an Exchange Rate's text, as the contract says.
 const maxRateLength = 20
 
-// convert checks the Original Amount, its currency and Exchange Rate, and
-// asks ledger for the amount in the Group Currency (FR-E5, ADR-0007).
-func convert(g groups.Group, in Input) (int64, Original, []FieldError, error) {
+// toGroupCurrency checks the Original Amount, its currency and Exchange
+// Rate, returning field errors for what's wrong, and asks ledger for the
+// amount in the Group Currency (FR-E5, ADR-0007).
+func toGroupCurrency(g groups.Group, in Input) (int64, Original, []FieldError, error) {
 	var fields []FieldError
 	original := Original{Amount: in.Amount, Currency: in.Currency}
 	if in.Amount <= 0 {

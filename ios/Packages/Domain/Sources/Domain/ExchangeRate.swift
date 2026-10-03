@@ -10,15 +10,33 @@ public enum ExchangeRate {
   public static let maxDecimals = 2
 
   /// The server's form of a typed rate ("83.25", with a point), or nil when
-  /// it isn't a positive number with at most 2 decimal places.
+  /// it isn't a positive number with at most 2 decimal places. The typed
+  /// scale is kept ("83,20" → "83.20"), so the rate is stored as entered.
   public static func input(from text: String, locale: Locale = .current) -> String? {
-    DecimalEntry.positive(text, places: maxDecimals, locale: locale)
+    guard var value = DecimalEntry.positive(text, places: maxDecimals, locale: locale) else { return nil }
+    let typed = typedDecimals(text, locale: locale)
+    // The server takes at most 2 places as written, even "83.200".
+    guard typed <= maxDecimals else { return nil }
+    let kept = value.split(separator: ".").dropFirst().first?.count ?? 0
+    if typed > kept {
+      value += (kept == 0 ? "." : "") + String(repeating: "0", count: typed - kept)
+    }
+    return value
   }
 
-  /// A stored rate ("1234.5") as the User's locale writes it ("1.234,5").
+  /// How many digits were typed after the locale's decimal separator.
+  private static func typedDecimals(_ text: String, locale: Locale) -> Int {
+    let separator = locale.decimalSeparator ?? "."
+    guard let range = text.range(of: separator, options: .backwards) else { return 0 }
+    return text[range.upperBound...].prefix { $0.isNumber }.count
+  }
+
+  /// A stored rate ("1234.5", "83.20") as the User's locale writes it,
+  /// its scale kept ("1.234,5", "83,20").
   public static func display(_ rate: String, locale: Locale = .current) -> String {
     guard let value = Decimal(string: rate, locale: Locale(identifier: "en_US_POSIX")) else { return rate }
-    return value.formatted(.number.locale(locale))
+    let scale = rate.split(separator: ".").dropFirst().first?.count ?? 0
+    return value.formatted(.number.precision(.fractionLength(scale)).locale(locale))
   }
 }
 

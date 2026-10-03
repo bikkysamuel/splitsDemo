@@ -107,9 +107,8 @@ func TestExchangeRateIsCheckedAgainstTheCurrencies(t *testing.T) {
 // converted amount.
 func TestExactSplitOfAForeignExpenseSumsToTheConvertedAmount(t *testing.T) {
 	tr := newTrip(t)
-	in := tr.split(1050, "exact", tr.aliceID, "50000", tr.bobID, "37413")
-	in["amount"] = map[string]any{"minor": 1050, "currency": "USD"}
-	in["exchange_rate"] = "83.25"
+	in := tr.abroad(1050, "USD", "83.25")
+	in["split"] = tr.split(0, "exact", tr.aliceID, "50000", tr.bobID, "37413")["split"]
 
 	if got := minors(tr.previewShares(t, in)); len(got) != 2 || got[0] != 50000 || got[1] != 37413 {
 		t.Errorf("shares = %v; want 50000 37413", got)
