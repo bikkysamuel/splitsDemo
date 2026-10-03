@@ -55,11 +55,11 @@ type Input struct {
 	Amount       int64
 	Currency     string
 	ExchangeRate *string
-	Category string
-	Note     *string
-	SpentOn  time.Time // a date; the time is ignored
-	Method   string
-	Members  []SplitEntry
+	Category     string
+	Note         *string
+	SpentOn      time.Time // a date; the time is ignored
+	Method       string
+	Members      []SplitEntry
 }
 
 // SplitEntry is one Member of a Split and what was entered for them: minor
