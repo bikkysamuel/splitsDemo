@@ -328,6 +328,81 @@ struct GroupExpensesTests {
 }
 
 @MainActor
+struct ExpenseFilterAndScrollTests {
+  private static let a = Expense.dinner.summary
+  private static let b = ExpenseSummary(
+    id: UUID(), payerID: Group.me, amount: Money(minorUnits: 500, currency: "INR"), category: .transport, note: nil,
+    spentOn: "2026-09-30", state: .accepted)
+
+  private func loaded(pages: [String?: ExpensePage]) async -> (GroupViewModel, FakeExpensesRepository) {
+    let expenses = FakeExpensesRepository()
+    await expenses.set(pages: pages)
+    let viewModel = GroupViewModel.make(expenses: expenses)
+    await viewModel.load()
+    return (viewModel, expenses)
+  }
+
+  @Test func aFilterReloadsTheFirstPageWithIt() async {
+    let (viewModel, expenses) = await loaded(pages: [
+      nil: ExpensePage(items: [Self.a], nextCursor: "c1"), "c1": ExpensePage(items: [Self.b], nextCursor: nil),
+    ])
+    let filter = ExpenseFilter(memberID: Group.me, category: .transport)
+
+    await viewModel.apply(filter)
+
+    #expect(viewModel.filter == filter)
+    #expect(await expenses.listed.last?.filter == filter)
+    #expect(await expenses.listed.last?.cursor == nil)
+  }
+
+  @Test func theNextPageKeepsTheFilter() async {
+    let (viewModel, expenses) = await loaded(pages: [
+      nil: ExpensePage(items: [Self.a], nextCursor: "c1"), "c1": ExpensePage(items: [Self.b], nextCursor: nil),
+    ])
+    let filter = ExpenseFilter(category: .foodDrink)
+    await viewModel.apply(filter)
+
+    await viewModel.loadMoreExpenses()
+
+    #expect(await expenses.listed.last?.filter == filter)
+    #expect(await expenses.listed.last?.cursor == "c1")
+    #expect(viewModel.expenses == [Self.a, Self.b])
+  }
+
+  @Test func clearingTheFilterShowsEverythingAgain() async {
+    let (viewModel, expenses) = await loaded(pages: [nil: ExpensePage(items: [Self.a], nextCursor: nil)])
+    await viewModel.apply(ExpenseFilter(state: .withdrawn))
+
+    await viewModel.apply(.all)
+
+    #expect(await expenses.listed.last?.filter == .all)
+    #expect(!viewModel.filter.isActive)
+  }
+
+  @Test func reachingTheLastRowLoadsTheNextPage() async {
+    let (viewModel, expenses) = await loaded(pages: [
+      nil: ExpensePage(items: [Self.a], nextCursor: "c1"), "c1": ExpensePage(items: [Self.b], nextCursor: nil),
+    ])
+
+    await viewModel.expenseAppeared(Self.a)
+    #expect(viewModel.expenses == [Self.a, Self.b])
+
+    await viewModel.expenseAppeared(Self.b)
+    #expect(await expenses.listed.count == 2)
+  }
+
+  @Test func anEarlierRowLoadsNothing() async {
+    let (viewModel, expenses) = await loaded(pages: [
+      nil: ExpensePage(items: [Self.a, Self.b], nextCursor: "c1"), "c1": ExpensePage(items: [], nextCursor: nil),
+    ])
+
+    await viewModel.expenseAppeared(Self.a)
+
+    #expect(await expenses.listed.count == 1)
+  }
+}
+
+@MainActor
 struct ExpenseDetailViewModelTests {
   @Test func loadsTheExpenseAndNamesItsMembers() async {
     let viewModel = ExpenseDetailViewModel(

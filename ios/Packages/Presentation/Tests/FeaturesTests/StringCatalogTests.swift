@@ -29,6 +29,7 @@ struct StringCatalogTests {
 
   @Test(
     arguments: AddExpenseView.allKeys + ExpenseDetailView.allKeys + [ExpenseRow.paidOnFormat]
+      + ExpenseFilterView.allKeys
       + Domain.Category.allCases.map(CategoryLabel.nameKey))
   func everyExpenseScreenStringIsInTheCatalog(key: String) {
     #expect(isInCatalog(key))

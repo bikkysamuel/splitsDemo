@@ -121,6 +121,18 @@
         }
       }
     },
+    "Accepted": {
+      "comment": "Expense state: counts toward Balances",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accepted"
+          }
+        }
+      }
+    },
     "Accommodation": {
       "comment": "Category: accommodation",
       "extractionState": "manual",
@@ -237,6 +249,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "An amount in the Group Currency takes no Exchange Rate."
+          }
+        }
+      }
+    },
+    "Any": {
+      "comment": "Filter choice: no filter on this field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any"
+          }
+        }
+      }
+    },
+    "Apply": {
+      "comment": "Button that applies the Expense filters",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply"
           }
         }
       }
@@ -441,6 +477,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choose who paid from the Group's Members."
+          }
+        }
+      }
+    },
+    "Clear Filters": {
+      "comment": "Button that removes every Expense filter",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear Filters"
           }
         }
       }
@@ -805,6 +853,30 @@
         }
       }
     },
+    "Filter": {
+      "comment": "VoiceOver label of the Expense filter button",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter"
+          }
+        }
+      }
+    },
+    "Filter Expenses": {
+      "comment": "Title of the Expense filter sheet",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter Expenses"
+          }
+        }
+      }
+    },
     "Food & drink": {
       "comment": "Category: food and drink",
       "extractionState": "manual",
@@ -813,6 +885,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Food & drink"
+          }
+        }
+      }
+    },
+    "From": {
+      "comment": "Filter: first day of the date range",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From"
           }
         }
       }
@@ -973,6 +1057,18 @@
         }
       }
     },
+    "Member": {
+      "comment": "Filter field: a Member of the Group",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Member"
+          }
+        }
+      }
+    },
     "Members": {
       "comment": "Section header listing a Group's Members",
       "extractionState": "manual",
@@ -1033,6 +1129,18 @@
         }
       }
     },
+    "No Expenses match these filters.": {
+      "comment": "Expense list empty because of the filters",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Expenses match these filters."
+          }
+        }
+      }
+    },
     "No Expenses yet. Add the first with +.": {
       "comment": "Shown when a Group has no Expenses",
       "extractionState": "manual",
@@ -1089,6 +1197,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "OK"
+          }
+        }
+      }
+    },
+    "Off": {
+      "comment": "VoiceOver value: no filter is applied",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        }
+      }
+    },
+    "On": {
+      "comment": "VoiceOver value: filters are applied",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On"
           }
         }
       }
@@ -1573,14 +1705,14 @@
         }
       }
     },
-    "Show more": {
-      "comment": "Button that loads more Expenses",
+    "Shows the Expenses this Member paid or shares.": {
+      "comment": "Footer under the Member filter",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Show more"
+            "value": "Shows the Expenses this Member paid or shares."
           }
         }
       }
@@ -1737,6 +1869,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Splits"
+          }
+        }
+      }
+    },
+    "State": {
+      "comment": "Filter field: the Expense's state",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "State"
           }
         }
       }
@@ -1905,6 +2049,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "This pays more than the payer owes or the receiver is owed. Save it anyway?"
+          }
+        }
+      }
+    },
+    "To": {
+      "comment": "Filter: last day of the date range",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To"
           }
         }
       }

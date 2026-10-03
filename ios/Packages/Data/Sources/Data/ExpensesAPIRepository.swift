@@ -56,10 +56,17 @@ public struct ExpensesAPIRepository: ExpensesRepository {
     }
   }
 
-  public func expenses(groupID: UUID, cursor: String?) async throws(ServiceError) -> ExpensePage {
+  public func expenses(
+    groupID: UUID, filter: ExpenseFilter, cursor: String?
+  ) async throws(ServiceError)
+    -> ExpensePage
+  {
+    let query = Operations.ListExpenses.Input.Query(
+      cursor: cursor, limit: 50, member: filter.memberID?.uuidString.lowercased(),
+      category: filter.category.flatMap { Components.Schemas.Category(rawValue: $0.rawValue) }, from: filter.from,
+      to: filter.to, state: filter.state.flatMap { Components.Schemas.ExpenseState(rawValue: $0.rawValue) })
     let output = try await send {
-      try await client.listExpenses(
-        path: .init(groupId: groupID.uuidString.lowercased()), query: .init(cursor: cursor, limit: 50))
+      try await client.listExpenses(path: .init(groupId: groupID.uuidString.lowercased()), query: query)
     }
     switch output {
     case .ok(let ok):

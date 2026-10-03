@@ -142,11 +142,26 @@ struct ExpensesAPIRepositoryTests {
     let transport = try PathTransport(["GET \(Self.base)/expenses?limit=50": .fixture("expenses-page")])
     let repository = try makeRepository(transport)
 
-    let page = try await repository.expenses(groupID: Self.groupID, cursor: nil)
+    let page = try await repository.expenses(groupID: Self.groupID, filter: .all, cursor: nil)
 
     #expect(page.items.map(\.id) == [Self.expenseID])
     #expect(page.items.first?.amount == Money(minorUnits: 100001, currency: "INR"))
     #expect(page.nextCursor == nil)
+  }
+
+  @Test func listSendsTheFiltersAndCursor() async throws {
+    let me = Self.me.uuidString.lowercased()
+    let transport = try PathTransport([
+      "GET \(Self.base)/expenses?cursor=c1&limit=50&member=\(me)&category=transport&from=2026-10-01&to=2026-10-31&state=withdrawn":
+        .fixture("expenses-page")
+    ])
+    let repository = try makeRepository(transport)
+    let filter = ExpenseFilter(
+      memberID: Self.me, category: .transport, from: "2026-10-01", to: "2026-10-31", state: .withdrawn)
+
+    let page = try await repository.expenses(groupID: Self.groupID, filter: filter, cursor: "c1")
+
+    #expect(page.items.map(\.id) == [Self.expenseID])
   }
 
   @Test func getMapsTheExpense() async throws {

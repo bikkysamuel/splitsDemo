@@ -2,8 +2,9 @@ import Domain
 import Foundation
 import Observation
 
-/// The Group screen (FR-U4). For now: name, Group Currency and Members;
-/// Expenses, Balances and Settlements arrive with later tickets.
+/// The Group screen (FR-U4): name, Group Currency, Members, Balances,
+/// Settlements and the Expenses, filtered (FR-E8) and loaded page by page
+/// as the list scrolls.
 @MainActor
 @Observable
 public final class GroupViewModel {
@@ -13,6 +14,9 @@ public final class GroupViewModel {
   private(set) var expenses: [ExpenseSummary] = []
   private var nextCursor: String?
   private(set) var expensesError: String?
+  /// Which Expenses the list shows.
+  private(set) var filter = ExpenseFilter.all
+  private var isLoadingMore = false
   private(set) var balances: GroupBalances?
   private(set) var balancesError: String?
   /// The latest Settlements, newest first.
@@ -54,8 +58,8 @@ public final class GroupViewModel {
     await loadBalances()
   }
 
-  /// The latest 50 Settlements (most Groups have far fewer; paging comes
-  /// with the Expense filters, #21).
+  /// The latest 50 Settlements (most Groups have far fewer; only the
+  /// Expense list pages, FR-E8).
   func loadSettlements() async {
     do {
       settlements = try await settlementsRepository.settlements(groupID: groupID, cursor: nil).items
@@ -83,15 +87,32 @@ public final class GroupViewModel {
 
   var hasMoreExpenses: Bool { nextCursor != nil }
 
-  /// Appends the next page of Expenses.
+  /// Appends the next page of Expenses, with the same filter.
   public func loadMoreExpenses() async {
-    guard let nextCursor else { return }
+    guard let nextCursor, !isLoadingMore else { return }
+    isLoadingMore = true
+    defer { isLoadingMore = false }
     await loadExpenses(after: nextCursor)
   }
 
+  /// Infinite scroll: the last row coming into view loads the next page.
+  func expenseAppeared(_ expense: ExpenseSummary) async {
+    guard expense.id == expenses.last?.id else { return }
+    await loadMoreExpenses()
+  }
+
+  /// Shows only the Expenses matching `filter`, from the first page.
+  public func apply(_ filter: ExpenseFilter) async {
+    self.filter = filter
+    await loadExpenses(after: nil)
+  }
+
   private func loadExpenses(after cursor: String?) async {
+    let filter = filter
     do {
-      let page = try await expensesRepository.expenses(groupID: groupID, cursor: cursor)
+      let page = try await expensesRepository.expenses(groupID: groupID, filter: filter, cursor: cursor)
+      // A page for a filter that has since changed is stale: drop it.
+      guard filter == self.filter else { return }
       expenses = cursor == nil ? page.items : expenses + page.items
       nextCursor = page.nextCursor
       expensesError = nil
