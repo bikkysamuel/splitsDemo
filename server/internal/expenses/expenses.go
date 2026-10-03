@@ -19,6 +19,9 @@ var (
 	// ErrNotFound: no such Expense, or one in a Group the User isn't an
 	// active Member of (doc 07: 404, never 403).
 	ErrNotFound = errors.New("expenses: not found")
+	// ErrInvalidFilter: a Filter names an unknown Category or state, or
+	// From is after To.
+	ErrInvalidFilter = errors.New("expenses: invalid filter")
 	// ErrGroupClosed: the Group is Closed and read-only (FR-G6).
 	ErrGroupClosed = errors.New("expenses: group closed")
 	// ErrNotCreator: only the Expense's creator edits or withdraws it
@@ -145,6 +148,20 @@ type Summary struct {
 	State    string
 }
 
+// Filter narrows a Group's Expenses (FR-E8); a zero field doesn't filter.
+// Fields combine.
+type Filter struct {
+	// Member: Expenses this Member paid or has a Share in.
+	Member *platform.ID
+	// Category: one of Categories.
+	Category string
+	// From and To bound SpentOn, both inclusive.
+	From *time.Time
+	To   *time.Time
+	// State: one of the States.
+	State string
+}
+
 // Cursor is where a page of Expenses ends: its last Expense.
 type Cursor struct {
 	SpentOn time.Time
@@ -173,9 +190,9 @@ type Repository interface {
 	// ExpenseForUser returns the Expense if the User is an active Member of
 	// its Group, or ErrNotFound.
 	ExpenseForUser(ctx context.Context, expenseID, userID platform.ID) (Expense, error)
-	// List returns up to limit Expenses of the Group after the cursor (nil
-	// for the first page), newest first.
-	List(ctx context.Context, groupID platform.ID, after *Cursor, limit int) ([]Summary, error)
+	// List returns up to limit Expenses of the Group matching the Filter
+	// after the cursor (nil for the first page), newest first.
+	List(ctx context.Context, groupID platform.ID, f Filter, after *Cursor, limit int) ([]Summary, error)
 	// Update saves e as the Expense's next revision, with its Shares and an
 	// `expense_edited` event by actor carrying the changes, if the Expense
 	// is still at version in fromState; the Group's state is held steady.

@@ -36,10 +36,18 @@ ORDER BY m.join_seq;
 
 -- name: ListExpenses :many
 -- One page, newest first; after_* is the last row of the previous page.
+-- A NULL filter doesn't filter (FR-E8); member matches the payer or a
+-- Share.
 SELECT e.id, e.payer_id, e.category, e.note, e.spent_on, e.amount_minor, e.state, g.currency
 FROM expenses e JOIN groups g ON g.id = e.group_id
 WHERE e.group_id = @group_id
   AND (NOT @has_cursor::boolean OR (e.spent_on, e.id) < (@after_spent_on::date, @after_id::uuid))
+  AND (sqlc.narg(member)::uuid IS NULL OR e.payer_id = sqlc.narg(member)::uuid
+       OR EXISTS (SELECT 1 FROM expense_shares s WHERE s.expense_id = e.id AND s.member_id = sqlc.narg(member)::uuid))
+  AND (sqlc.narg(category)::text IS NULL OR e.category = sqlc.narg(category)::text)
+  AND (sqlc.narg(state)::text IS NULL OR e.state = sqlc.narg(state)::text)
+  AND (sqlc.narg(from_date)::date IS NULL OR e.spent_on >= sqlc.narg(from_date)::date)
+  AND (sqlc.narg(to_date)::date IS NULL OR e.spent_on <= sqlc.narg(to_date)::date)
 ORDER BY e.spent_on DESC, e.id DESC
 LIMIT @max_rows;
 

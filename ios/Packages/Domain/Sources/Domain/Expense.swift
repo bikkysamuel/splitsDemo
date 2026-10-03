@@ -98,7 +98,36 @@ public enum Category: String, CaseIterable, Sendable {
 
 /// Where an Expense is in its life (doc 06). In M1 every Expense is
 /// accepted at once (D9).
-public enum ExpenseState: String, Sendable {
+/// Which Expenses a list shows (FR-E8). A nil field doesn't filter; the
+/// fields combine.
+public struct ExpenseFilter: Equatable, Hashable, Sendable {
+  /// Expenses this Member paid or has a Share in.
+  public var memberID: UUID?
+  public var category: Category?
+  /// The first and last day, "yyyy-MM-dd", both included.
+  public var from: String?
+  public var to: String?
+  public var state: ExpenseState?
+
+  public init(
+    memberID: UUID? = nil, category: Category? = nil, from: String? = nil, to: String? = nil,
+    state: ExpenseState? = nil
+  ) {
+    self.memberID = memberID
+    self.category = category
+    self.from = from
+    self.to = to
+    self.state = state
+  }
+
+  /// Every Expense.
+  public static let all = ExpenseFilter()
+
+  /// Whether the filter leaves any Expense out.
+  public var isActive: Bool { self != .all }
+}
+
+public enum ExpenseState: String, Hashable, Sendable {
   case pending, accepted, disputed
   case withdrawalPending = "withdrawal_pending"
   case withdrawn
@@ -167,7 +196,9 @@ public protocol ExpensesRepository: Sendable {
   /// The Shares the input would get, without saving.
   func preview(groupID: UUID, input: ExpenseInput) async throws(ServiceError) -> ExpensePreview
   func createExpense(groupID: UUID, input: ExpenseInput, key: WriteKey) async throws(ServiceError) -> Expense
-  func expenses(groupID: UUID, cursor: String?) async throws(ServiceError) -> ExpensePage
+  /// One page of the Group's Expenses matching `filter`, newest first;
+  /// pass the previous page's `nextCursor` with the same filter.
+  func expenses(groupID: UUID, filter: ExpenseFilter, cursor: String?) async throws(ServiceError) -> ExpensePage
   func expense(id: UUID) async throws(ServiceError) -> Expense
   /// Saves the creator's edit of the Expense at `version` as its next
   /// revision (FR-E6); `.problem(.versionConflict)` if someone else changed

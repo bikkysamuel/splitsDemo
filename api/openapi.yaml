@@ -699,13 +699,52 @@ paths:
     get:
       operationId: listExpenses
       summary: A Group's Expenses
-      description: Newest first by date, then by when they were recorded, a page at a time.
+      description: |
+        Newest first by date, then by when they were recorded, a page at a
+        time (FR-E8). Filters combine (AND); send the same filters with each
+        `cursor`. `member` matches Expenses the Member paid or shares;
+        `from` and `to` are inclusive dates (`from` after `to` is
+        `invalid-request`). Withdrawn Expenses are listed unless `state`
+        leaves them out.
       tags: [expenses]
       security:
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
+        - name: member
+          in: query
+          required: false
+          description: Only Expenses this Member paid or has a Share in.
+          schema:
+            type: string
+            format: uuid
+        - name: category
+          in: query
+          required: false
+          description: Only Expenses in this Category.
+          schema:
+            $ref: "#/components/schemas/Category"
+        - name: from
+          in: query
+          required: false
+          description: Only Expenses spent on or after this date.
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          description: Only Expenses spent on or before this date.
+          schema:
+            type: string
+            format: date
+        - name: state
+          in: query
+          required: false
+          description: Only Expenses in this state.
+          schema:
+            $ref: "#/components/schemas/ExpenseState"
       responses:
         "200":
           description: One page of Expenses.

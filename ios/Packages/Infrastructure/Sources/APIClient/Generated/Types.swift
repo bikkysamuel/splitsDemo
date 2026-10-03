@@ -174,7 +174,13 @@ public protocol APIProtocol: Sendable {
     func previewExpense(_ input: Operations.PreviewExpense.Input) async throws -> Operations.PreviewExpense.Output
     /// A Group's Expenses
     ///
-    /// Newest first by date, then by when they were recorded, a page at a time.
+    /// Newest first by date, then by when they were recorded, a page at a
+    /// time (FR-E8). Filters combine (AND); send the same filters with each
+    /// `cursor`. `member` matches Expenses the Member paid or shares;
+    /// `from` and `to` are inclusive dates (`from` after `to` is
+    /// `invalid-request`). Withdrawn Expenses are listed unless `state`
+    /// leaves them out.
+    ///
     ///
     /// - Remark: HTTP `GET /v1/groups/{groupId}/expenses`.
     /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/get(listExpenses)`.
@@ -566,7 +572,13 @@ extension APIProtocol {
     }
     /// A Group's Expenses
     ///
-    /// Newest first by date, then by when they were recorded, a page at a time.
+    /// Newest first by date, then by when they were recorded, a page at a
+    /// time (FR-E8). Filters combine (AND); send the same filters with each
+    /// `cursor`. `member` matches Expenses the Member paid or shares;
+    /// `from` and `to` are inclusive dates (`from` after `to` is
+    /// `invalid-request`). Withdrawn Expenses are listed unless `state`
+    /// leaves them out.
+    ///
     ///
     /// - Remark: HTTP `GET /v1/groups/{groupId}/expenses`.
     /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/get(listExpenses)`.

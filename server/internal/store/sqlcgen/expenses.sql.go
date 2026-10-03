@@ -219,8 +219,14 @@ SELECT e.id, e.payer_id, e.category, e.note, e.spent_on, e.amount_minor, e.state
 FROM expenses e JOIN groups g ON g.id = e.group_id
 WHERE e.group_id = $1
   AND (NOT $2::boolean OR (e.spent_on, e.id) < ($3::date, $4::uuid))
+  AND ($5::uuid IS NULL OR e.payer_id = $5::uuid
+       OR EXISTS (SELECT 1 FROM expense_shares s WHERE s.expense_id = e.id AND s.member_id = $5::uuid))
+  AND ($6::text IS NULL OR e.category = $6::text)
+  AND ($7::text IS NULL OR e.state = $7::text)
+  AND ($8::date IS NULL OR e.spent_on >= $8::date)
+  AND ($9::date IS NULL OR e.spent_on <= $9::date)
 ORDER BY e.spent_on DESC, e.id DESC
-LIMIT $5
+LIMIT $10
 `
 
 type ListExpensesParams struct {
@@ -228,6 +234,11 @@ type ListExpensesParams struct {
 	HasCursor    bool
 	AfterSpentOn pgtype.Date
 	AfterID      pgtype.UUID
+	Member       pgtype.UUID
+	Category     pgtype.Text
+	State        pgtype.Text
+	FromDate     pgtype.Date
+	ToDate       pgtype.Date
 	MaxRows      int32
 }
 
@@ -243,12 +254,19 @@ type ListExpensesRow struct {
 }
 
 // One page, newest first; after_* is the last row of the previous page.
+// A NULL filter doesn't filter (FR-E8); member matches the payer or a
+// Share.
 func (q *Queries) ListExpenses(ctx context.Context, arg ListExpensesParams) ([]ListExpensesRow, error) {
 	rows, err := q.db.Query(ctx, listExpenses,
 		arg.GroupID,
 		arg.HasCursor,
 		arg.AfterSpentOn,
 		arg.AfterID,
+		arg.Member,
+		arg.Category,
+		arg.State,
+		arg.FromDate,
+		arg.ToDate,
 		arg.MaxRows,
 	)
 	if err != nil {

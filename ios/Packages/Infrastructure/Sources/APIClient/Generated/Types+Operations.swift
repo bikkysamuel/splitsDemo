@@ -3930,7 +3930,13 @@ public enum Operations {
     }
     /// A Group's Expenses
     ///
-    /// Newest first by date, then by when they were recorded, a page at a time.
+    /// Newest first by date, then by when they were recorded, a page at a
+    /// time (FR-E8). Filters combine (AND); send the same filters with each
+    /// `cursor`. `member` matches Expenses the Member paid or shares;
+    /// `from` and `to` are inclusive dates (`from` after `to` is
+    /// `invalid-request`). Withdrawn Expenses are listed unless `state`
+    /// leaves them out.
+    ///
     ///
     /// - Remark: HTTP `GET /v1/groups/{groupId}/expenses`.
     /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/get(listExpenses)`.
@@ -3962,17 +3968,52 @@ public enum Operations {
                 ///
                 /// - Remark: Generated from `#/paths/v1/groups/{groupId}/expenses/GET/query/limit`.
                 public var limit: Components.Parameters.Limit?
+                /// Only Expenses this Member paid or has a Share in.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/expenses/GET/query/member`.
+                public var member: Swift.String?
+                /// Only Expenses in this Category.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/expenses/GET/query/category`.
+                public var category: Components.Schemas.Category?
+                /// Only Expenses spent on or after this date.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/expenses/GET/query/from`.
+                public var from: Swift.String?
+                /// Only Expenses spent on or before this date.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/expenses/GET/query/to`.
+                public var to: Swift.String?
+                /// Only Expenses in this state.
+                ///
+                /// - Remark: Generated from `#/paths/v1/groups/{groupId}/expenses/GET/query/state`.
+                public var state: Components.Schemas.ExpenseState?
                 /// Creates a new `Query`.
                 ///
                 /// - Parameters:
                 ///   - cursor: The `next_cursor` of the previous page; omit for the first page.
                 ///   - limit: Page size, 1–200 (default 50).
+                ///   - member: Only Expenses this Member paid or has a Share in.
+                ///   - category: Only Expenses in this Category.
+                ///   - from: Only Expenses spent on or after this date.
+                ///   - to: Only Expenses spent on or before this date.
+                ///   - state: Only Expenses in this state.
                 public init(
                     cursor: Components.Parameters.Cursor? = nil,
-                    limit: Components.Parameters.Limit? = nil
+                    limit: Components.Parameters.Limit? = nil,
+                    member: Swift.String? = nil,
+                    category: Components.Schemas.Category? = nil,
+                    from: Swift.String? = nil,
+                    to: Swift.String? = nil,
+                    state: Components.Schemas.ExpenseState? = nil
                 ) {
                     self.cursor = cursor
                     self.limit = limit
+                    self.member = member
+                    self.category = category
+                    self.from = from
+                    self.to = to
+                    self.state = state
                 }
             }
             public var query: Operations.ListExpenses.Input.Query

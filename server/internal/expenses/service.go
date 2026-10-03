@@ -119,12 +119,16 @@ func (s *Service) Get(ctx context.Context, userID, expenseID platform.ID) (Expen
 	return e, nil
 }
 
-// List returns one page of a Group's Expenses, newest first.
-func (s *Service) List(ctx context.Context, userID, groupID platform.ID, after *Cursor, limit int) (Page, error) {
+// List returns one page of a Group's Expenses matching the Filter, newest
+// first (FR-E8).
+func (s *Service) List(ctx context.Context, userID, groupID platform.ID, f Filter, after *Cursor, limit int) (Page, error) {
 	if _, err := s.deps.Groups.Get(ctx, userID, groupID); err != nil {
 		return Page{}, err
 	}
-	items, err := s.deps.Repository.List(ctx, groupID, after, limit+1)
+	if err := f.check(); err != nil {
+		return Page{}, err
+	}
+	items, err := s.deps.Repository.List(ctx, groupID, f, after, limit+1)
 	if err != nil {
 		return Page{}, fmt.Errorf("expenses: list group %s: %w", groupID, err)
 	}
@@ -135,6 +139,21 @@ func (s *Service) List(ctx context.Context, userID, groupID platform.ID, after *
 		page.Next = &Cursor{SpentOn: last.SpentOn, ID: last.ID}
 	}
 	return page, nil
+}
+
+// states lists every Expense state, as stored.
+var states = []string{StatePending, StateAccepted, StateDisputed, StateWithdrawalPending, StateWithdrawn}
+
+func (f Filter) check() error {
+	switch {
+	case f.Category != "" && !slices.Contains(Categories, f.Category):
+		return fmt.Errorf("%w: category %q", ErrInvalidFilter, f.Category)
+	case f.State != "" && !slices.Contains(states, f.State):
+		return fmt.Errorf("%w: state %q", ErrInvalidFilter, f.State)
+	case f.From != nil && f.To != nil && f.From.After(*f.To):
+		return fmt.Errorf("%w: from is after to", ErrInvalidFilter)
+	}
+	return nil
 }
 
 // writableGroup returns the Group if the User is an active Member

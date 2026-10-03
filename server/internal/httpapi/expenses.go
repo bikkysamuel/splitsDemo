@@ -91,7 +91,10 @@ func (s *Server) ListExpenses(ctx context.Context, req apigen.ListExpensesReques
 	if limit < 1 || limit > maxPageSize {
 		return bad(problemInvalidRequest, "limit must be 1–200")
 	}
-	page, err := s.deps.Expenses.List(ctx, p.UserID, platform.ID(req.GroupId), after, limit)
+	page, err := s.deps.Expenses.List(ctx, p.UserID, platform.ID(req.GroupId), expenseFilter(req.Params), after, limit)
+	if errors.Is(err, expenses.ErrInvalidFilter) {
+		return bad(problemInvalidRequest, "category, state or from–to is invalid")
+	}
 	if errors.Is(err, groups.ErrNotFound) {
 		return apigen.ListExpenses404ApplicationProblemPlusJSONResponse{NotFoundApplicationProblemPlusJSONResponse: apigen.NotFoundApplicationProblemPlusJSONResponse(problemNotFound.problem(""))}, nil
 	}
@@ -212,6 +215,27 @@ func expensesProblem(err error) (apigen.Problem, bool) {
 		return problemVersionConflict.problem(""), true
 	}
 	return groupsProblem(err)
+}
+
+func expenseFilter(p apigen.ListExpensesParams) expenses.Filter {
+	var f expenses.Filter
+	if p.Member != nil {
+		m := platform.ID(*p.Member)
+		f.Member = &m
+	}
+	if p.Category != nil {
+		f.Category = string(*p.Category)
+	}
+	if p.State != nil {
+		f.State = string(*p.State)
+	}
+	if p.From != nil {
+		f.From = &p.From.Time
+	}
+	if p.To != nil {
+		f.To = &p.To.Time
+	}
+	return f
 }
 
 func expenseInput(b apigen.ExpenseInput) expenses.Input {

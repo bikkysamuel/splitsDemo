@@ -8,6 +8,8 @@ actor FakeExpensesRepository: ExpensesRepository {
   var pages: [String?: ExpensePage] = [nil: ExpensePage(items: [], nextCursor: nil)]
   var expenseResult: Result<Expense, ServiceError> = .success(.dinner)
   private(set) var previews: [ExpenseInput] = []
+  /// Every list request: its filter and cursor.
+  private(set) var listed: [(filter: ExpenseFilter, cursor: String?)] = []
   private(set) var created: [(input: ExpenseInput, key: WriteKey)] = []
   /// Answers to edits, in order; the last one repeats.
   var editResults: [Result<Expense, ServiceError>] = [.success(.dinner.edited)]
@@ -44,8 +46,9 @@ actor FakeExpensesRepository: ExpensesRepository {
     return try createResult.get()
   }
 
-  func expenses(groupID: UUID, cursor: String?) async throws(ServiceError) -> ExpensePage {
-    pages[cursor] ?? ExpensePage(items: [], nextCursor: nil)
+  func expenses(groupID: UUID, filter: ExpenseFilter, cursor: String?) async throws(ServiceError) -> ExpensePage {
+    listed.append((filter, cursor))
+    return pages[cursor] ?? ExpensePage(items: [], nextCursor: nil)
   }
 
   func expense(id: UUID) async throws(ServiceError) -> Expense { try expenseResult.get() }

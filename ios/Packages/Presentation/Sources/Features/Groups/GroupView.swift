@@ -11,6 +11,7 @@ struct GroupView: View {
   @State private var addExpense: AddExpenseViewModel?
   @State private var recordSettlement: RecordSettlementViewModel?
   @State private var promoting: Member?
+  @State private var filtering = false
 
   var body: some View {
     content
@@ -55,6 +56,16 @@ struct GroupView: View {
           RecordSettlementView(viewModel: model) { _ in
             recordSettlement = nil
             Task { await viewModel.settlementsChanged() }
+          }
+        }
+      }
+      .sheet(isPresented: $filtering) {
+        if let group = viewModel.state.value {
+          NavigationStack {
+            ExpenseFilterView(group: group, filter: viewModel.filter) { filter in
+              filtering = false
+              Task { await viewModel.apply(filter) }
+            }
           }
         }
       }
@@ -153,7 +164,8 @@ struct GroupView: View {
         }
         Section {
           if viewModel.expenses.isEmpty {
-            Text(LocalizedStringKey(Self.noExpenses), bundle: .module).foregroundStyle(.secondary)
+            Text(LocalizedStringKey(viewModel.filter.isActive ? Self.noMatches : Self.noExpenses), bundle: .module)
+              .foregroundStyle(.secondary)
           }
           ForEach(viewModel.expenses) { e in
             NavigationLink {
@@ -166,19 +178,36 @@ struct GroupView: View {
             } label: {
               ExpenseRow(expense: e, payerName: group.member(e.payerID)?.displayName)
             }
+            .task { await viewModel.expenseAppeared(e) }
           }
           if viewModel.hasMoreExpenses {
-            Button {
-              Task { await viewModel.loadMoreExpenses() }
-            } label: {
-              Text(LocalizedStringKey(Self.loadMore), bundle: .module).frame(minHeight: 44)
-            }
+            ProgressView()
+              .frame(maxWidth: .infinity)
+              .accessibilityLabel(Text(LocalizedStringKey(CommonKeys.loading), bundle: .module))
           }
           if let key = viewModel.expensesError {
             FieldErrorText(key: key)
           }
         } header: {
-          Text(LocalizedStringKey(Self.expenses), bundle: .module)
+          HStack {
+            Text(LocalizedStringKey(Self.expenses), bundle: .module)
+            Spacer()
+            Button {
+              filtering = true
+            } label: {
+              Label {
+                Text(LocalizedStringKey(Self.filter), bundle: .module)
+              } icon: {
+                Image(
+                  systemName: viewModel.filter.isActive
+                    ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+              }
+              .labelStyle(.iconOnly)
+              .frame(minWidth: 44, minHeight: 44)
+            }
+            .accessibilityValue(
+              Text(LocalizedStringKey(viewModel.filter.isActive ? Self.filterOn : Self.filterOff), bundle: .module))
+          }
         }
         if let key = viewModel.settlementsError {
           Section {
@@ -256,12 +285,15 @@ struct GroupView: View {
   nonisolated static let members = "Members"
   nonisolated static let expenses = "Expenses"
   nonisolated static let noExpenses = "No Expenses yet. Add the first with +."
-  nonisolated static let loadMore = "Show more"
+  nonisolated static let noMatches = "No Expenses match these filters."
+  nonisolated static let filter = "Filter"
+  nonisolated static let filterOn = "On"
+  nonisolated static let filterOff = "Off"
   nonisolated static let settlements = "Settlements"
   nonisolated static let allKeys =
     [
       rename, renameTitle, renameFailed, members, makeAdmin, makeAdminTitle, makeAdminMessage, expenses, noExpenses,
-      loadMore, settlements,
+      noMatches, filter, filterOn, filterOff, settlements,
     ]
     + MemberRow.allKeys
 }

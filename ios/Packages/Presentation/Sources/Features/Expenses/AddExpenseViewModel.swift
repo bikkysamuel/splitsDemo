@@ -267,14 +267,14 @@ public final class AddExpenseViewModel {
   }
 
   /// The day "yyyy-MM-dd" at the start of that day in the User's calendar.
-  static func date(_ day: String, calendar: Calendar = .current) -> Date? {
+  nonisolated static func date(_ day: String, calendar: Calendar = .current) -> Date? {
     let parts = day.split(separator: "-").compactMap { Int($0) }
     guard parts.count == 3 else { return nil }
     return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
   }
 
   /// "yyyy-MM-dd" of the day in the User's calendar.
-  static func day(_ date: Date, calendar: Calendar = .current) -> String {
+  nonisolated static func day(_ date: Date, calendar: Calendar = .current) -> String {
     let c = calendar.dateComponents([.year, .month, .day], from: date)
     return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
   }
