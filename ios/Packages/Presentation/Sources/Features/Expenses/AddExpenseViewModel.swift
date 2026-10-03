@@ -2,13 +2,15 @@ import Domain
 import Foundation
 import Observation
 
-/// Add Expense (FR-E1–E3, FR-E5): amount in the Group Currency or, with an
-/// Exchange Rate, in another currency, payer, Category,
-/// optional note, date, the Split method and the Members who share it, with
-/// an entry each for an exact, percentage or ratio Split. The form checks
-/// only that entries are well-formed; whether they add up is the server's
-/// check (ADR-0006). The live preview shows the exact Shares from the server, the same
-/// calculation the save uses (FR-E4, ADR-0006).
+/// Add Expense (FR-E1–E3, FR-E5), or Edit Expense for its creator: the
+/// form pre-filled, saved as a new revision with the version it changes
+/// (FR-E6). Amount in the Group Currency or, with an Exchange Rate, in
+/// another currency, payer, Category, optional note, date, the Split method
+/// and the Members who share it, with an entry each for an exact,
+/// percentage or ratio Split. The form checks only that entries are
+/// well-formed; whether they add up is the server's check. The live preview
+/// shows the exact Shares from the server, the same calculation the save
+/// uses (FR-E4, ADR-0006).
 @MainActor
 @Observable
 public final class AddExpenseViewModel {
@@ -33,6 +35,11 @@ public final class AddExpenseViewModel {
   /// part, depending on `method`.
   public var entryTexts: [UUID: String] = [:]
   public private(set) var isSubmitting = false
+  /// The Expense being edited, as last loaded; nil when adding one.
+  public private(set) var editing: Expense?
+  /// Whether the last save was refused because someone else changed the
+  /// Expense meanwhile (NFR-R4): `reload()` fetches the current one.
+  private(set) var isStale = false
   private(set) var errors = FormErrors()
   /// The latest preview's Shares, or nil before one arrives.
   private(set) var preview: ExpensePreview?
@@ -45,6 +52,7 @@ public final class AddExpenseViewModel {
   private let repository: any ExpensesRepository
   private let locale: Locale
   private var keys = WriteKeys<ExpenseInput>()
+  private var editKeys = WriteKeys<EditAttempt>()
 
   public init(group: Domain.Group, repository: any ExpensesRepository, today: Date = .now, locale: Locale = .current) {
     self.group = group
@@ -54,6 +62,51 @@ public final class AddExpenseViewModel {
     self.currency = group.currency
     self.payerID = group.myMemberID
     self.splitMembers = Set(group.activeMembers.map(\.id))
+  }
+
+  /// Edit Expense: the form pre-filled with `expense` as saved.
+  public convenience init(
+    editing expense: Expense, group: Domain.Group, repository: any ExpensesRepository, locale: Locale = .current
+  ) {
+    self.init(group: group, repository: repository, locale: locale)
+    fill(expense)
+  }
+
+  public var isEditing: Bool { editing != nil }
+
+  /// Puts a saved Expense into the form, as text that reads back to it.
+  private func fill(_ e: Expense) {
+    editing = e
+    currency = e.originalAmount.currency
+    amountText = e.originalAmount.editableText(locale: locale)
+    rateText = e.exchangeRate.map { ExchangeRate.editableText($0, locale: locale) } ?? ""
+    payerID = e.payerID
+    category = e.category
+    note = e.note ?? ""
+    spentOn = Self.date(e.spentOn) ?? spentOn
+    method = e.splitMethod
+    splitMembers = Set(e.shares.map(\.memberID))
+    var entries: [UUID: String] = [:]
+    for share in e.shares {
+      if let input = share.input {
+        entries[share.memberID] = e.splitMethod.editableInput(input, currency: group.currency, locale: locale)
+      }
+    }
+    entryTexts = entries
+  }
+
+  /// Fetches the Expense as it now is into the form, after someone else
+  /// changed it; what was typed is replaced.
+  public func reload() async {
+    guard let editing else { return }
+    do {
+      fill(try await repository.expense(id: editing.id))
+      isStale = false
+      errors = FormErrors()
+      preview = nil
+    } catch {
+      errors = FormErrors(error)
+    }
   }
 
   /// The Members who can pay or share: active ones, in joining order.
@@ -172,21 +225,38 @@ public final class AddExpenseViewModel {
     }
   }
 
-  /// Records the Expense; returns it on success. A retry of the same input
-  /// reuses its Idempotency-Key, so it is never recorded twice.
+  /// Records the Expense, or saves the edit; returns it on success. A
+  /// retry of the same input reuses its Idempotency-Key, so it is never
+  /// saved twice.
   public func submit() async -> Expense? {
     guard let input, !isSubmitting else { return nil }
     isSubmitting = true
     defer { isSubmitting = false }
     do {
-      let expense = try await repository.createExpense(groupID: group.id, input: input, key: keys.key(for: input))
-      keys.succeeded()
+      let expense: Expense
+      if let editing {
+        expense = try await repository.editExpense(
+          id: editing.id, version: editing.version, input: input,
+          key: editKeys.key(for: EditAttempt(version: editing.version, input: input)))
+        editKeys.succeeded()
+      } else {
+        expense = try await repository.createExpense(groupID: group.id, input: input, key: keys.key(for: input))
+        keys.succeeded()
+      }
       errors = FormErrors()
       return expense
     } catch {
       errors = FormErrors(error)
+      isStale = error == .problem(.versionConflict)
       return nil
     }
+  }
+
+  /// One edit request: the same input on another version is another
+  /// request, so it takes another Idempotency-Key.
+  private struct EditAttempt: Hashable {
+    let version: Int
+    let input: ExpenseInput
   }
 
   /// Whether every refused field has a place on the form to show it.
@@ -194,6 +264,13 @@ public final class AddExpenseViewModel {
     guard case .invalidFields(let issues) = error else { return false }
     let shown: Set<String> = ["amount/minor", "amount/currency", "exchange_rate", "note", "split", "split/members"]
     return issues.allSatisfy { shown.contains($0.field) || $0.field.hasSuffix("/input") }
+  }
+
+  /// The day "yyyy-MM-dd" at the start of that day in the User's calendar.
+  static func date(_ day: String, calendar: Calendar = .current) -> Date? {
+    let parts = day.split(separator: "-").compactMap { Int($0) }
+    guard parts.count == 3 else { return nil }
+    return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
   }
 
   /// "yyyy-MM-dd" of the day in the User's calendar.

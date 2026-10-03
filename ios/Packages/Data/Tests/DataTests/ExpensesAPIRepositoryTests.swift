@@ -191,6 +191,50 @@ struct ExpensesAPIRepositoryTests {
     #expect(expense.shares.map(\.amount.minorUnits) == [667, 334])
   }
 
+  // FR-E6: an edit sends the whole Expense with the version it changes.
+  @Test func editSendsTheInputWithTheVersionAndMapsTheNewRevision() async throws {
+    let path = "/v1/expenses/\(Self.expenseID.uuidString.lowercased())"
+    let transport = try PathTransport(["PATCH \(path)": .fixture("expense-edit-200")])
+    let repository = try makeRepository(transport)
+    let key = WriteKey()
+
+    let e = try await repository.editExpense(id: Self.expenseID, version: 1, input: input, key: key)
+
+    #expect(e.revision == 2 && e.version == 2 && e.category == .transport)
+    #expect(e.amount == Money(minorUnits: 120000, currency: "INR"))
+    let sent = try #require(await transport.sent.first)
+    #expect(sent.request.headerFields[HTTPField.Name("Idempotency-Key")!] == key.value.uuidString)
+    let body = try #require(try JSONSerialization.jsonObject(with: sent.body) as? [String: Any])
+    #expect(body["version"] as? Int == 1)
+    #expect(body["category"] as? String == "food_drink")
+    #expect((body["split"] as? [String: Any])?["method"] as? String == "equal")
+  }
+
+  @Test func aStaleEditIsAVersionConflict() async throws {
+    let path = "/v1/expenses/\(Self.expenseID.uuidString.lowercased())"
+    let transport = try PathTransport([
+      "PATCH \(path)": .fixture("expense-edit-409-version-conflict", status: .conflict, problem: true)
+    ])
+    let repository = try makeRepository(transport)
+
+    await #expect(throws: ServiceError.problem(.versionConflict)) {
+      try await repository.editExpense(id: Self.expenseID, version: 1, input: input, key: WriteKey())
+    }
+  }
+
+  @Test func withdrawSendsTheVersion() async throws {
+    let path = "/v1/expenses/\(Self.expenseID.uuidString.lowercased())/withdraw"
+    let transport = try PathTransport(["POST \(path)": .fixture("expense-withdraw-200")])
+    let repository = try makeRepository(transport)
+
+    let e = try await repository.withdrawExpense(id: Self.expenseID, version: 1, key: WriteKey())
+
+    #expect(e.state == .withdrawn && e.version == 2 && e.revision == 1)
+    let sent = try #require(await transport.sent.first)
+    let body = try #require(try JSONSerialization.jsonObject(with: sent.body) as? [String: Any])
+    #expect(body["version"] as? Int == 1)
+  }
+
   private func makeRepository(_ transport: PathTransport) throws -> ExpensesAPIRepository {
     ExpensesAPIRepository(
       api: APISession(

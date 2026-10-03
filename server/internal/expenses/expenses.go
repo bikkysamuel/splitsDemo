@@ -21,6 +21,15 @@ var (
 	ErrNotFound = errors.New("expenses: not found")
 	// ErrGroupClosed: the Group is Closed and read-only (FR-G6).
 	ErrGroupClosed = errors.New("expenses: group closed")
+	// ErrNotCreator: only the Expense's creator edits or withdraws it
+	// (FR-E6).
+	ErrNotCreator = errors.New("expenses: not the creator")
+	// ErrInvalidState: the Expense's state doesn't allow this, such as
+	// editing a withdrawn one.
+	ErrInvalidState = errors.New("expenses: invalid state")
+	// ErrVersionConflict: the Expense changed since the version sent
+	// (NFR-R4).
+	ErrVersionConflict = errors.New("expenses: version conflict")
 )
 
 // Categories is the fixed Category list (D7), as stored in
@@ -110,9 +119,18 @@ type Expense struct {
 	SpentOn   time.Time
 	Method    string
 	State     string
+	Revision  int // 1, then one more per edit (FR-E6)
 	Version   int
 	CreatedAt time.Time
 	Shares    []Share
+}
+
+// Change is one field an edit changed, as the Activity History keeps it
+// (FR-H1): Field is the JSON name, From and To plain JSON values.
+type Change struct {
+	Field string
+	From  any
+	To    any
 }
 
 // Summary is an Expense in a list.
@@ -158,4 +176,15 @@ type Repository interface {
 	// List returns up to limit Expenses of the Group after the cursor (nil
 	// for the first page), newest first.
 	List(ctx context.Context, groupID platform.ID, after *Cursor, limit int) ([]Summary, error)
+	// Update saves e as the Expense's next revision, with its Shares and an
+	// `expense_edited` event by actor carrying the changes, if the Expense
+	// is still at version in fromState; the Group's state is held steady.
+	// It returns the Expense with its new revision and version, or
+	// ErrGroupClosed or ErrVersionConflict.
+	Update(ctx context.Context, e Expense, fromState string, version int, changes []Change, actor platform.ID, now time.Time) (Expense, error)
+	// Withdraw moves the Expense from fromState to Withdrawn if it is still
+	// at version, writing an `expense_withdrawn` event by actor, with the
+	// Group's state held steady; it returns ErrGroupClosed or
+	// ErrVersionConflict otherwise.
+	Withdraw(ctx context.Context, e Expense, fromState string, version int, actor platform.ID, now time.Time) (Expense, error)
 }

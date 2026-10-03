@@ -11,9 +11,21 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteShares = `-- name: DeleteShares :exec
+DELETE FROM expense_shares WHERE expense_id = $1
+`
+
+// Before a revision's Shares are written; the old ones are kept in its
+// `expense_edited` event.
+func (q *Queries) DeleteShares(ctx context.Context, expenseID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteShares, expenseID)
+	return err
+}
+
 const expenseForUser = `-- name: ExpenseForUser :one
 SELECT e.id, e.group_id, e.created_by, e.payer_id, e.category, e.note, e.spent_on, e.original_minor,
-       e.original_currency, e.exchange_rate, e.amount_minor, e.split_method, e.state, e.version, e.created_at, g.currency
+       e.original_currency, e.exchange_rate, e.amount_minor, e.split_method, e.state, e.revision, e.version, e.created_at,
+       g.currency
 FROM expenses e
 JOIN groups g ON g.id = e.group_id
 JOIN members m ON m.group_id = e.group_id
@@ -39,6 +51,7 @@ type ExpenseForUserRow struct {
 	AmountMinor      int64
 	SplitMethod      string
 	State            string
+	Revision         int32
 	Version          int32
 	CreatedAt        pgtype.Timestamptz
 	Currency         string
@@ -62,6 +75,7 @@ func (q *Queries) ExpenseForUser(ctx context.Context, arg ExpenseForUserParams) 
 		&i.AmountMinor,
 		&i.SplitMethod,
 		&i.State,
+		&i.Revision,
 		&i.Version,
 		&i.CreatedAt,
 		&i.Currency,
@@ -278,5 +292,86 @@ func (q *Queries) LockGroupShared(ctx context.Context, id pgtype.UUID) (LockGrou
 	row := q.db.QueryRow(ctx, lockGroupShared, id)
 	var i LockGroupSharedRow
 	err := row.Scan(&i.State, &i.Currency)
+	return i, err
+}
+
+const setExpenseState = `-- name: SetExpenseState :one
+UPDATE expenses SET state = $1, updated_at = $2, version = version + 1
+WHERE id = $3 AND version = $4 AND state = $5
+RETURNING version
+`
+
+type SetExpenseStateParams struct {
+	State     string
+	Now       pgtype.Timestamptz
+	ID        pgtype.UUID
+	Version   int32
+	FromState string
+}
+
+func (q *Queries) SetExpenseState(ctx context.Context, arg SetExpenseStateParams) (int32, error) {
+	row := q.db.QueryRow(ctx, setExpenseState,
+		arg.State,
+		arg.Now,
+		arg.ID,
+		arg.Version,
+		arg.FromState,
+	)
+	var version int32
+	err := row.Scan(&version)
+	return version, err
+}
+
+const updateExpense = `-- name: UpdateExpense :one
+UPDATE expenses
+SET payer_id = $1, category = $2, note = $3, spent_on = $4, original_minor = $5,
+    original_currency = $6, exchange_rate = $7, amount_minor = $8,
+    split_method = $9, state = $10, revision = revision + 1, updated_at = $11, version = version + 1
+WHERE id = $12 AND version = $13 AND state = $14
+RETURNING revision, version
+`
+
+type UpdateExpenseParams struct {
+	PayerID          pgtype.UUID
+	Category         string
+	Note             pgtype.Text
+	SpentOn          pgtype.Date
+	OriginalMinor    int64
+	OriginalCurrency string
+	ExchangeRate     pgtype.Numeric
+	AmountMinor      int64
+	SplitMethod      string
+	State            string
+	Now              pgtype.Timestamptz
+	ID               pgtype.UUID
+	Version          int32
+	FromState        string
+}
+
+type UpdateExpenseRow struct {
+	Revision int32
+	Version  int32
+}
+
+// A new revision of the Expense, if it is still at version and in from_state.
+func (q *Queries) UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (UpdateExpenseRow, error) {
+	row := q.db.QueryRow(ctx, updateExpense,
+		arg.PayerID,
+		arg.Category,
+		arg.Note,
+		arg.SpentOn,
+		arg.OriginalMinor,
+		arg.OriginalCurrency,
+		arg.ExchangeRate,
+		arg.AmountMinor,
+		arg.SplitMethod,
+		arg.State,
+		arg.Now,
+		arg.ID,
+		arg.Version,
+		arg.FromState,
+	)
+	var i UpdateExpenseRow
+	err := row.Scan(&i.Revision, &i.Version)
 	return i, err
 }

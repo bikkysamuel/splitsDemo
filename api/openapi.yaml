@@ -784,6 +784,7 @@ paths:
                 spent_on: "2026-10-01"
                 split_method: equal
                 state: accepted
+                revision: 1
                 version: 1
                 created_at: "2026-10-01T19:30:00Z"
                 shares:
@@ -1083,6 +1084,7 @@ paths:
                 spent_on: "2026-10-01"
                 split_method: equal
                 state: accepted
+                revision: 1
                 version: 1
                 created_at: "2026-10-01T19:30:00Z"
                 shares:
@@ -1100,6 +1102,159 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    patch:
+      operationId: editExpense
+      summary: Edit an Expense
+      description: |
+        Only its creator edits an Expense (FR-E6); others get `not-creator`
+        (they use a Change Request, M2). The body is the whole Expense as
+        edited, with the `version` last read; a stale one answers
+        `version-conflict` (NFR-R4). Shares are recomputed exactly as on
+        create, and an Exchange Rate change is an edit (Q36). A change
+        adds a revision: `revision` and `version` go up by one and an
+        `expense_edited` Activity History event stores the field-level
+        diff, in the same transaction. Sending what is already saved
+        changes nothing. In M1 the Expense stays accepted (D9); with the
+        agreement flow (M2) an edit makes it Pending again. A withdrawn
+        Expense answers `invalid-state`; a Closed Group `group-closed`.
+      tags: [expenses]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        description: The Expense as edited, and the version it changes.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseEdit"
+            example:
+              version: 1
+              payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+              amount: {minor: 120000, currency: INR}
+              category: food_drink
+              note: Dinner at the beach shack
+              spent_on: "2026-10-01"
+              split:
+                method: equal
+                members:
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d3
+      responses:
+        "200":
+          description: The Expense as it now is.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000e1
+                group_id: 0190b6c4-0000-7000-8000-0000000000c1
+                payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                created_by_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                amount: {minor: 120000, currency: INR}
+                original_amount: {minor: 120000, currency: INR}
+                category: food_drink
+                note: Dinner at the beach shack
+                spent_on: "2026-10-01"
+                split_method: equal
+                state: accepted
+                revision: 2
+                version: 2
+                created_at: "2026-10-01T19:30:00Z"
+                shares:
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                    share: {minor: 40000, currency: INR}
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d2
+                    share: {minor: 40000, currency: INR}
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d3
+                    share: {minor: 40000, currency: INR}
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "422":
+          $ref: "#/components/responses/IdempotencyKeyReused"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/expenses/{expenseId}/withdraw:
+    parameters:
+      - $ref: "#/components/parameters/ExpenseId"
+    post:
+      operationId: withdrawExpense
+      summary: Withdraw an Expense
+      description: |
+        Only its creator withdraws an Expense (FR-E6); others get
+        `not-creator`. Nothing is erased: the Expense stays in the list and
+        the Activity History (`expense_withdrawn`) but stops counting toward
+        Balances. In M1 it is Withdrawn at once; with the agreement flow
+        (M2) an accepted one becomes WithdrawalPending first. Already
+        withdrawn: `invalid-state`. Send the `version` you last read
+        (`version-conflict` if stale).
+      tags: [expenses]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        description: The version being withdrawn.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VersionRequest"
+            example:
+              version: 1
+      responses:
+        "200":
+          description: The withdrawn Expense.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+              example:
+                id: 0190b6c4-0000-7000-8000-0000000000e1
+                group_id: 0190b6c4-0000-7000-8000-0000000000c1
+                payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                created_by_member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                amount: {minor: 100001, currency: INR}
+                original_amount: {minor: 100001, currency: INR}
+                category: food_drink
+                spent_on: "2026-10-01"
+                split_method: equal
+                state: withdrawn
+                revision: 1
+                version: 2
+                created_at: "2026-10-01T19:30:00Z"
+                shares:
+                  - member_id: 0190b6c4-0000-7000-8000-0000000000d1
+                    share: {minor: 100001, currency: INR}
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "422":
+          $ref: "#/components/responses/IdempotencyKeyReused"
         "500":
           $ref: "#/components/responses/InternalError"
   /v1/me:
@@ -1738,6 +1893,45 @@ components:
         split:
           $ref: "#/components/schemas/SplitInput"
 
+    ExpenseEdit:
+      description: |
+        An Expense as edited (FR-E6): every field of `ExpenseInput`, sent
+        whole as the form shows it, plus the `version` it changes.
+      type: object
+      required: [version, payer_member_id, amount, category, spent_on, split]
+      additionalProperties: false
+      properties:
+        version:
+          type: integer
+          format: int32
+          examples: [1]
+        payer_member_id:
+          type: string
+          format: uuid
+          examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
+        amount:
+          description: The Original Amount, as in `ExpenseInput`.
+          $ref: "#/components/schemas/Money"
+          examples:
+            - {minor: 1050, currency: USD}
+        exchange_rate:
+          description: Required when `amount` isn't in the Group Currency; not allowed when it is.
+          $ref: "#/components/schemas/ExchangeRate"
+          examples: ["83.25"]
+        category:
+          $ref: "#/components/schemas/Category"
+        note:
+          description: Optional, at most 500 characters after trimming (D1); absent or blank removes it.
+          type: string
+          maxLength: 2000
+          examples: ["Dinner at the beach shack"]
+        spent_on:
+          type: string
+          format: date
+          examples: ["2026-10-01"]
+        split:
+          $ref: "#/components/schemas/SplitInput"
+
     SplitInputValue:
       description: |
         What was entered for one Member, as an exact decimal string (never
@@ -1849,7 +2043,7 @@ components:
     Expense:
       description: An Expense with its Shares (FR-E1).
       type: object
-      required: [id, group_id, payer_member_id, created_by_member_id, amount, original_amount, category, spent_on, split_method, state, version, created_at, shares]
+      required: [id, group_id, payer_member_id, created_by_member_id, amount, original_amount, category, spent_on, split_method, state, revision, version, created_at, shares]
       additionalProperties: false
       properties:
         id:
@@ -1895,6 +2089,12 @@ components:
           $ref: "#/components/schemas/SplitMethod"
         state:
           $ref: "#/components/schemas/ExpenseState"
+        revision:
+          description: Starts at 1 and goes up with every edit (FR-E6); the Activity History holds each revision's changes.
+          type: integer
+          format: int32
+          minimum: 1
+          examples: [1]
         version:
           type: integer
           format: int32
@@ -2203,7 +2403,8 @@ components:
     Forbidden:
       description: |
         The signed-in User may not do this: their email isn't verified
-        (`email-not-verified`) or they aren't an Admin (`admin-required`).
+        (`email-not-verified`), they aren't an Admin (`admin-required`), or
+        they didn't create the item (`not-creator`).
       content:
         application/problem+json:
           schema:
@@ -2225,7 +2426,9 @@ components:
     Conflict:
       description: |
         The request conflicts with the current state: a stale `version`
-        (`version-conflict`), the Group limit (`group-limit-reached`), or a
+        (`version-conflict`), an item whose state doesn't allow it
+        (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+        (`group-limit-reached`), or a
         request with the same Idempotency-Key still running
         (`idempotency-key-in-progress`).
       content:

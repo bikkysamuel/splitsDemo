@@ -1836,7 +1836,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/get(listGroups)/responses/403`.
@@ -2082,7 +2083,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/post(createGroup)/responses/403`.
@@ -2107,7 +2109,9 @@ public enum Operations {
                 }
             }
             /// The request conflicts with the current state: a stale `version`
-            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// (`version-conflict`), an item whose state doesn't allow it
+            /// (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+            /// (`group-limit-reached`), or a
             /// request with the same Idempotency-Key still running
             /// (`idempotency-key-in-progress`).
             ///
@@ -2392,7 +2396,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/{groupId}/get(getGroup)/responses/403`.
@@ -2678,7 +2683,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/{groupId}/patch(renameGroup)/responses/403`.
@@ -2726,7 +2732,9 @@ public enum Operations {
                 }
             }
             /// The request conflicts with the current state: a stale `version`
-            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// (`version-conflict`), an item whose state doesn't allow it
+            /// (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+            /// (`group-limit-reached`), or a
             /// request with the same Idempotency-Key still running
             /// (`idempotency-key-in-progress`).
             ///
@@ -3041,7 +3049,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/{groupId}/members/post(addMember)/responses/403`.
@@ -3089,7 +3098,9 @@ public enum Operations {
                 }
             }
             /// The request conflicts with the current state: a stale `version`
-            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// (`version-conflict`), an item whose state doesn't allow it
+            /// (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+            /// (`group-limit-reached`), or a
             /// request with the same Idempotency-Key still running
             /// (`idempotency-key-in-progress`).
             ///
@@ -3410,7 +3421,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/{groupId}/members/{memberId}/patch(updateMember)/responses/403`.
@@ -3458,7 +3470,9 @@ public enum Operations {
                 }
             }
             /// The request conflicts with the current state: a stale `version`
-            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// (`version-conflict`), an item whose state doesn't allow it
+            /// (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+            /// (`group-limit-reached`), or a
             /// request with the same Idempotency-Key still running
             /// (`idempotency-key-in-progress`).
             ///
@@ -3754,7 +3768,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/preview/post(previewExpense)/responses/403`.
@@ -3802,7 +3817,9 @@ public enum Operations {
                 }
             }
             /// The request conflicts with the current state: a stale `version`
-            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// (`version-conflict`), an item whose state doesn't allow it
+            /// (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+            /// (`group-limit-reached`), or a
             /// request with the same Idempotency-Key still running
             /// (`idempotency-key-in-progress`).
             ///
@@ -4089,7 +4106,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/get(listExpenses)/responses/403`.
@@ -4376,7 +4394,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/{groupId}/expenses/post(createExpense)/responses/403`.
@@ -4424,7 +4443,9 @@ public enum Operations {
                 }
             }
             /// The request conflicts with the current state: a stale `version`
-            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// (`version-conflict`), an item whose state doesn't allow it
+            /// (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+            /// (`group-limit-reached`), or a
             /// request with the same Idempotency-Key still running
             /// (`idempotency-key-in-progress`).
             ///
@@ -4713,7 +4734,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/{groupId}/balances/get(getBalances)/responses/403`.
@@ -4998,7 +5020,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/get(listSettlements)/responses/403`.
@@ -5288,7 +5311,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/groups/{groupId}/settlements/post(recordSettlement)/responses/403`.
@@ -5336,7 +5360,9 @@ public enum Operations {
                 }
             }
             /// The request conflicts with the current state: a stale `version`
-            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// (`version-conflict`), an item whose state doesn't allow it
+            /// (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+            /// (`group-limit-reached`), or a
             /// request with the same Idempotency-Key still running
             /// (`idempotency-key-in-progress`).
             ///
@@ -5622,7 +5648,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/get(getSettlement)/responses/403`.
@@ -5910,7 +5937,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/settlements/{settlementId}/withdraw/post(withdrawSettlement)/responses/403`.
@@ -5958,7 +5986,9 @@ public enum Operations {
                 }
             }
             /// The request conflicts with the current state: a stale `version`
-            /// (`version-conflict`), the Group limit (`group-limit-reached`), or a
+            /// (`version-conflict`), an item whose state doesn't allow it
+            /// (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+            /// (`group-limit-reached`), or a
             /// request with the same Idempotency-Key still running
             /// (`idempotency-key-in-progress`).
             ///
@@ -6244,7 +6274,8 @@ public enum Operations {
                 }
             }
             /// The signed-in User may not do this: their email isn't verified
-            /// (`email-not-verified`) or they aren't an Admin (`admin-required`).
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
             ///
             ///
             /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/get(getExpense)/responses/403`.
@@ -6294,6 +6325,742 @@ public enum Operations {
             /// An unexpected server failure.
             ///
             /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/get(getExpense)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
+    /// Edit an Expense
+    ///
+    /// Only its creator edits an Expense (FR-E6); others get `not-creator`
+    /// (they use a Change Request, M2). The body is the whole Expense as
+    /// edited, with the `version` last read; a stale one answers
+    /// `version-conflict` (NFR-R4). Shares are recomputed exactly as on
+    /// create, and an Exchange Rate change is an edit (Q36). A change
+    /// adds a revision: `revision` and `version` go up by one and an
+    /// `expense_edited` Activity History event stores the field-level
+    /// diff, in the same transaction. Sending what is already saved
+    /// changes nothing. In M1 the Expense stays accepted (D9); with the
+    /// agreement flow (M2) an edit makes it Pending again. A withdrawn
+    /// Expense answers `invalid-state`; a Closed Group `group-closed`.
+    ///
+    ///
+    /// - Remark: HTTP `PATCH /v1/expenses/{expenseId}`.
+    /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)`.
+    public enum EditExpense {
+        public static let id: Swift.String = "editExpense"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/PATCH/path`.
+            public struct Path: Sendable, Hashable {
+                /// The Expense's ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/PATCH/path/expenseId`.
+                public var expenseId: Components.Parameters.ExpenseId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - expenseId: The Expense's ID.
+                public init(expenseId: Components.Parameters.ExpenseId) {
+                    self.expenseId = expenseId
+                }
+            }
+            public var path: Operations.EditExpense.Input.Path
+            /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/PATCH/header`.
+            public struct Headers: Sendable, Hashable {
+                /// A client-generated UUID, required on every write by a signed-in User
+                /// (NFR-R1). Repeating a request with the same key within 24 hours
+                /// returns the original response; reusing a key for a different request
+                /// answers `idempotency-key-reused`, and repeating it while the first is
+                /// still running answers `idempotency-key-in-progress`. Responses with a
+                /// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+                /// it: their responses carry tokens, which are never stored (ADR-0011).
+                ///
+                ///
+                /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/PATCH/header/Idempotency-Key`.
+                public var idempotencyKey: Components.Parameters.IdempotencyKey
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.EditExpense.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - idempotencyKey: A client-generated UUID, required on every write by a signed-in User
+                ///   - accept:
+                public init(
+                    idempotencyKey: Components.Parameters.IdempotencyKey,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.EditExpense.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.idempotencyKey = idempotencyKey
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.EditExpense.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/PATCH/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/PATCH/requestBody/content/application\/json`.
+                case json(Components.Schemas.ExpenseEdit)
+            }
+            public var body: Operations.EditExpense.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            ///   - body:
+            public init(
+                path: Operations.EditExpense.Input.Path,
+                headers: Operations.EditExpense.Input.Headers,
+                body: Operations.EditExpense.Input.Body
+            ) {
+                self.path = path
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/PATCH/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/PATCH/responses/200/content/application\/json`.
+                    case json(Components.Schemas.Expense)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Expense {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.EditExpense.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.EditExpense.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The Expense as it now is.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.EditExpense.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.EditExpense.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request could not be decoded (`invalid-request`), a field is
+            /// invalid (`validation-failed`, with `errors`), or a one-time code was
+            /// refused (`invalid-code`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No access token, or it is unknown, expired or revoked.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthenticated)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthenticated {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The signed-in User may not do this: their email isn't verified
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No such resource, or one the User can't see.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Components.Responses.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Components.Responses.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request conflicts with the current state: a stale `version`
+            /// (`version-conflict`), an item whose state doesn't allow it
+            /// (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+            /// (`group-limit-reached`), or a
+            /// request with the same Idempotency-Key still running
+            /// (`idempotency-key-in-progress`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)/responses/409`.
+            ///
+            /// HTTP response code: `409 conflict`.
+            case conflict(Components.Responses.Conflict)
+            /// The associated value of the enum case if `self` is `.conflict`.
+            ///
+            /// - Throws: An error if `self` is not `.conflict`.
+            /// - SeeAlso: `.conflict`.
+            public var conflict: Components.Responses.Conflict {
+                get throws {
+                    switch self {
+                    case let .conflict(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "conflict",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request body is over 64 KB.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)/responses/413`.
+            ///
+            /// HTTP response code: `413 contentTooLarge`.
+            case contentTooLarge(Components.Responses.RequestTooLarge)
+            /// The associated value of the enum case if `self` is `.contentTooLarge`.
+            ///
+            /// - Throws: An error if `self` is not `.contentTooLarge`.
+            /// - SeeAlso: `.contentTooLarge`.
+            public var contentTooLarge: Components.Responses.RequestTooLarge {
+                get throws {
+                    switch self {
+                    case let .contentTooLarge(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "contentTooLarge",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The Idempotency-Key was already used for a different request.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)/responses/422`.
+            ///
+            /// HTTP response code: `422 unprocessableContent`.
+            case unprocessableContent(Components.Responses.IdempotencyKeyReused)
+            /// The associated value of the enum case if `self` is `.unprocessableContent`.
+            ///
+            /// - Throws: An error if `self` is not `.unprocessableContent`.
+            /// - SeeAlso: `.unprocessableContent`.
+            public var unprocessableContent: Components.Responses.IdempotencyKeyReused {
+                get throws {
+                    switch self {
+                    case let .unprocessableContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unprocessableContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// An unexpected server failure.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/patch(editExpense)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
+    /// Withdraw an Expense
+    ///
+    /// Only its creator withdraws an Expense (FR-E6); others get
+    /// `not-creator`. Nothing is erased: the Expense stays in the list and
+    /// the Activity History (`expense_withdrawn`) but stops counting toward
+    /// Balances. In M1 it is Withdrawn at once; with the agreement flow
+    /// (M2) an accepted one becomes WithdrawalPending first. Already
+    /// withdrawn: `invalid-state`. Send the `version` you last read
+    /// (`version-conflict` if stale).
+    ///
+    ///
+    /// - Remark: HTTP `POST /v1/expenses/{expenseId}/withdraw`.
+    /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)`.
+    public enum WithdrawExpense {
+        public static let id: Swift.String = "withdrawExpense"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/withdraw/POST/path`.
+            public struct Path: Sendable, Hashable {
+                /// The Expense's ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/withdraw/POST/path/expenseId`.
+                public var expenseId: Components.Parameters.ExpenseId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - expenseId: The Expense's ID.
+                public init(expenseId: Components.Parameters.ExpenseId) {
+                    self.expenseId = expenseId
+                }
+            }
+            public var path: Operations.WithdrawExpense.Input.Path
+            /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/withdraw/POST/header`.
+            public struct Headers: Sendable, Hashable {
+                /// A client-generated UUID, required on every write by a signed-in User
+                /// (NFR-R1). Repeating a request with the same key within 24 hours
+                /// returns the original response; reusing a key for a different request
+                /// answers `idempotency-key-reused`, and repeating it while the first is
+                /// still running answers `idempotency-key-in-progress`. Responses with a
+                /// 5xx status are not kept, so the request can be retried. Anonymous auth endpoints don't take
+                /// it: their responses carry tokens, which are never stored (ADR-0011).
+                ///
+                ///
+                /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/withdraw/POST/header/Idempotency-Key`.
+                public var idempotencyKey: Components.Parameters.IdempotencyKey
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.WithdrawExpense.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - idempotencyKey: A client-generated UUID, required on every write by a signed-in User
+                ///   - accept:
+                public init(
+                    idempotencyKey: Components.Parameters.IdempotencyKey,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.WithdrawExpense.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.idempotencyKey = idempotencyKey
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.WithdrawExpense.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/withdraw/POST/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/withdraw/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.VersionRequest)
+            }
+            public var body: Operations.WithdrawExpense.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            ///   - body:
+            public init(
+                path: Operations.WithdrawExpense.Input.Path,
+                headers: Operations.WithdrawExpense.Input.Headers,
+                body: Operations.WithdrawExpense.Input.Body
+            ) {
+                self.path = path
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/withdraw/POST/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/expenses/{expenseId}/withdraw/POST/responses/200/content/application\/json`.
+                    case json(Components.Schemas.Expense)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Expense {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.WithdrawExpense.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.WithdrawExpense.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The withdrawn Expense.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.WithdrawExpense.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.WithdrawExpense.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request could not be decoded (`invalid-request`), a field is
+            /// invalid (`validation-failed`, with `errors`), or a one-time code was
+            /// refused (`invalid-code`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No access token, or it is unknown, expired or revoked.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthenticated)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthenticated {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The signed-in User may not do this: their email isn't verified
+            /// (`email-not-verified`), they aren't an Admin (`admin-required`), or
+            /// they didn't create the item (`not-creator`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// No such resource, or one the User can't see.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Components.Responses.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Components.Responses.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request conflicts with the current state: a stale `version`
+            /// (`version-conflict`), an item whose state doesn't allow it
+            /// (`invalid-state`), a Closed Group (`group-closed`), the Group limit
+            /// (`group-limit-reached`), or a
+            /// request with the same Idempotency-Key still running
+            /// (`idempotency-key-in-progress`).
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)/responses/409`.
+            ///
+            /// HTTP response code: `409 conflict`.
+            case conflict(Components.Responses.Conflict)
+            /// The associated value of the enum case if `self` is `.conflict`.
+            ///
+            /// - Throws: An error if `self` is not `.conflict`.
+            /// - SeeAlso: `.conflict`.
+            public var conflict: Components.Responses.Conflict {
+                get throws {
+                    switch self {
+                    case let .conflict(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "conflict",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The request body is over 64 KB.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)/responses/413`.
+            ///
+            /// HTTP response code: `413 contentTooLarge`.
+            case contentTooLarge(Components.Responses.RequestTooLarge)
+            /// The associated value of the enum case if `self` is `.contentTooLarge`.
+            ///
+            /// - Throws: An error if `self` is not `.contentTooLarge`.
+            /// - SeeAlso: `.contentTooLarge`.
+            public var contentTooLarge: Components.Responses.RequestTooLarge {
+                get throws {
+                    switch self {
+                    case let .contentTooLarge(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "contentTooLarge",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// The Idempotency-Key was already used for a different request.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)/responses/422`.
+            ///
+            /// HTTP response code: `422 unprocessableContent`.
+            case unprocessableContent(Components.Responses.IdempotencyKeyReused)
+            /// The associated value of the enum case if `self` is `.unprocessableContent`.
+            ///
+            /// - Throws: An error if `self` is not `.unprocessableContent`.
+            /// - SeeAlso: `.unprocessableContent`.
+            public var unprocessableContent: Components.Responses.IdempotencyKeyReused {
+                get throws {
+                    switch self {
+                    case let .unprocessableContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unprocessableContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// An unexpected server failure.
+            ///
+            /// - Remark: Generated from `#/paths//v1/expenses/{expenseId}/withdraw/post(withdrawExpense)/responses/500`.
             ///
             /// HTTP response code: `500 internalServerError`.
             case internalServerError(Components.Responses.InternalError)

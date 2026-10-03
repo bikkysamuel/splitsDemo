@@ -94,7 +94,7 @@ func (s *Service) Create(ctx context.Context, userID, groupID platform.ID, in In
 	e := Expense{
 		ID: s.deps.IDs.New(), GroupID: g.ID, PayerID: in.PayerID, CreatedBy: g.MyMemberID,
 		Amount: c.Amount, Currency: c.Currency, Original: c.Original, Category: in.Category, Note: note,
-		SpentOn: dateOnly(in.SpentOn), Method: in.Method, State: StateAccepted, Version: 1, CreatedAt: now,
+		SpentOn: dateOnly(in.SpentOn), Method: in.Method, State: StateAccepted, Revision: 1, Version: 1, CreatedAt: now,
 		Shares: inJoinOrder(g, c.Shares),
 	}
 	if err := s.deps.Repository.Create(ctx, e); err != nil {

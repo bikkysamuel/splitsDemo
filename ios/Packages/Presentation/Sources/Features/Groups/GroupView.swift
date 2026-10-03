@@ -159,7 +159,10 @@ struct GroupView: View {
             NavigationLink {
               ExpenseDetailView(
                 viewModel: ExpenseDetailViewModel(
-                  expenseID: e.id, group: group, repository: viewModel.expensesRepository))
+                  expenseID: e.id, group: group, repository: viewModel.expensesRepository)
+              ) {
+                Task { await viewModel.expenseAdded() }
+              }
             } label: {
               ExpenseRow(expense: e, payerName: group.member(e.payerID)?.displayName)
             }

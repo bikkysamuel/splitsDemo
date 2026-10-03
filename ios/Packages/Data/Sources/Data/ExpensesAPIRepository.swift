@@ -86,6 +86,54 @@ public struct ExpensesAPIRepository: ExpensesRepository {
     case .undocumented(let status, _): throw .unexpected(status: status)
     }
   }
+
+  public func editExpense(
+    id: UUID, version: Int, input: ExpenseInput, key: WriteKey
+  ) async throws(ServiceError)
+    -> Expense
+  {
+    let i = ExpenseMapper.input(input)
+    let body = Components.Schemas.ExpenseEdit(
+      version: Int32(clamping: version), payerMemberId: i.payerMemberId, amount: i.amount,
+      exchangeRate: i.exchangeRate, category: i.category, note: i.note, spentOn: i.spentOn, split: i.split)
+    let output = try await send {
+      try await client.editExpense(
+        path: .init(expenseId: id.uuidString.lowercased()), headers: .init(idempotencyKey: key.value.uuidString),
+        body: .json(body))
+    }
+    switch output {
+    case .ok(let ok): return try ExpenseMapper.expense(decoding { try ok.body.json })
+    case .badRequest(let r): throw problem(400) { try r.body.applicationProblemJson }
+    case .unauthorized(let r): throw problem(401) { try r.body.applicationProblemJson }
+    case .forbidden(let r): throw problem(403) { try r.body.applicationProblemJson }
+    case .notFound(let r): throw problem(404) { try r.body.applicationProblemJson }
+    case .conflict(let r): throw problem(409) { try r.body.applicationProblemJson }
+    case .contentTooLarge(let r): throw problem(413) { try r.body.applicationProblemJson }
+    case .unprocessableContent(let r): throw problem(422) { try r.body.applicationProblemJson }
+    case .internalServerError: throw .unexpected(status: 500)
+    case .undocumented(let status, _): throw .unexpected(status: status)
+    }
+  }
+
+  public func withdrawExpense(id: UUID, version: Int, key: WriteKey) async throws(ServiceError) -> Expense {
+    let output = try await send {
+      try await client.withdrawExpense(
+        path: .init(expenseId: id.uuidString.lowercased()), headers: .init(idempotencyKey: key.value.uuidString),
+        body: .json(.init(version: Int32(clamping: version))))
+    }
+    switch output {
+    case .ok(let ok): return try ExpenseMapper.expense(decoding { try ok.body.json })
+    case .badRequest(let r): throw problem(400) { try r.body.applicationProblemJson }
+    case .unauthorized(let r): throw problem(401) { try r.body.applicationProblemJson }
+    case .forbidden(let r): throw problem(403) { try r.body.applicationProblemJson }
+    case .notFound(let r): throw problem(404) { try r.body.applicationProblemJson }
+    case .conflict(let r): throw problem(409) { try r.body.applicationProblemJson }
+    case .contentTooLarge(let r): throw problem(413) { try r.body.applicationProblemJson }
+    case .unprocessableContent(let r): throw problem(422) { try r.body.applicationProblemJson }
+    case .internalServerError: throw .unexpected(status: 500)
+    case .undocumented(let status, _): throw .unexpected(status: status)
+    }
+  }
 }
 
 /// Generated Expense types ⇄ Domain.
@@ -116,7 +164,8 @@ enum ExpenseMapper {
       id: try uuid(e.id), groupID: try uuid(e.groupId), payerID: try uuid(e.payerMemberId),
       createdByID: try uuid(e.createdByMemberId), amount: money(e.amount), originalAmount: money(e.originalAmount),
       exchangeRate: e.exchangeRate, category: category(e.category),
-      note: e.note, spentOn: e.spentOn, state: try state(e.state), version: Int(e.version),
+      note: e.note, spentOn: e.spentOn, state: try state(e.state), revision: Int(e.revision),
+      version: Int(e.version),
       splitMethod: try splitMethod(e.splitMethod), shares: try e.shares.map(share))
   }
 

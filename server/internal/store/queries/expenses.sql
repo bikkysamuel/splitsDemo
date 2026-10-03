@@ -21,7 +21,8 @@ VALUES (@group_id, @actor_member_id, @on_behalf_of_member_id, @type, @subject_ty
 -- name: ExpenseForUser :one
 -- The Expense, if the User is an active Member of its Group.
 SELECT e.id, e.group_id, e.created_by, e.payer_id, e.category, e.note, e.spent_on, e.original_minor,
-       e.original_currency, e.exchange_rate, e.amount_minor, e.split_method, e.state, e.version, e.created_at, g.currency
+       e.original_currency, e.exchange_rate, e.amount_minor, e.split_method, e.state, e.revision, e.version, e.created_at,
+       g.currency
 FROM expenses e
 JOIN groups g ON g.id = e.group_id
 JOIN members m ON m.group_id = e.group_id
@@ -41,3 +42,22 @@ WHERE e.group_id = @group_id
   AND (NOT @has_cursor::boolean OR (e.spent_on, e.id) < (@after_spent_on::date, @after_id::uuid))
 ORDER BY e.spent_on DESC, e.id DESC
 LIMIT @max_rows;
+
+-- name: UpdateExpense :one
+-- A new revision of the Expense, if it is still at version and in from_state.
+UPDATE expenses
+SET payer_id = @payer_id, category = @category, note = @note, spent_on = @spent_on, original_minor = @original_minor,
+    original_currency = @original_currency, exchange_rate = @exchange_rate, amount_minor = @amount_minor,
+    split_method = @split_method, state = @state, revision = revision + 1, updated_at = @now, version = version + 1
+WHERE id = @id AND version = @version AND state = @from_state
+RETURNING revision, version;
+
+-- name: DeleteShares :exec
+-- Before a revision's Shares are written; the old ones are kept in its
+-- `expense_edited` event.
+DELETE FROM expense_shares WHERE expense_id = @expense_id;
+
+-- name: SetExpenseState :one
+UPDATE expenses SET state = @state, updated_at = @now, version = version + 1
+WHERE id = @id AND version = @version AND state = @from_state
+RETURNING version;
