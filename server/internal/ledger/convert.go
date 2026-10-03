@@ -20,6 +20,7 @@ var (
 	ErrRateForSameCurrency = errors.New("no exchange rate is allowed when the currencies are the same")
 	ErrAmountNotPositive   = errors.New("original amount must be positive")
 	ErrConvertedToZero     = errors.New("converted amount rounds to zero")
+	ErrConvertedTooLarge   = errors.New("converted amount is too large")
 )
 
 // ExchangeRate is an exact decimal: units of the Group Currency per one unit
@@ -101,7 +102,7 @@ func convert(original int64, from, to string, rate ExchangeRate) (int64, error) 
 		return 0, ErrConvertedToZero
 	}
 	if !converted.IsInt64() {
-		return 0, fmt.Errorf("converted amount %s overflows int64", converted)
+		return 0, fmt.Errorf("%w: %s overflows int64", ErrConvertedTooLarge, converted)
 	}
 	return converted.Int64(), nil
 }

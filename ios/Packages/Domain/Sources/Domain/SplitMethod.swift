@@ -28,9 +28,9 @@ public enum SplitMethod: String, CaseIterable, Hashable, Sendable {
     case .exact:
       return Money.parse(text, currency: currency, locale: locale).map { String($0.minorUnits) }
     case .percentage:
-      return Self.positiveDecimal(text, places: 2, locale: locale)
+      return DecimalEntry.positive(text, places: 2, locale: locale)
     case .ratio:
-      return Self.positiveDecimal(text, places: 0, locale: locale)
+      return DecimalEntry.positive(text, places: 0, locale: locale)
     }
   }
 
@@ -42,19 +42,6 @@ public enum SplitMethod: String, CaseIterable, Hashable, Sendable {
     case .percentage: return value.formatted(.percent.scale(1).locale(locale))
     default: return value.formatted(.number.locale(locale))
     }
-  }
-
-  private static func positiveDecimal(_ text: String, places: Int, locale: Locale) -> String? {
-    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty, let value = try? Decimal(trimmed, format: .number.locale(locale)), value > 0 else {
-      return nil
-    }
-    var original = value
-    var rounded = Decimal()
-    NSDecimalRound(&rounded, &original, places, .plain)
-    guard rounded == value else { return nil }
-    // Decimal's description always uses a point and no grouping.
-    return value.description
   }
 }
 

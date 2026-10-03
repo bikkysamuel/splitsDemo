@@ -7,7 +7,14 @@ public struct Expense: Equatable, Hashable, Identifiable, Sendable {
   public let groupID: UUID
   public let payerID: UUID
   public let createdByID: UUID
+  /// In the Group Currency: what the Shares divide.
   public let amount: Money
+  /// The amount in the currency it was paid in (GLOSSARY: Original Amount);
+  /// the same as `amount` when there was no conversion.
+  public let originalAmount: Money
+  /// The Exchange Rate entered, in the server's form ("83.25"); nil when the
+  /// Expense was paid in the Group Currency.
+  public let exchangeRate: String?
   public let category: Category
   public let note: String?
   /// The day the money was spent, as "yyyy-MM-dd" (a date, not a moment).
@@ -19,14 +26,17 @@ public struct Expense: Equatable, Hashable, Identifiable, Sendable {
   public let shares: [Share]
 
   public init(
-    id: UUID, groupID: UUID, payerID: UUID, createdByID: UUID, amount: Money, category: Category, note: String?,
-    spentOn: String, state: ExpenseState, version: Int, splitMethod: SplitMethod = .equal, shares: [Share]
+    id: UUID, groupID: UUID, payerID: UUID, createdByID: UUID, amount: Money, originalAmount: Money? = nil,
+    exchangeRate: String? = nil, category: Category, note: String?, spentOn: String, state: ExpenseState, version: Int,
+    splitMethod: SplitMethod = .equal, shares: [Share]
   ) {
     self.id = id
     self.groupID = groupID
     self.payerID = payerID
     self.createdByID = createdByID
     self.amount = amount
+    self.originalAmount = originalAmount ?? amount
+    self.exchangeRate = exchangeRate
     self.category = category
     self.note = note
     self.spentOn = spentOn
@@ -89,11 +99,14 @@ public enum ExpenseState: String, Sendable {
   case withdrawn
 }
 
-/// An Expense as entered (FR-E1, FR-E2): split by `method` among
-/// `members`, in joining order.
+/// An Expense as entered (FR-E1, FR-E2, FR-E5): split by `method` among
+/// `members`, in joining order. `amount` is the Original Amount; in another
+/// currency than the Group Currency it comes with an `exchangeRate`, in the
+/// server's form (see `ExchangeRate.input(from:locale:)`).
 public struct ExpenseInput: Equatable, Hashable, Sendable {
   public var payerID: UUID
   public var amount: Money
+  public var exchangeRate: String?
   public var category: Category
   public var note: String?
   public var spentOn: String
@@ -101,11 +114,12 @@ public struct ExpenseInput: Equatable, Hashable, Sendable {
   public var members: [SplitEntry]
 
   public init(
-    payerID: UUID, amount: Money, category: Category, note: String?, spentOn: String, method: SplitMethod = .equal,
-    members: [SplitEntry]
+    payerID: UUID, amount: Money, exchangeRate: String? = nil, category: Category, note: String?, spentOn: String,
+    method: SplitMethod = .equal, members: [SplitEntry]
   ) {
     self.payerID = payerID
     self.amount = amount
+    self.exchangeRate = exchangeRate
     self.category = category
     self.note = note
     self.spentOn = spentOn
@@ -114,13 +128,19 @@ public struct ExpenseInput: Equatable, Hashable, Sendable {
   }
 }
 
-/// The Shares an Expense would get, in the Split's order (FR-E4).
+/// The Shares an Expense would get, in the Split's order (FR-E4), and the
+/// amount in the Group Currency they divide.
 public struct ExpensePreview: Equatable, Sendable {
+  /// In the Group Currency, converted from `originalAmount` if need be.
   public let amount: Money
+  public let originalAmount: Money
+  public let exchangeRate: String?
   public let shares: [Share]
 
-  public init(amount: Money, shares: [Share]) {
+  public init(amount: Money, originalAmount: Money? = nil, exchangeRate: String? = nil, shares: [Share]) {
     self.amount = amount
+    self.originalAmount = originalAmount ?? amount
+    self.exchangeRate = exchangeRate
     self.shares = shares
   }
 }

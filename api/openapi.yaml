@@ -671,6 +671,7 @@ paths:
                 $ref: "#/components/schemas/ExpensePreview"
               example:
                 amount: {minor: 100001, currency: INR}
+                original_amount: {minor: 100001, currency: INR}
                 shares:
                   - member_id: 0190b6c4-0000-7000-8000-0000000000d1
                     share: {minor: 33334, currency: INR}
@@ -777,6 +778,7 @@ paths:
                 payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
                 created_by_member_id: 0190b6c4-0000-7000-8000-0000000000d1
                 amount: {minor: 100001, currency: INR}
+                original_amount: {minor: 100001, currency: INR}
                 category: food_drink
                 note: Dinner at the beach shack
                 spent_on: "2026-10-01"
@@ -1075,6 +1077,7 @@ paths:
                 payer_member_id: 0190b6c4-0000-7000-8000-0000000000d1
                 created_by_member_id: 0190b6c4-0000-7000-8000-0000000000d1
                 amount: {minor: 100001, currency: INR}
+                original_amount: {minor: 100001, currency: INR}
                 category: food_drink
                 note: Dinner at the beach shack
                 spent_on: "2026-10-01"
@@ -1257,8 +1260,12 @@ components:
         Field error codes of an Expense (`errors[].code`): `required`,
         `invalid`, `too_long`, `not_positive`, `not_group_currency`,
         `not_a_member` (payer or Split Member isn't an active Member),
-        `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-        and `percentages_not_100`; at `/split/members/{i}/input`,
+        `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+        (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+        currency isn't the Group Currency), `not_allowed` (it is) and
+        `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+        (the converted amount); at `/split`, `exact_sum_mismatch` and
+        `percentages_not_100`; at `/split/members/{i}/input`,
         `missing_input`, `unexpected_input`, `input_not_positive`,
         `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
         and `invalid` (see `SplitInputValue`).
@@ -1704,10 +1711,18 @@ components:
           format: uuid
           examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
         amount:
-          description: "> 0, in the Group Currency for now (foreign currencies: #19)."
+          description: |
+            The Original Amount, > 0, in any active ISO 4217 currency
+            (FR-E5). In another currency than the Group Currency it is
+            converted with `exchange_rate`, rounding half-up once
+            (ADR-0007, ADR-0010).
           $ref: "#/components/schemas/Money"
           examples:
-            - {minor: 100001, currency: INR}
+            - {minor: 1050, currency: USD}
+        exchange_rate:
+          description: Required when `amount` isn't in the Group Currency; not allowed when it is.
+          $ref: "#/components/schemas/ExchangeRate"
+          examples: ["83.25"]
         category:
           $ref: "#/components/schemas/Category"
         note:
@@ -1727,7 +1742,8 @@ components:
       description: |
         What was entered for one Member, as an exact decimal string (never
         a JSON number): for `exact`, minor units of the Group Currency
-        ("25050"); for `percentage`, a percentage with at most 2 decimal
+        ("25050"), summing to the converted amount when the Expense is in
+        another currency; for `percentage`, a percentage with at most 2 decimal
         places ("33.33"); for `ratio`, a positive integer weight ("2").
         Absent for `equal`. At most 30 whole digits and 8 decimals; anything
         else is `invalid`. Returned as saved: leading zeros dropped, scale
@@ -1755,11 +1771,23 @@ components:
     ExpensePreview:
       description: The Shares an Expense would get, in the Split's order.
       type: object
-      required: [amount, shares]
+      required: [amount, original_amount, shares]
       additionalProperties: false
       properties:
         amount:
+          description: In the Group Currency, converted from `original_amount` if need be.
           $ref: "#/components/schemas/Money"
+          examples:
+            - {minor: 87413, currency: INR}
+        original_amount:
+          description: The amount as entered.
+          $ref: "#/components/schemas/Money"
+          examples:
+            - {minor: 1050, currency: USD}
+        exchange_rate:
+          description: As entered; absent when `original_amount` is in the Group Currency.
+          $ref: "#/components/schemas/ExchangeRate"
+          examples: ["83.25"]
         shares:
           type: array
           items:
@@ -1821,7 +1849,7 @@ components:
     Expense:
       description: An Expense with its Shares (FR-E1).
       type: object
-      required: [id, group_id, payer_member_id, created_by_member_id, amount, category, spent_on, split_method, state, version, created_at, shares]
+      required: [id, group_id, payer_member_id, created_by_member_id, amount, original_amount, category, spent_on, split_method, state, version, created_at, shares]
       additionalProperties: false
       properties:
         id:
@@ -1841,7 +1869,19 @@ components:
           format: uuid
           examples: ["0190b6c4-0000-7000-8000-0000000000d1"]
         amount:
+          description: In the Group Currency; Shares and Balances use it.
           $ref: "#/components/schemas/Money"
+          examples:
+            - {minor: 87413, currency: INR}
+        original_amount:
+          description: The Original Amount, in the currency it was paid in (the Group Currency's amount when there was no conversion).
+          $ref: "#/components/schemas/Money"
+          examples:
+            - {minor: 1050, currency: USD}
+        exchange_rate:
+          description: As entered; absent when there was no conversion.
+          $ref: "#/components/schemas/ExchangeRate"
+          examples: ["83.25"]
         category:
           $ref: "#/components/schemas/Category"
         note:
@@ -2076,10 +2116,13 @@ components:
     ExchangeRate:
       description: |
         An exact decimal held in a string (ADR-0007), never a JSON number:
-        units of the Group currency per one unit of the Expense currency.
-        Positive, with at most 2 decimal places (FR-E5).
+        units of the Group Currency per one unit of the Expense's currency.
+        Positive, with at most 2 decimal places and at most 20 characters
+        (FR-E5, Q87); anything else is `invalid`. Returned as saved:
+        leading zeros dropped, scale kept ("83.20").
       type: string
       pattern: "^[0-9]+(\\.[0-9]{1,2})?$"
+      maxLength: 20
       examples: ["83.25"]
 
   responses:

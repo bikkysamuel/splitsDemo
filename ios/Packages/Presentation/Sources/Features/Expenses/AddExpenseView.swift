@@ -10,16 +10,20 @@ struct AddExpenseView: View {
   var body: some View {
     Form {
       Section {
+        CurrencyPicker(titleKey: Self.currency, selection: $viewModel.currency)
         TextField(text: $viewModel.amountText, prompt: Text(verbatim: "0")) {
           Text(LocalizedStringKey(Self.amount), bundle: .module)
         }
         .font(.title2.monospacedDigit())
         .decimalEntry()
-        .accessibilityHint(Text(verbatim: CurrencyPicker.label(viewModel.group.currency)))
+        .accessibilityHint(Text(verbatim: CurrencyPicker.label(viewModel.currency)))
         if viewModel.amountIsInvalid {
           FieldErrorText(key: Self.amountInvalid)
         }
         FieldErrorText(key: viewModel.fieldError("amount/minor") ?? viewModel.fieldError("amount/currency"))
+        if viewModel.needsRate {
+          ExchangeRateRows(viewModel: viewModel)
+        }
         Picker(selection: $viewModel.payerID) {
           ForEach(viewModel.members) { m in Text(verbatim: m.displayName).tag(m.id) }
         } label: {
@@ -37,8 +41,6 @@ struct AddExpenseView: View {
           Text(LocalizedStringKey(Self.note), bundle: .module)
         }
         FieldErrorText(key: viewModel.fieldError("note"))
-      } header: {
-        Text(verbatim: CurrencyPicker.label(viewModel.group.currency))
       }
       Section {
         Picker(selection: $viewModel.method) {
@@ -88,6 +90,7 @@ struct AddExpenseView: View {
 
   nonisolated static let title = "Add Expense"
   nonisolated static let amount = "Amount"
+  nonisolated static let currency = "Currency"
   nonisolated static let amountInvalid = "Enter an amount, like 250 or 99.50."
   nonisolated static let paidBy = "Paid by"
   nonisolated static let category = "Category"
@@ -98,8 +101,8 @@ struct AddExpenseView: View {
   nonisolated static let previewFooter = "Shares from the server, exactly as they'll be saved."
   nonisolated static let save = "Save Expense"
   nonisolated static let allKeys =
-    [title, amount, amountInvalid, paidBy, category, date, note, split, sharedBy, previewFooter, save]
-    + SplitMethod.allCases.map(methodName) + SplitMemberRow.allKeys
+    [title, amount, currency, amountInvalid, paidBy, category, date, note, split, sharedBy, previewFooter, save]
+    + SplitMethod.allCases.map(methodName) + SplitMemberRow.allKeys + ExchangeRateRows.allKeys
 
   /// The catalog key naming a Split method.
   nonisolated static func methodName(_ method: SplitMethod) -> String {
@@ -110,6 +113,51 @@ struct AddExpenseView: View {
     case .ratio: "By ratio"
     }
   }
+}
+
+/// The Exchange Rate of an amount in another currency than the Group
+/// Currency, and the converted amount from the live preview (FR-E5).
+private struct ExchangeRateRows: View {
+  @Bindable var viewModel: AddExpenseViewModel
+  @Environment(\.locale) private var locale
+
+  /// "INR per 1 USD": what the rate means.
+  private var unit: Text {
+    Text("\(viewModel.group.currency) per 1 \(viewModel.currency)", bundle: .module)
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      TextField(text: $viewModel.rateText, prompt: Text(verbatim: Decimal(1).formatted(.number.locale(locale)))) {
+        Text(LocalizedStringKey(Self.exchangeRate), bundle: .module)
+      }
+      .monospacedDigit()
+      .decimalEntry()
+      .accessibilityHint(unit)
+      unit.font(.footnote).foregroundStyle(.secondary).accessibilityHidden(true)
+      if viewModel.rateIsInvalid {
+        FieldErrorText(key: Self.rateInvalid)
+      }
+      FieldErrorText(key: viewModel.fieldError("exchange_rate"))
+    }
+    if let converted = viewModel.convertedAmount {
+      LabeledContent {
+        Text(verbatim: converted.formatted()).monospacedDigit()
+      } label: {
+        Text(LocalizedStringKey(Self.converted), bundle: .module)
+      }
+      .accessibilityElement(children: .combine)
+    }
+  }
+
+  nonisolated static let exchangeRate = "Exchange Rate"
+  nonisolated static let converted = "In the Group Currency"
+  /// The catalog key of `unit`.
+  nonisolated static let unitFormat = "%@ per 1 %@"
+  /// The same message as the server's refusal of the rate.
+  nonisolated static let rateInvalid = ServiceErrorMessage.key(
+    for: FieldIssue(field: "exchange_rate", reason: .invalid))
+  nonisolated static let allKeys = [exchangeRate, converted, unitFormat, rateInvalid]
 }
 
 /// One Member in the Split: whether they share it, their entry for an

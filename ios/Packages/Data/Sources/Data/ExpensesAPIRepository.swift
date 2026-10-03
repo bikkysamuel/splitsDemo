@@ -21,7 +21,9 @@ public struct ExpensesAPIRepository: ExpensesRepository {
     switch output {
     case .ok(let ok):
       let p = try decoding { try ok.body.json }
-      return ExpensePreview(amount: ExpenseMapper.money(p.amount), shares: try p.shares.map(ExpenseMapper.share))
+      return ExpensePreview(
+        amount: ExpenseMapper.money(p.amount), originalAmount: ExpenseMapper.money(p.originalAmount),
+        exchangeRate: p.exchangeRate, shares: try p.shares.map(ExpenseMapper.share))
     case .badRequest(let r): throw problem(400) { try r.body.applicationProblemJson }
     case .unauthorized(let r): throw problem(401) { try r.body.applicationProblemJson }
     case .forbidden(let r): throw problem(403) { try r.body.applicationProblemJson }
@@ -92,6 +94,7 @@ enum ExpenseMapper {
     Components.Schemas.ExpenseInput(
       payerMemberId: i.payerID.uuidString.lowercased(),
       amount: .init(minor: i.amount.minorUnits, currency: i.amount.currency),
+      exchangeRate: i.exchangeRate,
       category: Components.Schemas.Category(rawValue: i.category.rawValue) ?? .other,
       note: i.note,
       spentOn: i.spentOn,
@@ -111,7 +114,8 @@ enum ExpenseMapper {
   static func expense(_ e: Components.Schemas.Expense) throws(ServiceError) -> Expense {
     Expense(
       id: try uuid(e.id), groupID: try uuid(e.groupId), payerID: try uuid(e.payerMemberId),
-      createdByID: try uuid(e.createdByMemberId), amount: money(e.amount), category: category(e.category),
+      createdByID: try uuid(e.createdByMemberId), amount: money(e.amount), originalAmount: money(e.originalAmount),
+      exchangeRate: e.exchangeRate, category: category(e.category),
       note: e.note, spentOn: e.spentOn, state: try state(e.state), version: Int(e.version),
       splitMethod: try splitMethod(e.splitMethod), shares: try e.shares.map(share))
   }

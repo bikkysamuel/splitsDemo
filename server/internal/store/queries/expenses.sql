@@ -21,7 +21,7 @@ VALUES (@group_id, @actor_member_id, @on_behalf_of_member_id, @type, @subject_ty
 -- name: ExpenseForUser :one
 -- The Expense, if the User is an active Member of its Group.
 SELECT e.id, e.group_id, e.created_by, e.payer_id, e.category, e.note, e.spent_on, e.original_minor,
-       e.original_currency, e.amount_minor, e.split_method, e.state, e.version, e.created_at, g.currency
+       e.original_currency, e.exchange_rate, e.amount_minor, e.split_method, e.state, e.version, e.created_at, g.currency
 FROM expenses e
 JOIN groups g ON g.id = e.group_id
 JOIN members m ON m.group_id = e.group_id

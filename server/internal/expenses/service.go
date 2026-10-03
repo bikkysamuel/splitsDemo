@@ -24,6 +24,9 @@ const (
 	CodeTooLong          = "too_long"
 	CodeNotPositive      = "not_positive"
 	CodeNotGroupCurrency = "not_group_currency"
+	CodeNotAllowed       = "not_allowed"
+	CodeConvertsToZero   = "converts_to_zero"
+	CodeTooLarge         = "too_large"
 	CodeNotAMember       = "not_a_member"
 	CodeDuplicateMember  = "duplicate_member"
 	CodeNoMembers        = "no_members"
@@ -90,7 +93,7 @@ func (s *Service) Create(ctx context.Context, userID, groupID platform.ID, in In
 	now := s.deps.Clock.Now()
 	e := Expense{
 		ID: s.deps.IDs.New(), GroupID: g.ID, PayerID: in.PayerID, CreatedBy: g.MyMemberID,
-		Amount: c.Amount, Currency: c.Currency, Category: in.Category, Note: note,
+		Amount: c.Amount, Currency: c.Currency, Original: c.Original, Category: in.Category, Note: note,
 		SpentOn: dateOnly(in.SpentOn), Method: in.Method, State: StateAccepted, Version: 1, CreatedAt: now,
 		Shares: inJoinOrder(g, c.Shares),
 	}
@@ -161,13 +164,11 @@ func compute(g groups.Group, in Input) (Computed, *string, error) {
 	if _, ok := active[in.PayerID]; !ok {
 		fields = append(fields, FieldError{"payer_member_id", CodeNotAMember})
 	}
-	if in.Amount <= 0 {
-		fields = append(fields, FieldError{"amount/minor", CodeNotPositive})
+	amount, original, f, err := toGroupCurrency(g, in)
+	if err != nil {
+		return Computed{}, nil, err
 	}
-	if in.Currency != g.Currency {
-		// Foreign currencies come with #19.
-		fields = append(fields, FieldError{"amount/currency", CodeNotGroupCurrency})
-	}
+	fields = append(fields, f...)
 	if !slices.Contains(Categories, in.Category) {
 		fields = append(fields, FieldError{"category", CodeInvalid})
 	}
@@ -207,7 +208,7 @@ func compute(g groups.Group, in Input) (Computed, *string, error) {
 	if len(fields) > 0 {
 		return Computed{}, nil, &ValidationError{Fields: fields}
 	}
-	amounts, err := ledger.Shares(in.Amount, method, members)
+	amounts, err := ledger.Shares(amount, method, members)
 	if err != nil {
 		var invalid *ledger.InvalidSplitError
 		if errors.As(err, &invalid) {
@@ -219,11 +220,61 @@ func compute(g groups.Group, in Input) (Computed, *string, error) {
 		}
 		return Computed{}, nil, fmt.Errorf("expenses: compute shares: %w", err)
 	}
-	c := Computed{Amount: in.Amount, Currency: g.Currency, Shares: make([]Share, len(amounts))}
+	c := Computed{Amount: amount, Currency: g.Currency, Original: original, Shares: make([]Share, len(amounts))}
 	for i, a := range amounts {
 		c.Shares[i] = Share{MemberID: in.Members[i].MemberID, Amount: a, Input: entries[i]}
 	}
 	return c, note, nil
+}
+
+// maxRateLength bounds an Exchange Rate's text, as the contract says.
+const maxRateLength = 20
+
+// toGroupCurrency checks the Original Amount, its currency and Exchange
+// Rate, returning field errors for what's wrong, and asks ledger for the
+// amount in the Group Currency (FR-E5, ADR-0007).
+func toGroupCurrency(g groups.Group, in Input) (int64, Original, []FieldError, error) {
+	var fields []FieldError
+	original := Original{Amount: in.Amount, Currency: in.Currency}
+	if in.Amount <= 0 {
+		fields = append(fields, FieldError{"amount/minor", CodeNotPositive})
+	}
+	if !ledger.IsActiveCurrency(in.Currency) {
+		fields = append(fields, FieldError{"amount/currency", CodeInvalid})
+	}
+	var rate ledger.ExchangeRate
+	switch {
+	case in.ExchangeRate == nil && in.Currency != g.Currency:
+		fields = append(fields, FieldError{"exchange_rate", CodeRequired})
+	case in.ExchangeRate != nil && in.Currency == g.Currency:
+		fields = append(fields, FieldError{"exchange_rate", CodeNotAllowed})
+	case in.ExchangeRate != nil:
+		var err error
+		if len(*in.ExchangeRate) > maxRateLength {
+			err = ledger.ErrInvalidRate
+		} else {
+			rate, err = ledger.ParseExchangeRate(*in.ExchangeRate)
+		}
+		if err != nil {
+			fields = append(fields, FieldError{"exchange_rate", CodeInvalid})
+		} else {
+			stored := rate.String()
+			original.ExchangeRate = &stored
+		}
+	}
+	if len(fields) > 0 {
+		return 0, original, fields, nil
+	}
+	amount, err := ledger.Convert(in.Amount, in.Currency, g.Currency, rate)
+	switch {
+	case errors.Is(err, ledger.ErrConvertedToZero):
+		return 0, original, []FieldError{{"amount/minor", CodeConvertsToZero}}, nil
+	case errors.Is(err, ledger.ErrConvertedTooLarge):
+		return 0, original, []FieldError{{"amount/minor", CodeTooLarge}}, nil
+	case err != nil:
+		return 0, original, nil, fmt.Errorf("expenses: convert: %w", err)
+	}
+	return amount, original, nil, nil
 }
 
 var splitMethods = map[string]ledger.SplitMethod{

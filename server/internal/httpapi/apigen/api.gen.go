@@ -327,16 +327,19 @@ type DisplayName = string
 type Email = string
 
 // ExchangeRate An exact decimal held in a string (ADR-0007), never a JSON number:
-// units of the Group currency per one unit of the Expense currency.
-// Positive, with at most 2 decimal places (FR-E5).
+// units of the Group Currency per one unit of the Expense's currency.
+// Positive, with at most 2 decimal places and at most 20 characters
+// (FR-E5, Q87); anything else is `invalid`. Returned as saved:
+// leading zeros dropped, scale kept ("83.20").
 //
 // Examples: 83.25
 type ExchangeRate = string
 
 // Expense An Expense with its Shares (FR-E1).
 type Expense struct {
-	// Amount An amount in integer minor units of an ISO 4217 currency (ADR-0002).
-	// Never a floating-point number.
+	// Amount In the Group Currency; Shares and Balances use it.
+	//
+	// Examples: {"currency":"INR","minor":87413}
 	Amount Money `json:"amount"`
 
 	// Category The fixed Category list (D7); the app localizes the names.
@@ -350,6 +353,11 @@ type Expense struct {
 	// CreatedByMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
 	CreatedByMemberId openapi_types.UUID `json:"created_by_member_id"`
 
+	// ExchangeRate As entered; absent when there was no conversion.
+	//
+	// Examples: 83.25
+	ExchangeRate *ExchangeRate `json:"exchange_rate,omitempty"`
+
 	// GroupId Examples: 0190b6c4-0000-7000-8000-0000000000c1
 	GroupId openapi_types.UUID `json:"group_id"`
 
@@ -358,6 +366,11 @@ type Expense struct {
 
 	// Note Examples: Dinner at the beach shack
 	Note *string `json:"note,omitempty"`
+
+	// OriginalAmount The Original Amount, in the currency it was paid in (the Group Currency's amount when there was no conversion).
+	//
+	// Examples: {"currency":"USD","minor":1050}
+	OriginalAmount Money `json:"original_amount"`
 
 	// PayerMemberId Examples: 0190b6c4-0000-7000-8000-0000000000d1
 	PayerMemberId openapi_types.UUID `json:"payer_member_id"`
@@ -392,15 +405,24 @@ type Expense struct {
 
 // ExpenseInput An Expense as entered (FR-E1). Previews and creates take the same input.
 type ExpenseInput struct {
-	// Amount > 0, in the Group Currency for now (foreign currencies: #19).
+	// Amount The Original Amount, > 0, in any active ISO 4217 currency
+	// (FR-E5). In another currency than the Group Currency it is
+	// converted with `exchange_rate`, rounding half-up once
+	// (ADR-0007, ADR-0010).
 	//
-	// Examples: {"currency":"INR","minor":100001}
+	//
+	// Examples: {"currency":"USD","minor":1050}
 	Amount Money `json:"amount"`
 
 	// Category The fixed Category list (D7); the app localizes the names.
 	//
 	// Examples: food_drink
 	Category Category `json:"category"`
+
+	// ExchangeRate Required when `amount` isn't in the Group Currency; not allowed when it is.
+	//
+	// Examples: 83.25
+	ExchangeRate *ExchangeRate `json:"exchange_rate,omitempty"`
 
 	// Note Optional, at most 500 characters after trimming (D1).
 	//
@@ -434,9 +456,20 @@ type ExpensePage struct {
 
 // ExpensePreview The Shares an Expense would get, in the Split's order.
 type ExpensePreview struct {
-	// Amount An amount in integer minor units of an ISO 4217 currency (ADR-0002).
-	// Never a floating-point number.
+	// Amount In the Group Currency, converted from `original_amount` if need be.
+	//
+	// Examples: {"currency":"INR","minor":87413}
 	Amount Money `json:"amount"`
+
+	// ExchangeRate As entered; absent when `original_amount` is in the Group Currency.
+	//
+	// Examples: 83.25
+	ExchangeRate *ExchangeRate `json:"exchange_rate,omitempty"`
+
+	// OriginalAmount The amount as entered.
+	//
+	// Examples: {"currency":"USD","minor":1050}
+	OriginalAmount Money `json:"original_amount"`
 
 	// Shares Examples: [{"member_id":"0190b6c4-0000-7000-8000-0000000000d1","share":{"currency":"INR","minor":100001}}]
 	Shares []ShareLine `json:"shares"`
@@ -697,8 +730,12 @@ type Password = string
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -868,7 +905,8 @@ type SettlementState string
 type ShareLine struct {
 	// Input What was entered for one Member, as an exact decimal string (never
 	// a JSON number): for `exact`, minor units of the Group Currency
-	// ("25050"); for `percentage`, a percentage with at most 2 decimal
+	// ("25050"), summing to the converted amount when the Expense is in
+	// another currency; for `percentage`, a percentage with at most 2 decimal
 	// places ("33.33"); for `ratio`, a positive integer weight ("2").
 	// Absent for `equal`. At most 30 whole digits and 8 decimals; anything
 	// else is `invalid`. Returned as saved: leading zeros dropped, scale
@@ -926,7 +964,8 @@ type SplitInput struct {
 	Members []struct {
 		// Input What was entered for one Member, as an exact decimal string (never
 		// a JSON number): for `exact`, minor units of the Group Currency
-		// ("25050"); for `percentage`, a percentage with at most 2 decimal
+		// ("25050"), summing to the converted amount when the Expense is in
+		// another currency; for `percentage`, a percentage with at most 2 decimal
 		// places ("33.33"); for `ratio`, a positive integer weight ("2").
 		// Absent for `equal`. At most 30 whole digits and 8 decimals; anything
 		// else is `invalid`. Returned as saved: leading zeros dropped, scale
@@ -950,7 +989,8 @@ type SplitInput struct {
 
 // SplitInputValue What was entered for one Member, as an exact decimal string (never
 // a JSON number): for `exact`, minor units of the Group Currency
-// ("25050"); for `percentage`, a percentage with at most 2 decimal
+// ("25050"), summing to the converted amount when the Expense is in
+// another currency; for `percentage`, a percentage with at most 2 decimal
 // places ("33.33"); for `ratio`, a positive integer weight ("2").
 // Absent for `equal`. At most 30 whole digits and 8 decimals; anything
 // else is `invalid`. Returned as saved: leading zeros dropped, scale
@@ -1078,8 +1118,12 @@ type SettlementId = openapi_types.UUID
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1118,8 +1162,12 @@ type BadRequest = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1158,8 +1206,12 @@ type Conflict = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1198,8 +1250,12 @@ type EmailNotVerified = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1238,8 +1294,12 @@ type EmailTaken = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1278,8 +1338,12 @@ type Forbidden = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1318,8 +1382,12 @@ type IdempotencyKeyInProgress = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1358,8 +1426,12 @@ type IdempotencyKeyReused = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1398,8 +1470,12 @@ type InternalError = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1438,8 +1514,12 @@ type InvalidCredentials = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1478,8 +1558,12 @@ type NotFound = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1518,8 +1602,12 @@ type NotReady = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1558,8 +1646,12 @@ type RequestTooLarge = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1598,8 +1690,12 @@ type TooManyAttempts = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).
@@ -1638,8 +1734,12 @@ type Unauthenticated = Problem
 // Field error codes of an Expense (`errors[].code`): `required`,
 // `invalid`, `too_long`, `not_positive`, `not_group_currency`,
 // `not_a_member` (payer or Split Member isn't an active Member),
-// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-// and `percentages_not_100`; at `/split/members/{i}/input`,
+// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+// currency isn't the Group Currency), `not_allowed` (it is) and
+// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+// (the converted amount); at `/split`, `exact_sum_mismatch` and
+// `percentages_not_100`; at `/split/members/{i}/input`,
 // `missing_input`, `unexpected_input`, `input_not_positive`,
 // `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
 // and `invalid` (see `SplitInputValue`).

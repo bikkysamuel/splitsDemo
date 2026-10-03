@@ -29,6 +29,8 @@ type expense struct {
 	Payer       string      `json:"payer_member_id"`
 	CreatedBy   string      `json:"created_by_member_id"`
 	Amount      money       `json:"amount"`
+	Original    money       `json:"original_amount"`
+	Rate        *string     `json:"exchange_rate"`
 	Category    string      `json:"category"`
 	Note        *string     `json:"note"`
 	SpentOn     string      `json:"spent_on"`
@@ -226,7 +228,7 @@ func TestCreateValidatesTheInput(t *testing.T) {
 		want   string
 	}{
 		{"zero amount", func(in map[string]any) { in["amount"] = map[string]any{"minor": 0, "currency": "INR"} }, "/amount/minor not_positive"},
-		{"other currency", func(in map[string]any) { in["amount"] = map[string]any{"minor": 10, "currency": "EUR"} }, "/amount/currency not_group_currency"},
+		{"other currency without a rate", func(in map[string]any) { in["amount"] = map[string]any{"minor": 10, "currency": "EUR"} }, "/exchange_rate required"},
 		{"unknown category", func(in map[string]any) { in["category"] = "jewellery" }, "/category invalid"},
 		{"long note", func(in map[string]any) { in["note"] = strings.Repeat("n", 501) }, "/note too_long"},
 		{"payer not a member", func(in map[string]any) { in["payer_member_id"] = outsider }, "/payer_member_id not_a_member"},

@@ -76,6 +76,10 @@ public struct FieldIssue: Equatable, Hashable, Sendable {
     case percentagesNot100
     /// A Member's entry the method can't use (on `split/members/N/input`).
     case missingInput, unexpectedInput, inputNotPositive, notWholeMinorUnits, tooManyDecimals, ratioNotInteger
+    /// An Exchange Rate sent with an amount in the Group Currency.
+    case notAllowed
+    /// An Original Amount whose conversion rounds to zero, or overflows.
+    case convertsToZero, tooLarge
     case other(String)
 
     public init(code: String) {
@@ -100,6 +104,9 @@ public struct FieldIssue: Equatable, Hashable, Sendable {
       case "not_whole_minor_units": self = .notWholeMinorUnits
       case "too_many_decimals": self = .tooManyDecimals
       case "ratio_not_integer": self = .ratioNotInteger
+      case "not_allowed": self = .notAllowed
+      case "converts_to_zero": self = .convertsToZero
+      case "too_large": self = .tooLarge
       default: self = .other(code)
       }
     }

@@ -1,25 +1,26 @@
 {
   "amount": {
     "currency": "INR",
-    "minor": 100001
+    "minor": 87413
   },
+  "exchange_rate": "83.25",
   "original_amount": {
-    "currency": "INR",
-    "minor": 100001
+    "currency": "USD",
+    "minor": 1050
   },
   "shares": [
     {
       "member_id": "01a0faca-9e5d-7fa8-8b88-5ff7b2916763",
       "share": {
         "currency": "INR",
-        "minor": 50001
+        "minor": 43707
       }
     },
     {
       "member_id": "01a0faca-9f91-73ea-8b78-6946f276b876",
       "share": {
         "currency": "INR",
-        "minor": 50000
+        "minor": 43706
       }
     }
   ]

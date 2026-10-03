@@ -8,6 +8,10 @@
   "created_by_member_id": "01a0faca-9e5d-7fa8-8b88-5ff7b2916763",
   "group_id": "01a0faca-9e5d-7e8a-b077-b767aee674ff",
   "id": "01a0faca-a073-778e-aa29-5e4621c0afa3",
+  "original_amount": {
+    "currency": "INR",
+    "minor": 1001
+  },
   "payer_member_id": "01a0faca-9e5d-7fa8-8b88-5ff7b2916763",
   "shares": [
     {

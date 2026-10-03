@@ -49,6 +49,18 @@
         }
       }
     },
+    "%@ %@ per 1 %@": {
+      "comment": "Expense detail: the Exchange Rate, Group Currency code, Expense currency code (\"83.25 INR per 1 USD\")",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ %@ per 1 %@"
+          }
+        }
+      }
+    },
     "%@ is settled up": {
       "comment": "A Member whose Balance is zero",
       "extractionState": "manual",
@@ -69,6 +81,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ paid · %@"
+          }
+        }
+      }
+    },
+    "%@ per 1 %@": {
+      "comment": "What an Exchange Rate means: Group Currency code, Expense currency code (\"INR per 1 USD\")",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per 1 %@"
           }
         }
       }
@@ -201,6 +225,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "An account with this email already exists. Sign in instead."
+          }
+        }
+      }
+    },
+    "An amount in the Group Currency takes no Exchange Rate.": {
+      "comment": "Error: an Exchange Rate was sent with an amount in the Group Currency",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An amount in the Group Currency takes no Exchange Rate."
           }
         }
       }
@@ -457,6 +493,18 @@
         }
       }
     },
+    "Currency": {
+      "comment": "Add Expense: picker of the currency the money was paid in",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Currency"
+          }
+        }
+      }
+    },
     "Date": {
       "comment": "Label of the Expense date",
       "extractionState": "manual",
@@ -565,6 +613,18 @@
         }
       }
     },
+    "Enter a rate above zero with at most 2 decimal places, like 83.25.": {
+      "comment": "Error: an Exchange Rate can't be read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a rate above zero with at most 2 decimal places, like 83.25."
+          }
+        }
+      }
+    },
     "Enter a valid email address.": {
       "comment": "Field error: the email is malformed",
       "extractionState": "manual",
@@ -625,6 +685,18 @@
         }
       }
     },
+    "Enter the Exchange Rate.": {
+      "comment": "Error: an amount in another currency needs an Exchange Rate",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter the Exchange Rate."
+          }
+        }
+      }
+    },
     "Enter your email address.": {
       "comment": "Field error: the email is empty",
       "extractionState": "manual",
@@ -669,6 +741,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Everyone is settled up."
+          }
+        }
+      }
+    },
+    "Exchange Rate": {
+      "comment": "Label of an Expense's Exchange Rate: Group Currency units per one unit of the Expense's currency",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exchange Rate"
           }
         }
       }
@@ -801,6 +885,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Home"
+          }
+        }
+      }
+    },
+    "In the Group Currency": {
+      "comment": "Add Expense: the amount converted into the Group Currency, from the server's preview",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In the Group Currency"
           }
         }
       }
@@ -1005,6 +1101,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Only the person who recorded this can do that."
+          }
+        }
+      }
+    },
+    "Original Amount": {
+      "comment": "Expense detail: the amount in the currency it was paid in",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Original Amount"
           }
         }
       }
@@ -1669,6 +1777,18 @@
         }
       }
     },
+    "This amount is too large.": {
+      "comment": "Error: an amount is too large once converted",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This amount is too large."
+          }
+        }
+      }
+    },
     "This can't be done any more. Reload to see its current state.": {
       "comment": "Error when an item's state no longer allows the action",
       "extractionState": "manual",
@@ -1677,6 +1797,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "This can't be done any more. Reload to see its current state."
+          }
+        }
+      }
+    },
+    "This converts to less than the smallest unit of the Group Currency.": {
+      "comment": "Error: a foreign amount converts to zero in the Group Currency",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This converts to less than the smallest unit of the Group Currency."
           }
         }
       }
