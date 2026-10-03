@@ -13,7 +13,7 @@ import (
 
 const expenseForUser = `-- name: ExpenseForUser :one
 SELECT e.id, e.group_id, e.created_by, e.payer_id, e.category, e.note, e.spent_on, e.original_minor,
-       e.original_currency, e.amount_minor, e.split_method, e.state, e.version, e.created_at, g.currency
+       e.original_currency, e.exchange_rate, e.amount_minor, e.split_method, e.state, e.version, e.created_at, g.currency
 FROM expenses e
 JOIN groups g ON g.id = e.group_id
 JOIN members m ON m.group_id = e.group_id
@@ -35,6 +35,7 @@ type ExpenseForUserRow struct {
 	SpentOn          pgtype.Date
 	OriginalMinor    int64
 	OriginalCurrency string
+	ExchangeRate     pgtype.Numeric
 	AmountMinor      int64
 	SplitMethod      string
 	State            string
@@ -57,6 +58,7 @@ func (q *Queries) ExpenseForUser(ctx context.Context, arg ExpenseForUserParams) 
 		&i.SpentOn,
 		&i.OriginalMinor,
 		&i.OriginalCurrency,
+		&i.ExchangeRate,
 		&i.AmountMinor,
 		&i.SplitMethod,
 		&i.State,

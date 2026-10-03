@@ -47,11 +47,14 @@ const (
 	StateWithdrawn         = "withdrawn"
 )
 
-// Input is an Expense as entered (FR-E1).
+// Input is an Expense as entered (FR-E1). Amount and Currency are the
+// Original Amount; ExchangeRate is the decimal string entered when Currency
+// isn't the Group Currency (FR-E5).
 type Input struct {
-	PayerID  platform.ID
-	Amount   int64
-	Currency string
+	PayerID      platform.ID
+	Amount       int64
+	Currency     string
+	ExchangeRate *string
 	Category string
 	Note     *string
 	SpentOn  time.Time // a date; the time is ignored
@@ -76,11 +79,21 @@ type Share struct {
 }
 
 // Computed is what ledger makes of an Input: the amount in the Group
-// Currency and each Member's Share, in the Split's order.
+// Currency, converted from the Original Amount if need be, and each
+// Member's Share, in the Split's order.
 type Computed struct {
 	Amount   int64
 	Currency string
+	Original Original
 	Shares   []Share
+}
+
+// Original is an Expense's Original Amount and, when its currency isn't
+// the Group Currency, the Exchange Rate as stored ("83.20"; ADR-0007).
+type Original struct {
+	Amount       int64
+	Currency     string
+	ExchangeRate *string
 }
 
 // Expense is a saved Expense with its Shares in joining order.
@@ -89,8 +102,9 @@ type Expense struct {
 	GroupID   platform.ID
 	PayerID   platform.ID
 	CreatedBy platform.ID
-	Amount    int64
+	Amount    int64 // in the Group Currency
 	Currency  string
+	Original  Original
 	Category  string
 	Note      *string
 	SpentOn   time.Time

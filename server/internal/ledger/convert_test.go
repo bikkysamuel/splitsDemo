@@ -63,6 +63,7 @@ func TestConvertRejects(t *testing.T) {
 		want     error
 	}{
 		{"a result that rounds to zero", 1, "USD", "EUR", rate("0.49"), ledger.ErrConvertedToZero},
+		{"a result beyond int64", 9_000_000_000_000_000_000, "JPY", "INR", rate("99"), ledger.ErrConvertedTooLarge},
 		{"a missing rate between currencies", 100, "USD", "INR", ledger.ExchangeRate{}, ledger.ErrMissingRate},
 		{"a rate between equal currencies", 100, "INR", "INR", rate("1"), ledger.ErrRateForSameCurrency},
 		{"a non-positive Original Amount", 0, "USD", "INR", rate("83"), ledger.ErrAmountNotPositive},

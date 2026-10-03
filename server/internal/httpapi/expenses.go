@@ -21,7 +21,10 @@ func (s *Server) PreviewExpense(ctx context.Context, req apigen.PreviewExpenseRe
 	}
 	c, err := s.deps.Expenses.Preview(ctx, p.UserID, platform.ID(req.GroupId), expenseInput(*req.Body))
 	if err == nil {
-		resp := apigen.PreviewExpense200JSONResponse{Amount: money(c.Amount, c.Currency), Shares: shareLines(c.Shares, c.Currency)}
+		resp := apigen.PreviewExpense200JSONResponse{
+			Amount: money(c.Amount, c.Currency), OriginalAmount: money(c.Original.Amount, c.Original.Currency),
+			ExchangeRate: c.Original.ExchangeRate, Shares: shareLines(c.Shares, c.Currency),
+		}
 		return resp, nil
 	}
 	prob, ok := expensesProblem(err)
@@ -147,7 +150,7 @@ func expensesProblem(err error) (apigen.Problem, bool) {
 
 func expenseInput(b apigen.ExpenseInput) expenses.Input {
 	in := expenses.Input{
-		PayerID: platform.ID(b.PayerMemberId), Amount: b.Amount.Minor, Currency: b.Amount.Currency,
+		PayerID: platform.ID(b.PayerMemberId), Amount: b.Amount.Minor, Currency: b.Amount.Currency, ExchangeRate: b.ExchangeRate,
 		Category: string(b.Category), Note: b.Note, SpentOn: b.SpentOn.Time, Method: string(b.Split.Method),
 	}
 	for _, m := range b.Split.Members {
@@ -160,7 +163,8 @@ func apiExpense(e expenses.Expense) apigen.Expense {
 	return apigen.Expense{
 		Id: openapi_types.UUID(e.ID), GroupId: openapi_types.UUID(e.GroupID),
 		PayerMemberId: openapi_types.UUID(e.PayerID), CreatedByMemberId: openapi_types.UUID(e.CreatedBy),
-		Amount: money(e.Amount, e.Currency), Category: apigen.Category(e.Category), Note: e.Note,
+		Amount: money(e.Amount, e.Currency), OriginalAmount: money(e.Original.Amount, e.Original.Currency),
+		ExchangeRate: e.Original.ExchangeRate, Category: apigen.Category(e.Category), Note: e.Note,
 		SpentOn: openapi_types.Date{Time: e.SpentOn}, SplitMethod: apigen.SplitMethod(e.Method),
 		State: apigen.ExpenseState(e.State), Version: int32(e.Version), //nolint:gosec // a version
 		CreatedAt: e.CreatedAt, Shares: shareLines(e.Shares, e.Currency),

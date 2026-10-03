@@ -107,8 +107,12 @@ extension Components {
         /// Field error codes of an Expense (`errors[].code`): `required`,
         /// `invalid`, `too_long`, `not_positive`, `not_group_currency`,
         /// `not_a_member` (payer or Split Member isn't an active Member),
-        /// `duplicate_member`, `no_members`; at `/split`, `exact_sum_mismatch`
-        /// and `percentages_not_100`; at `/split/members/{i}/input`,
+        /// `duplicate_member`, `no_members`; at `/amount/currency`, `invalid`
+        /// (not an active ISO 4217 code); at `/exchange_rate`, `required` (the
+        /// currency isn't the Group Currency), `not_allowed` (it is) and
+        /// `invalid`; at `/amount/minor`, `converts_to_zero` and `too_large`
+        /// (the converted amount); at `/split`, `exact_sum_mismatch` and
+        /// `percentages_not_100`; at `/split/members/{i}/input`,
         /// `missing_input`, `unexpected_input`, `input_not_positive`,
         /// `not_whole_minor_units`, `too_many_decimals`, `ratio_not_integer`
         /// and `invalid` (see `SplitInputValue`).
@@ -1190,10 +1194,18 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/ExpenseInput/payer_member_id`.
             public var payerMemberId: Swift.String
-            /// > 0, in the Group Currency for now (foreign currencies: #19).
+            /// The Original Amount, > 0, in any active ISO 4217 currency
+            /// (FR-E5). In another currency than the Group Currency it is
+            /// converted with `exchange_rate`, rounding half-up once
+            /// (ADR-0007, ADR-0010).
+            ///
             ///
             /// - Remark: Generated from `#/components/schemas/ExpenseInput/amount`.
             public var amount: Components.Schemas.Money
+            /// Required when `amount` isn't in the Group Currency; not allowed when it is.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpenseInput/exchange_rate`.
+            public var exchangeRate: Components.Schemas.ExchangeRate?
             /// - Remark: Generated from `#/components/schemas/ExpenseInput/category`.
             public var category: Components.Schemas.Category
             /// Optional, at most 500 characters after trimming (D1).
@@ -1210,7 +1222,8 @@ extension Components {
             ///
             /// - Parameters:
             ///   - payerMemberId: Any active Member, Placeholders included (FR-E3).
-            ///   - amount: > 0, in the Group Currency for now (foreign currencies: #19).
+            ///   - amount: The Original Amount, > 0, in any active ISO 4217 currency
+            ///   - exchangeRate: Required when `amount` isn't in the Group Currency; not allowed when it is.
             ///   - category:
             ///   - note: Optional, at most 500 characters after trimming (D1).
             ///   - spentOn: The day the money was spent.
@@ -1218,6 +1231,7 @@ extension Components {
             public init(
                 payerMemberId: Swift.String,
                 amount: Components.Schemas.Money,
+                exchangeRate: Components.Schemas.ExchangeRate? = nil,
                 category: Components.Schemas.Category,
                 note: Swift.String? = nil,
                 spentOn: Swift.String,
@@ -1225,6 +1239,7 @@ extension Components {
             ) {
                 self.payerMemberId = payerMemberId
                 self.amount = amount
+                self.exchangeRate = exchangeRate
                 self.category = category
                 self.note = note
                 self.spentOn = spentOn
@@ -1233,6 +1248,7 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case payerMemberId = "payer_member_id"
                 case amount
+                case exchangeRate = "exchange_rate"
                 case category
                 case note
                 case spentOn = "spent_on"
@@ -1247,6 +1263,10 @@ extension Components {
                 self.amount = try container.decode(
                     Components.Schemas.Money.self,
                     forKey: .amount
+                )
+                self.exchangeRate = try container.decodeIfPresent(
+                    Components.Schemas.ExchangeRate.self,
+                    forKey: .exchangeRate
                 )
                 self.category = try container.decode(
                     Components.Schemas.Category.self,
@@ -1267,6 +1287,7 @@ extension Components {
                 try decoder.ensureNoAdditionalProperties(knownKeys: [
                     "payer_member_id",
                     "amount",
+                    "exchange_rate",
                     "category",
                     "note",
                     "spent_on",
@@ -1276,7 +1297,8 @@ extension Components {
         }
         /// What was entered for one Member, as an exact decimal string (never
         /// a JSON number): for `exact`, minor units of the Group Currency
-        /// ("25050"); for `percentage`, a percentage with at most 2 decimal
+        /// ("25050"), summing to the converted amount when the Expense is in
+        /// another currency; for `percentage`, a percentage with at most 2 decimal
         /// places ("33.33"); for `ratio`, a positive integer weight ("2").
         /// Absent for `equal`. At most 30 whole digits and 8 decimals; anything
         /// else is `invalid`. Returned as saved: leading zeros dropped, scale
@@ -1340,24 +1362,42 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/schemas/ExpensePreview`.
         public struct ExpensePreview: Codable, Hashable, Sendable {
+            /// In the Group Currency, converted from `original_amount` if need be.
+            ///
             /// - Remark: Generated from `#/components/schemas/ExpensePreview/amount`.
             public var amount: Components.Schemas.Money
+            /// The amount as entered.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpensePreview/original_amount`.
+            public var originalAmount: Components.Schemas.Money
+            /// As entered; absent when `original_amount` is in the Group Currency.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ExpensePreview/exchange_rate`.
+            public var exchangeRate: Components.Schemas.ExchangeRate?
             /// - Remark: Generated from `#/components/schemas/ExpensePreview/shares`.
             public var shares: [Components.Schemas.ShareLine]
             /// Creates a new `ExpensePreview`.
             ///
             /// - Parameters:
-            ///   - amount:
+            ///   - amount: In the Group Currency, converted from `original_amount` if need be.
+            ///   - originalAmount: The amount as entered.
+            ///   - exchangeRate: As entered; absent when `original_amount` is in the Group Currency.
             ///   - shares:
             public init(
                 amount: Components.Schemas.Money,
+                originalAmount: Components.Schemas.Money,
+                exchangeRate: Components.Schemas.ExchangeRate? = nil,
                 shares: [Components.Schemas.ShareLine]
             ) {
                 self.amount = amount
+                self.originalAmount = originalAmount
+                self.exchangeRate = exchangeRate
                 self.shares = shares
             }
             public enum CodingKeys: String, CodingKey {
                 case amount
+                case originalAmount = "original_amount"
+                case exchangeRate = "exchange_rate"
                 case shares
             }
             public init(from decoder: any Swift.Decoder) throws {
@@ -1366,12 +1406,22 @@ extension Components {
                     Components.Schemas.Money.self,
                     forKey: .amount
                 )
+                self.originalAmount = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .originalAmount
+                )
+                self.exchangeRate = try container.decodeIfPresent(
+                    Components.Schemas.ExchangeRate.self,
+                    forKey: .exchangeRate
+                )
                 self.shares = try container.decode(
                     [Components.Schemas.ShareLine].self,
                     forKey: .shares
                 )
                 try decoder.ensureNoAdditionalProperties(knownKeys: [
                     "amount",
+                    "original_amount",
+                    "exchange_rate",
                     "shares"
                 ])
             }
@@ -1525,8 +1575,18 @@ extension Components {
             public var payerMemberId: Swift.String
             /// - Remark: Generated from `#/components/schemas/Expense/created_by_member_id`.
             public var createdByMemberId: Swift.String
+            /// In the Group Currency; Shares and Balances use it.
+            ///
             /// - Remark: Generated from `#/components/schemas/Expense/amount`.
             public var amount: Components.Schemas.Money
+            /// The Original Amount, in the currency it was paid in (the Group Currency's amount when there was no conversion).
+            ///
+            /// - Remark: Generated from `#/components/schemas/Expense/original_amount`.
+            public var originalAmount: Components.Schemas.Money
+            /// As entered; absent when there was no conversion.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Expense/exchange_rate`.
+            public var exchangeRate: Components.Schemas.ExchangeRate?
             /// - Remark: Generated from `#/components/schemas/Expense/category`.
             public var category: Components.Schemas.Category
             /// - Remark: Generated from `#/components/schemas/Expense/note`.
@@ -1552,7 +1612,9 @@ extension Components {
             ///   - groupId:
             ///   - payerMemberId:
             ///   - createdByMemberId:
-            ///   - amount:
+            ///   - amount: In the Group Currency; Shares and Balances use it.
+            ///   - originalAmount: The Original Amount, in the currency it was paid in (the Group Currency's amount when there was no conversion).
+            ///   - exchangeRate: As entered; absent when there was no conversion.
             ///   - category:
             ///   - note:
             ///   - spentOn:
@@ -1567,6 +1629,8 @@ extension Components {
                 payerMemberId: Swift.String,
                 createdByMemberId: Swift.String,
                 amount: Components.Schemas.Money,
+                originalAmount: Components.Schemas.Money,
+                exchangeRate: Components.Schemas.ExchangeRate? = nil,
                 category: Components.Schemas.Category,
                 note: Swift.String? = nil,
                 spentOn: Swift.String,
@@ -1581,6 +1645,8 @@ extension Components {
                 self.payerMemberId = payerMemberId
                 self.createdByMemberId = createdByMemberId
                 self.amount = amount
+                self.originalAmount = originalAmount
+                self.exchangeRate = exchangeRate
                 self.category = category
                 self.note = note
                 self.spentOn = spentOn
@@ -1596,6 +1662,8 @@ extension Components {
                 case payerMemberId = "payer_member_id"
                 case createdByMemberId = "created_by_member_id"
                 case amount
+                case originalAmount = "original_amount"
+                case exchangeRate = "exchange_rate"
                 case category
                 case note
                 case spentOn = "spent_on"
@@ -1626,6 +1694,14 @@ extension Components {
                 self.amount = try container.decode(
                     Components.Schemas.Money.self,
                     forKey: .amount
+                )
+                self.originalAmount = try container.decode(
+                    Components.Schemas.Money.self,
+                    forKey: .originalAmount
+                )
+                self.exchangeRate = try container.decodeIfPresent(
+                    Components.Schemas.ExchangeRate.self,
+                    forKey: .exchangeRate
                 )
                 self.category = try container.decode(
                     Components.Schemas.Category.self,
@@ -1665,6 +1741,8 @@ extension Components {
                     "payer_member_id",
                     "created_by_member_id",
                     "amount",
+                    "original_amount",
+                    "exchange_rate",
                     "category",
                     "note",
                     "spent_on",
@@ -2200,8 +2278,10 @@ extension Components {
         /// - Remark: Generated from `#/components/schemas/CurrencyCode`.
         public typealias CurrencyCode = Swift.String
         /// An exact decimal held in a string (ADR-0007), never a JSON number:
-        /// units of the Group currency per one unit of the Expense currency.
-        /// Positive, with at most 2 decimal places (FR-E5).
+        /// units of the Group Currency per one unit of the Expense's currency.
+        /// Positive, with at most 2 decimal places and at most 20 characters
+        /// (FR-E5, Q87); anything else is `invalid`. Returned as saved:
+        /// leading zeros dropped, scale kept ("83.20").
         ///
         ///
         /// - Remark: Generated from `#/components/schemas/ExchangeRate`.

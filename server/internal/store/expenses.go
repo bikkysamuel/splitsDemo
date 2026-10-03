@@ -37,10 +37,14 @@ func (r *ExpensesRepository) Create(ctx context.Context, e expenses.Expense) err
 		if g.Currency != e.Currency {
 			return &expenses.ValidationError{Fields: []expenses.FieldError{{Field: "amount/currency", Code: expenses.CodeNotGroupCurrency}}}
 		}
+		rate, err := numeric(e.Original.ExchangeRate)
+		if err != nil {
+			return err
+		}
 		err = q.InsertExpense(ctx, sqlcgen.InsertExpenseParams{
 			ID: uuid(e.ID), GroupID: uuid(e.GroupID), CreatedBy: uuid(e.CreatedBy), PayerID: uuid(e.PayerID),
 			Category: e.Category, Note: text(e.Note), SpentOn: date(e.SpentOn),
-			OriginalMinor: e.Amount, OriginalCurrency: e.Currency, AmountMinor: e.Amount,
+			OriginalMinor: e.Original.Amount, OriginalCurrency: e.Original.Currency, ExchangeRate: rate, AmountMinor: e.Amount,
 			SplitMethod: e.Method, State: e.State, Now: timestamptz(e.CreatedAt),
 		})
 		if err != nil {
@@ -58,8 +62,13 @@ func (r *ExpensesRepository) Create(ctx context.Context, e expenses.Expense) err
 				return fmt.Errorf("insert share: %w", err)
 			}
 		}
-		return insertEvent(ctx, q, e.GroupID, e.CreatedBy, "expense_created", "expense", e.ID,
-			map[string]any{"amount_minor": e.Amount, "currency": e.Currency, "category": e.Category}, e.CreatedAt)
+		payload := map[string]any{"amount_minor": e.Amount, "currency": e.Currency, "category": e.Category}
+		if e.Original.ExchangeRate != nil {
+			payload["original_minor"] = e.Original.Amount
+			payload["original_currency"] = e.Original.Currency
+			payload["exchange_rate"] = *e.Original.ExchangeRate
+		}
+		return insertEvent(ctx, q, e.GroupID, e.CreatedBy, "expense_created", "expense", e.ID, payload, e.CreatedAt)
 	})
 }
 
@@ -80,6 +89,9 @@ func (r *ExpensesRepository) ExpenseForUser(ctx context.Context, expenseID, user
 	e := expenses.Expense{
 		ID: id(row.ID), GroupID: id(row.GroupID), PayerID: id(row.PayerID), CreatedBy: id(row.CreatedBy),
 		Amount: row.AmountMinor, Currency: row.Currency, Category: row.Category, Note: optionalText(row.Note),
+		Original: expenses.Original{
+			Amount: row.OriginalMinor, Currency: row.OriginalCurrency, ExchangeRate: numericText(row.ExchangeRate),
+		},
 		SpentOn: row.SpentOn.Time, Method: row.SplitMethod, State: row.State, Version: int(row.Version),
 		CreatedAt: row.CreatedAt.Time, Shares: make([]expenses.Share, len(shares)),
 	}
